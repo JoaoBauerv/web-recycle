@@ -1,6 +1,8 @@
 <?php
 require_once(__DIR__ . '/../banco.php');
 
+$dados_usuario['permissao'] = ''; 
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -139,15 +141,11 @@ if (isset($_SESSION['precisa_alterar_senha']) && $_SESSION['precisa_alterar_senh
 
     </style>
 
-
-
 </head>
-
 
 <body>
     <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
     </svg>
-    
 
     <main class="d-flex flex-nowrap">
         
@@ -171,17 +169,22 @@ if (isset($_SESSION['precisa_alterar_senha']) && $_SESSION['precisa_alterar_senh
                                         <i class="bi bi-house-door me-2"></i> Inicio
                                     </a>
                                 </li>
-
-                                <!-- <li class="nav-item mb-2">
-                                    <a href="<?=$url_base?>/index2.php" class="nav-link active text-white bg-secondary rounded-3">
-                                        <i class="bi bi-shop me-2"></i> Produtos
+                                
+                                <?php if(!empty($_SESSION['logado'])){?>
+                                <li class="nav-item mb-2">
+                                    <a href="<?=$url_base?>/views/material/index.php" class="nav-link active text-white bg-secondary rounded-3">
+                                        <i class="bi bi-shop me-2"></i> Materiais
                                     </a>
                                 </li>
+
                                 <li class="nav-item mb-2">
-                                    <a href="<?=$url_base?>/index2.php" class="nav-link active text-white bg-secondary rounded-3">
-                                        <i class="bi bi-list-columns-reverse me-2"></i> Relatórios
+                                    <a href="<?=$url_base?>/views/pesagem/index.php" class="nav-link active text-white bg-secondary rounded-3">
+                                        <i class="bi bi-boxes me-2"></i> Pesagem
                                     </a>
-                                </li> -->
+                                </li> 
+                                <?php }?>
+
+                                
     
                                 <!-- <li class="nav-item">
                                     <button class="btn btn-outline-light w-100 text-start" type="button"
@@ -267,13 +270,7 @@ if (isset($_SESSION['precisa_alterar_senha']) && $_SESSION['precisa_alterar_senh
 
                     <div class="content d-flex justify-content-center" style="flex: 1;">
 
-                    
-                             
-             
-                
-                
-   
-
+       
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
