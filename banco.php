@@ -13,11 +13,14 @@ $banco    = $_ENV['DB_NAME'];
 $usuario  = $_ENV['DB_USER'];
 $senha    = $_ENV['DB_PASS'];
 $url_base = $_ENV['URL_BASE'];
+$db = "pgsql";
 
 try {
-    $pdo = new PDO("mysql:host=$endereco;port=$porta;dbname=$banco", $usuario, $senha, [
+    $pdo = new PDO("$db:host=$endereco;port=$porta;dbname=$banco", $usuario, $senha, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION
     ]);
+
+    $pdo->exec("SET search_path TO reciclagem");
 
     //echo "Conectado ao banco de dados com sucesso!";
 } catch (PDOException $e) {
