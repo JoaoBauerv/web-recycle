@@ -172,7 +172,6 @@ try {
     // Registrar movimentação
     
     registraMovimentacao($_SESSION['id_usuario'], $id, 'Usuário editado por admin: ' . $_SESSION['id_usuario'], 'Usuario editado', $pdo);
-    exit;
     $_SESSION['msg_sucesso'] = 'Usuário editado com sucesso!';
     header("Location: $url_base/views/user/edit.php?id=$id");
     exit;

@@ -400,9 +400,10 @@ $success = $_SESSION['msg_sucesso'] ?? '';
                                                 
                                                 <div class="col-md-3">
                                                     <label class="form-label">Número</label>
-                                                    <input type="text" 
+                                                    <input type="number" 
                                                            class="form-control" 
-                                                           name="numero" 
+                                                           name="numero"
+                                                           maxlength="5" 
                                                            value="<?= htmlspecialchars($endereco['numero'] ?? '') ?>">
                                                 </div>
                                                 
