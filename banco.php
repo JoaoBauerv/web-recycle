@@ -12,6 +12,7 @@ $porta    = $_ENV['DB_PORT'];
 $banco    = $_ENV['DB_NAME'];
 $usuario  = $_ENV['DB_USER'];
 $senha    = $_ENV['DB_PASS'];
+$url_base = $_ENV['URL_BASE'];
 
 try {
     $pdo = new PDO("mysql:host=$endereco;port=$porta;dbname=$banco", $usuario, $senha, [

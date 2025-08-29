@@ -1,8 +1,22 @@
 <?php
 require_once(__DIR__ . '/../banco.php');
-session_start();
 
-//var_dump($dados_usuario);
+$dados_usuario['permissao'] = ''; 
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Verificar se precisa alterar senha , se precisa ficar redirecionando o usuario para tela de alterar senha
+if (isset($_SESSION['precisa_alterar_senha']) && $_SESSION['precisa_alterar_senha'] === 1) {
+    // Permitir acesso apenas à página de alteração de senha
+    $arquivo_atual = basename($_SERVER['SCRIPT_NAME']);
+    if ($arquivo_atual !== 'alterar_senha.php') {
+        header('Location: '. $url_base. '/views/user/alterar_senha.php');
+        exit;
+    }
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -15,7 +29,9 @@ session_start();
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-beta.1/dist/js/select2.min.js"></script>
-    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
     <!-- filepond -->
 <!-- CSS FilePond + Preview -->
@@ -31,6 +47,7 @@ session_start();
 <script src="https://unpkg.com/filepond-plugin-image-crop/dist/filepond-plugin-image-crop.min.js"></script>
 <script src="https://unpkg.com/filepond-plugin-image-resize/dist/filepond-plugin-image-resize.min.js"></script>
 <script src="https://unpkg.com/filepond-plugin-image-transform/dist/filepond-plugin-image-transform.min.js"></script>
+   
 
 
     <style> 
@@ -124,15 +141,11 @@ session_start();
 
     </style>
 
-
-
 </head>
-
 
 <body>
     <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
     </svg>
-    
 
     <main class="d-flex flex-nowrap">
         
@@ -140,15 +153,39 @@ session_start();
                     <div class="d-flex">
                     <div class="sidebar d-flex flex-column p-3 text-white bg-dark" style="width: 250px; height: 100vh;">
 
-                        <h5>LOGIN TEMPLATE</h5>
+                            <h5 class="mb-4 text-center text-uppercase fw-bold border-bottom pb-2"><?=$_ENV['APP_NAME']?></h5>
+
                         
-                            <ul class="nav nav-pills flex-column mb-auto p-3 bg-dark text-white rounded shadow">
+                            <ul class="nav nav-pills flex-column mb-auto">
                                 <li class="nav-item mb-2">
-                                    <a href="/logintemplate/index.php" class="nav-link active text-white bg-primary">
-                                        Home
+                                    <?php 
+                                    if(!empty($_SESSION['logado'])){
+                                        $index = 'index2';
+                                    }else{
+                                        $index = 'index';
+                                    }
+                                    ?>
+                                    <a href="<?=$url_base?>/<?=$index?>.php" class="nav-link active text-white bg-primary rounded-3">
+                                        <i class="bi bi-house-door me-2"></i> Inicio
+                                    </a>
+                                </li>
+                                
+                                <?php if(!empty($_SESSION['logado'])){?>
+                                <li class="nav-item mb-2">
+                                    <a href="<?=$url_base?>/views/material/index.php" class="nav-link active text-white bg-secondary rounded-3">
+                                        <i class="bi bi-shop me-2"></i> Materiais
                                     </a>
                                 </li>
 
+                                <li class="nav-item mb-2">
+                                    <a href="<?=$url_base?>/views/pesagem/index.php" class="nav-link active text-white bg-secondary rounded-3">
+                                        <i class="bi bi-boxes me-2"></i> Pesagem
+                                    </a>
+                                </li> 
+                                <?php }?>
+
+                                
+    
                                 <!-- <li class="nav-item">
                                     <button class="btn btn-outline-light w-100 text-start" type="button"
                                             data-bs-toggle="collapse" data-bs-target="#sidebarMenuLinks"
@@ -196,43 +233,34 @@ session_start();
                                         $foto = $stmt->fetchColumn(); // Retorna só o valor da coluna
 
                                         // Caminho padrão se não houver foto no banco
-                                        $foto_usuario = !empty($foto) ? $foto : '/logintemplate/images/avatar.png';
+                                        $foto_usuario = !empty($foto) ? $foto : $url_base.'/images/user/padrao.png';
                                     
                                     ?>
+                                
 
-
-                                <a href=""
-                                    class="d-inline-flex align-items-center text-white text-decoration-none dropdown-toggle"
-                                    data-bs-toggle="dropdown">
-                                    <img src="<?php echo $foto_usuario; ?>" alt="" width="32" height="32" class="rounded-circle me-2">
-                                    <strong><?php echo htmlspecialchars($dados_usuario['nome']); ?></strong>
+                               <a href="#" class="d-flex align-items-center gap-2 text-white text-decoration-none dropdown-toggle" data-bs-toggle="dropdown">
+                                    <img src="<?=$url_base?>/images/user/<?= $foto_usuario ?>" alt="Foto"
+                                        class="rounded-circle border border-2 border-light" width="40" height="40" style="object-fit: cover;">
+                                    <span class="fw-semibold text-truncate" style="max-width: 140px;">
+                                        <?php echo htmlspecialchars($dados_usuario['nome']); ?>
+                                    </span>
                                 </a>
 
-                                <ul class="dropdown-menu dropdown-menu-dark text-small shadow">
-                                <?php if (!empty($dados_usuario['admin'])){ ?>    
-                                    <li>
-                                        <a class="dropdown-item" href="/logintemplate/views/user/admin.php">Admin</a>
-                                    </li>
-                                <?php } ?> 
-                                    <li>
-                                        <a class="dropdown-item" href="#">Settings</a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="/logintemplate/views/user/perfil.php">Profile</a>
-                                    </li>
-                                    <li>
-                                        <hr class="dropdown-divider">
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href='/logintemplate/functions/user/logout.php'>Sign out</a>
-                                    </li>
+                                <ul class="dropdown-menu dropdown-menu-dark shadow-sm mt-2">
+                                    <?php if ($dados_usuario['permissao'] == 'Admin'){ ?>    
+                                        <li><a class="dropdown-item" href="<?=$url_base?>/views/user/admin.php"><i class="bi bi-gear me-2"></i> Admin</a></li>
+                                    <?php } ?> 
+                                    <li><a class="dropdown-item" href="#"><i class="bi bi-sliders me-2"></i> Settings</a></li>
+                                    <li><a class="dropdown-item" href="<?=$url_base?>/views/user/perfil.php"><i class="bi bi-person-circle me-2"></i> Profile</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href='<?=$url_base?>/functions/user/logout.php'><i class="bi bi-box-arrow-right me-2"></i> Sign out</a></li>
                                 </ul>
                             </div>
 
                         <?php }else{ ?>
-                            <div class="text-center">
-                                <a href="/logintemplate/views/user/login.php" class="btn btn-primary btn-m me-2">Login</a>
-                                <a href="/logintemplate/views/user/register.php" class="btn btn-warning btn-m me-2">Registrar-se</a>
+                            <div class="d-grid gap-2">
+                                <a href="<?=$url_base?>/views/user/login.php" class="btn btn-primary btn-sm"><i class="bi bi-box-arrow-in-right me-1"></i> Login</a>
+                                <!--a href="<?=$url_base?>/views/user/register.php" class="btn btn-warning btn-sm"><i class="bi bi-person-plus me-1"></i> Registrar-se</!--a -->
                             </div>
                         <?php }; ?>
                         
@@ -241,14 +269,12 @@ session_start();
                     </div>
 
                     <div class="content d-flex justify-content-center" style="flex: 1;">
-                        
-                    
-                
 
-                
-            
-    
-
+       
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+
 </body>
 </html>
