@@ -15,7 +15,7 @@ $senha = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   $user = post_data('usuario');
-  $senha = post_data('senha');
+  $senha = $_POST['senha'];
 
   // Validações
   if (!$user) {
