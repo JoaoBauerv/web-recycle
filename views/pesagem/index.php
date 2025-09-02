@@ -1,4 +1,6 @@
 <?php
+date_default_timezone_set('America/Sao_Paulo');
+
 include '../../components/sidebar.php'; 
 require_once (__DIR__ . '/../../components/middleware.php');
 
@@ -11,7 +13,7 @@ if (!isset($_SESSION['materiais'])) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['adicionar_material'])) {
         // Busca o preço do material no banco
-        $sql_preco = "SELECT preco_compra FROM tb_material WHERE nm_material = ? AND status = 1";
+        $sql_preco = "SELECT preco_compra FROM tb_material WHERE id_material = ? AND status = 1";
         $stmt_preco = $pdo->prepare($sql_preco);
         $stmt_preco->execute([$_POST['tipo_material']]);
         $material_data = $stmt_preco->fetch(PDO::FETCH_ASSOC);
@@ -21,8 +23,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $valor_total = $preco_unitario * $peso;
         
         $material = [
-            'id' => uniqid(),
-            'tipo' => $_POST['tipo_material'],
+            'id' => $_POST['tipo_material'],
+            'tipo' => $_POST['nome_material'],
             'peso' => $peso,
             'preco_unitario' => $preco_unitario,
             'valor_total' => $valor_total,
@@ -48,31 +50,97 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     // Salva os dados (aqui você pode implementar salvamento em banco de dados)
     if (isset($_POST['salvar_pesagem'])) {
-        // Exemplo de salvamento em arquivo JSON
-        $dados_salvamento = [
-            'data_pesagem' => date('Y-m-d H:i:s'),
-            'materiais' => $_SESSION['materiais'],
-            'total_peso' => array_sum(array_column($_SESSION['materiais'], 'peso')),
-            'total_valor' => array_sum(array_column($_SESSION['materiais'], 'valor_total'))
-
-        ];
-        
-        $arquivo = 'pesagens_' . date('Y-m-d_H-i-s') . '.json';
-        file_put_contents($arquivo, json_encode($dados_salvamento, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-        
-        $mensagem_sucesso = "Pesagem salva com sucesso no arquivo: " . $arquivo;
-        $_SESSION['materiais'] = []; // Limpa a lista após salvar
+        try {
+            // Inicia uma transação para garantir consistência dos dados
+            $pdo->beginTransaction();
+            
+            // Calcula os totais
+            $total_peso = array_sum(array_column($_SESSION['materiais'], 'peso'));
+            $total_valor = array_sum(array_column($_SESSION['materiais'], 'valor_total'));
+            
+            // Insere na tabela tb_pesagem
+            $sql_pesagem = "INSERT INTO tb_pesagem (id_cliente, total_valor, total_peso, data_pesagem) 
+                            VALUES (:id_cliente, :total_valor, :total_peso, NOW()) 
+                            RETURNING id_pesagem";
+            
+            $stmt_pesagem = $pdo->prepare($sql_pesagem);
+            $stmt_pesagem->bindParam(':id_cliente', $_SESSION['cliente'], PDO::PARAM_INT);
+            $stmt_pesagem->bindParam(':total_valor', $total_valor, PDO::PARAM_STR);
+            $stmt_pesagem->bindParam(':total_peso', $total_peso, PDO::PARAM_STR);
+            $stmt_pesagem->execute();
+            
+            // Pega o ID da pesagem inserida
+            $id_pesagem = $stmt_pesagem->fetchColumn();
+            
+            // Prepara a query para inserir os materiais
+            $sql_material = "INSERT INTO tb_pesagem_material (id_pesagem, id_material, preco_un, peso_material, obs) 
+                            VALUES (:id_pesagem, :id_material, :preco_un, :peso_material, :obs)";
+            
+            $stmt_material = $pdo->prepare($sql_material);
+            
+            // Insere cada material na tabela tb_pesagem_material
+            foreach ($_SESSION['materiais'] as $material) {
+                $stmt_material->bindParam(':id_pesagem', $id_pesagem, PDO::PARAM_INT);
+                $stmt_material->bindParam(':id_material', $material['id'], PDO::PARAM_INT);
+                $stmt_material->bindParam(':preco_un', $material['preco_unitario'], PDO::PARAM_STR);
+                $stmt_material->bindParam(':peso_material', $material['peso'], PDO::PARAM_STR);
+                
+                // Se houver observação no array, usa ela, senão deixa null
+                $obs = isset($material['obs']) ? $material['obs'] : null;
+                $stmt_material->bindParam(':obs', $obs, PDO::PARAM_STR);
+                
+                $stmt_material->execute();
+            }
+            
+            // Confirma a transação
+            $pdo->commit();
+            
+            $mensagem_sucesso = "Pesagem salva com sucesso no banco de dados! ID da pesagem: " . $id_pesagem;
+            
+            // Limpa a sessão após salvar
+            $_SESSION['materiais'] = [];
+            $_SESSION['cliente'] = 0;
+            
+        } catch (PDOException $e) {
+            // Em caso de erro, desfaz a transação
+            $pdo->rollBack();
+            $mensagem_erro = "Erro ao salvar pesagem: " . $e->getMessage();
+        } catch (Exception $e) {
+                // Em caso de outros erros
+                $pdo->rollBack();
+                $mensagem_erro = "Erro inesperado: " . $e->getMessage();
+            }
     }
+
+    if (isset($_POST['selecionar_cliente'])) {
+        $_SESSION['cliente'] = $_POST['cliente'];
+    }
+
+    if (isset($_POST['remover_cliente'])) {
+        $_SESSION['cliente'] = 0;
+    }
+    
 }
 
 // Calcula totais
 $total_peso = array_sum(array_column($_SESSION['materiais'], 'peso'));
 $total_valor = array_sum(array_column($_SESSION['materiais'], 'valor_total'));
 $total_itens = count($_SESSION['materiais']);
+
+//var_dump($_SESSION['materiais']);
 ?>
 
 
     <style>
+        .container-cliente {
+            display: flex;
+            gap: 20px;
+            max-height: 300px;
+            padding: 20px;
+            margin-left: 270px;
+            margin-right: -300px;        
+        }
+
         .container-pesagem {
             display: flex;
             gap: 20px;
@@ -234,7 +302,7 @@ $total_itens = count($_SESSION['materiais']);
         }
         
         .totals-panel {
-            background: linear-gradient(135deg, #28a745, #20c997);
+            background: linear-gradient(135deg, #279641ff, #20c997);
             color: white;
             padding: 20px;
             border-radius: 10px;
@@ -301,12 +369,63 @@ $total_itens = count($_SESSION['materiais']);
             padding: 40px;
         }
     </style>
+    
+    <script>
+    $(document).ready(function() {
+        $('#cliente').select2({
+        placeholder: "Digite para buscar...",
+        allowClear: true
+        });
+    });
+    </script>
+
+     <?php 
+        $sql = "SELECT * FROM tb_usuario WHERE status = 1 ORDER BY nome";
+        $stmt = $pdo->query($sql);
+        $options = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    ?>
+
+    <div class="container-cliente"  >
+        <div class="painel-pesagem">
+            
+            <div class="header-pesagem">
+                <h2><i class="bi bi-person-fill"></i> Painel de cliente</h2>
+            </div>
+
+            <form method="POST" class="form-cliente">
+                <div class="form-group">
+                        <label for="cliente">Selecione um cliente caso necessário:</label>
+                            <select name="cliente" id="cliente" required>
+                                <option value="">Selecione o cliente...</option>
+                                <?php foreach ($options as $option): ?>
+                                    <option value="<?= htmlspecialchars($option['id_usuario']) ?>">
+                                        <?= htmlspecialchars($option['nome']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+
+                            <br>
+                        <button type="submit" name="selecionar_cliente" class="btn btn-success">
+                            + Selecionar cliente
+                        </button>
+                </div>
+            </form>
+                
+                <?php 
+                $sql = "SELECT * FROM tb_usuario WHERE status = 1 AND id_usuario = '".$_SESSION['cliente']."' ORDER BY nome ";
+                $stmt = $pdo->query($sql);
+                $cliente = $stmt->fetch(PDO::FETCH_ASSOC); 
+                ?>
+                    
+        </div>
+    </div>
+
 
     <div class="container-pesagem" style="height: 850px; width:1000px">
         <!-- Painel de Pesagem -->
         <div class="painel-pesagem">
             <div class="header-pesagem">
-                <h2>🏭 Sistema de Pesagem</h2>
+                <h2><i class="bi bi-receipt"></i> Sistema de Pesagem</h2>
                 <p>Adicione materiais recicláveis à lista</p>
             </div>
             
@@ -318,23 +437,36 @@ $total_itens = count($_SESSION['materiais']);
             
             <form method="POST" class="form-pesagem">
                 <?php 
-                    $sql = "SELECT * FROM tb_material WHERE status = 1 ORDER BY nm_material ASC";
+                    $sql = "SELECT * FROM tb_material WHERE status = 1 ORDER BY tipo ASC";
                     $stmt = $pdo->query($sql);
                     $options = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 ?>
+
+                 <script>
+                $(document).ready(function() {
+                    $('#tipo_material').select2({
+                    placeholder: "Digite para buscar...",
+                    allowClear: true
+                    });
+                });
+                </script>
+
                 
                 <div class="form-group">
                     <label for="tipo_material">Material:</label>
                     <select name="tipo_material" id="tipo_material" required>
                         <option value="">Selecione o material...</option>
                         <?php foreach ($options as $option): ?>
-                            <option value="<?= htmlspecialchars($option['nm_material']) ?>" 
-                                    data-preco="<?= $option['preco_compra'] ?>">
-                                <?= htmlspecialchars($option['nm_material']) ?>
+                            <option value="<?= htmlspecialchars($option['id_material']) ?>" 
+                                    data-preco="<?= $option['preco_compra'] ?>"
+                                    data-nome="<?= $option['nm_material']?>">
+                                <?= htmlspecialchars($option['nm_material']) . ' / ' . htmlspecialchars($option['tipo']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
                 </div>
+
+                <input type="hidden" id="nome_material" name="nome_material">
                 
                 <div class="form-group">
                     <label for="peso">Peso (kg):</label>
@@ -361,7 +493,7 @@ $total_itens = count($_SESSION['materiais']);
                 </div>
                 
                 <button type="submit" name="adicionar_material" class="btn btn-primary">
-                    ➕ Adicionar à Lista
+                    + Adicionar à Lista
                 </button>
             </form>
         </div>
@@ -369,7 +501,10 @@ $total_itens = count($_SESSION['materiais']);
         <!-- Lista de Materiais -->
         <div class="lista-materiais" style="height: 850px; width:1200px">
             <div class="totals-panel">
-                <h3>📊 Resumo da Pesagem</h3>
+                <h3><i class="bi bi-person-lines-fill"></i> Resumo da Pesagem</h3>
+                <?php if(!empty($_SESSION['cliente'])){?>
+                <h4><?=$cliente['nome']?> <form method="post"><button type="submit" name="remover_cliente" class="btn btn-danger btn-sm"> Remvoer </button></form></h4> 
+                <?php }?>
                 <div class="total-item">
                     <span class="total-number"><?= $total_itens ?></span>
                     <span class="total-label">Itens</span>
@@ -386,7 +521,7 @@ $total_itens = count($_SESSION['materiais']);
             
             <?php if (empty($_SESSION['materiais'])): ?>
                 <div class="lista-vazia">
-                    <p>🔍 Nenhum material pesado ainda.</p>
+                    <p><i class="bi bi-search"></i> Nenhum material pesado ainda.</p>
                     <p>Adicione materiais usando o painel ao lado.</p>
                 </div>
             <?php else: ?>
@@ -400,19 +535,19 @@ $total_itens = count($_SESSION['materiais']);
                             </div>
                         </div>
                         <div class="material-info">
-                            📅 <?= htmlspecialchars($material['data_hora']) ?>
-                            | 💰 R$ <?= number_format($material['preco_unitario'], 2, ',', '.') ?>/kg
+                            <i class="bi bi-calendar"></i> <?= htmlspecialchars($material['data_hora']) ?>
+                            | <i class="bi bi-cash-coin"></i> R$ <?= number_format($material['preco_unitario'], 2, ',', '.') ?>/kg
                         </div>
                         <?php if (!empty($material['observacoes'])): ?>
                             <div class="material-info">
-                                💭 <?= htmlspecialchars($material['observacoes']) ?>
+                                <?= htmlspecialchars($material['observacoes']) ?>
                             </div>
                         <?php endif; ?>
                         <form method="POST" style="display: inline;">
                             <input type="hidden" name="material_id" value="<?= $material['id'] ?>">
                             <button type="submit" name="remover_material" class="btn btn-danger" 
                                     onclick="return confirm('Remover este item?')">
-                                🗑️ Remover
+                                <i class="bi bi-trash3"></i> Remover
                             </button>
                         </form>
                     </div>
@@ -424,13 +559,13 @@ $total_itens = count($_SESSION['materiais']);
                     <form method="POST" style="flex: 1;">
                         <button type="submit" name="limpar_lista" class="btn btn-warning" 
                                 onclick="return confirm('Limpar toda a lista?')" style="width: 100%;">
-                            🧹 Limpar Lista
+                            <i class="bi bi-backspace"></i> Limpar Lista
                         </button>
                     </form>
                     <form method="POST" style="flex: 1;">
                         <button type="submit" name="salvar_pesagem" class="btn btn-success" 
                                 style="width: 100%;">
-                            💾 Salvar Pesagem
+                             ✓Salvar Pesagem
                         </button>
                     </form>
                 </div>
@@ -450,6 +585,7 @@ $total_itens = count($_SESSION['materiais']);
             const pesoInput = document.getElementById('peso');
             const valorUnitarioInput = document.getElementById('valor_unitario');
             const valorTotalInput = document.getElementById('valor_total');
+            const nomeMaterialInput = document.getElementById('nome_material');
             
             const selectedOption = select.options[select.selectedIndex];
             const precoUnitario = selectedOption ? parseFloat(selectedOption.getAttribute('data-preco')) || 0 : 0;
@@ -461,6 +597,11 @@ $total_itens = count($_SESSION['materiais']);
             // Calcula e atualiza valor total
             const valorTotal = precoUnitario * peso;
             valorTotalInput.value = formatarReal(valorTotal);
+
+            //Adiciona nome do material ao input hidden
+            const nomeMaterial = selectedOption ? selectedOption.getAttribute('data-nome') || '' : '';
+            nomeMaterialInput.value = nomeMaterial;
+
         }
         
         // Event listeners
