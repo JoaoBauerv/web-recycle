@@ -1,3 +1,5 @@
+composer require vlucas/phpdotenv composer require phpmailer/phpmailer
+
 -- Tabela de usuários
 CREATE TABLE tb_usuario (
     id_usuario SERIAL PRIMARY KEY,
