@@ -4,6 +4,9 @@ date_default_timezone_set('America/Sao_Paulo');
 include '../../components/sidebar.php'; 
 require_once (__DIR__ . '/../../components/middleware.php');
 
+if(!isset($_SESSION['cliente'])){
+    $_SESSION['cliente']= 0;
+}
 // Inicializa a lista de materiais na sessão se não existir
 if (!isset($_SESSION['materiais'])) {
     $_SESSION['materiais'] = [];
@@ -128,248 +131,11 @@ $total_valor = array_sum(array_column($_SESSION['materiais'], 'valor_total'));
 $total_itens = count($_SESSION['materiais']);
 
 //var_dump($_SESSION['materiais']);
+
 ?>
 
+    <link rel="stylesheet" href="../../css/pesagem.css">
 
-    <style>
-        .container-cliente {
-            display: flex;
-            gap: 20px;
-            max-height: 300px;
-            padding: 20px;
-            margin-left: 270px;
-            margin-right: -300px;        
-        }
-
-        .container-pesagem {
-            display: flex;
-            gap: 20px;
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .painel-pesagem {
-            flex: 1;
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        .lista-materiais {
-            flex: 1;
-            background: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            max-height: 600px;
-            overflow-y: auto;
-        }
-        
-        .form-pesagem {
-            display: grid;
-            gap: 15px;
-        }
-        
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .form-group label {
-            font-weight: bold;
-            margin-bottom: 5px;
-            color: #333;
-        }
-        
-        .form-group input, .form-group select, .form-group textarea {
-            padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
-            border-color: #28a745;
-            outline: none;
-        }
-        
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-        
-        .btn-primary {
-            background: #28a745;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #218838;
-        }
-        
-        .btn-danger {
-            background: #dc3545;
-            color: white;
-            font-size: 14px;
-            padding: 6px 12px;
-        }
-        
-        .btn-danger:hover {
-            background: #c82333;
-        }
-        
-        .btn-warning {
-            background: #ffc107;
-            color: #212529;
-        }
-        
-        .btn-warning:hover {
-            background: #e0a800;
-        }
-        
-        .btn-success {
-            background: #17a2b8;
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #138496;
-        }
-        
-        .material-item {
-            background: #f8f9fa;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            border-left: 4px solid #28a745;
-            position: relative;
-        }
-        
-        .material-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-        
-        .material-tipo {
-            font-weight: bold;
-            color: #28a745;
-            font-size: 18px;
-        }
-        
-        .material-peso {
-            background: #28a745;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-weight: bold;
-            margin-right: 8px;
-        }
-        
-        .material-valor {
-            background: #17a2b8;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-weight: bold;
-        }
-        
-        .valor-display {
-            font-size: 18px !important;
-            text-align: center;
-            font-weight: bold;
-            color: #17a2b8;
-            background-color: #e9ecef;
-        }
-        
-        .valor-total {
-            color: #28a745 !important;
-            font-size: 24px !important;
-        }
-        
-        .material-info {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-        
-        .totals-panel {
-            background: linear-gradient(135deg, #279641ff, #20c997);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .totals-panel h3 {
-            margin: 0 0 10px 0;
-        }
-        
-        .total-item {
-            display: inline-block;
-            margin: 0 20px;
-        }
-        
-        .total-number {
-            font-size: 24px;
-            font-weight: bold;
-            display: block;
-        }
-        
-        .total-label {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        .actions-panel {
-            display: flex;
-            gap: 10px;
-            justify-content: space-between;
-            margin-top: 20px;
-        }
-        
-        .alert {
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-        
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .peso-input {
-            font-size: 24px !important;
-            text-align: center;
-            font-weight: bold;
-            color: #28a745;
-        }
-        
-        .header-pesagem {
-            text-align: center;
-            margin-bottom: 20px;
-            color: #333;
-        }
-        
-        .lista-vazia {
-            text-align: center;
-            color: #888;
-            font-style: italic;
-            padding: 40px;
-        }
-    </style>
-    
     <script>
     $(document).ready(function() {
         $('#cliente').select2({
@@ -384,195 +150,201 @@ $total_itens = count($_SESSION['materiais']);
         $stmt = $pdo->query($sql);
         $options = $stmt->fetchAll(PDO::FETCH_ASSOC);
     ?>
-
-    <div class="container-cliente"  >
-        <div class="painel-pesagem">
-            
-            <div class="header-pesagem">
-                <h2><i class="bi bi-person-fill"></i> Painel de cliente</h2>
-            </div>
-
-            <form method="POST" class="form-cliente">
-                <div class="form-group">
-                        <label for="cliente">Selecione um cliente caso necessário:</label>
-                            <select name="cliente" id="cliente" required>
-                                <option value="">Selecione o cliente...</option>
-                                <?php foreach ($options as $option): ?>
-                                    <option value="<?= htmlspecialchars($option['id_usuario']) ?>">
-                                        <?= htmlspecialchars($option['nome']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-
-                            <br>
-                        <button type="submit" name="selecionar_cliente" class="btn btn-success">
-                            + Selecionar cliente
-                        </button>
-                </div>
-            </form>
+    <div style="display: flex;flex-direction: row;">
+        <div class="container-cliente"  >
+            <div class="painel-pesagem">
                 
-                <?php 
-                $sql = "SELECT * FROM tb_usuario WHERE status = 1 AND id_usuario = '".$_SESSION['cliente']."' ORDER BY nome ";
-                $stmt = $pdo->query($sql);
-                $cliente = $stmt->fetch(PDO::FETCH_ASSOC); 
-                ?>
+                <div class="header-pesagem">
+                    <h2><i class="bi bi-person-fill"></i> Painel de cliente</h2>
+                </div>
+
+                <form method="POST" class="form-cliente">
+                    <div class="form-group">
+                            <label for="cliente">Selecione um cliente caso necessário:</label>
+                                <select name="cliente" id="cliente" required>
+                                    <option value="">Selecione o cliente...</option>
+                                    <?php foreach ($options as $option): ?>
+                                        <option value="<?= htmlspecialchars($option['id_usuario']) ?>">
+                                            <?= htmlspecialchars($option['nome']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+
+                                <br>
+                            <button type="submit" name="selecionar_cliente" class="btn btn-success">
+                                + Selecionar cliente
+                            </button>
+                    </div>
+                </form>
                     
-        </div>
-    </div>
-
-
-    <div class="container-pesagem" style="height: 850px; width:1000px">
-        <!-- Painel de Pesagem -->
-        <div class="painel-pesagem">
-            <div class="header-pesagem">
-                <h2><i class="bi bi-receipt"></i> Sistema de Pesagem</h2>
-                <p>Adicione materiais recicláveis à lista</p>
-            </div>
-            
-            <?php if (isset($mensagem_sucesso)): ?>
-                <div class="alert alert-success">
-                    <?= htmlspecialchars($mensagem_sucesso) ?>
-                </div>
-            <?php endif; ?>
-            
-            <form method="POST" class="form-pesagem">
-                <?php 
-                    $sql = "SELECT * FROM tb_material WHERE status = 1 ORDER BY tipo ASC";
+                    <?php 
+                    $sql = "SELECT * FROM tb_usuario WHERE status = 1 AND id_usuario = '".$_SESSION['cliente']."' ORDER BY nome ";
                     $stmt = $pdo->query($sql);
-                    $options = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                ?>
-
-                 <script>
-                $(document).ready(function() {
-                    $('#tipo_material').select2({
-                    placeholder: "Digite para buscar...",
-                    allowClear: true
-                    });
-                });
-                </script>
-
-                
-                <div class="form-group">
-                    <label for="tipo_material">Material:</label>
-                    <select name="tipo_material" id="tipo_material" required>
-                        <option value="">Selecione o material...</option>
-                        <?php foreach ($options as $option): ?>
-                            <option value="<?= htmlspecialchars($option['id_material']) ?>" 
-                                    data-preco="<?= $option['preco_compra'] ?>"
-                                    data-nome="<?= $option['nm_material']?>">
-                                <?= htmlspecialchars($option['nm_material']) . ' / ' . htmlspecialchars($option['tipo']) ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-
-                <input type="hidden" id="nome_material" name="nome_material">
-                
-                <div class="form-group">
-                    <label for="peso">Peso (kg):</label>
-                    <input type="number" name="peso" id="peso" step="0.01" min="0.01" 
-                           class="peso-input" placeholder="0.00" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="valor_unitario">Valor por KG:</label>
-                    <input type="text" id="valor_unitario" class="valor-display" 
-                           placeholder="R$ 0,00" readonly>
-                </div>
-                
-                <div class="form-group">
-                    <label for="valor_total">Valor Total:</label>
-                    <input type="text" id="valor_total" class="valor-display valor-total" 
-                           placeholder="R$ 0,00" readonly>
-                </div>
-                
-                <div class="form-group">
-                    <label for="observacoes">Observações (opcional):</label>
-                    <textarea name="observacoes" id="observacoes" rows="3" 
-                              placeholder="Comentários adicionais sobre o material..."></textarea>
-                </div>
-                
-                <button type="submit" name="adicionar_material" class="btn btn-primary">
-                    + Adicionar à Lista
-                </button>
-            </form>
-        </div>
-        
-        <!-- Lista de Materiais -->
-        <div class="lista-materiais" style="height: 850px; width:1200px">
-            <div class="totals-panel">
-                <h3><i class="bi bi-person-lines-fill"></i> Resumo da Pesagem</h3>
-                <?php if(!empty($_SESSION['cliente'])){?>
-                <h4><?=$cliente['nome']?> <form method="post"><button type="submit" name="remover_cliente" class="btn btn-danger btn-sm"> Remvoer </button></form></h4> 
-                <?php }?>
-                <div class="total-item">
-                    <span class="total-number"><?= $total_itens ?></span>
-                    <span class="total-label">Itens</span>
-                </div>
-                <div class="total-item">
-                    <span class="total-number"><?= number_format($total_peso, 2, ',', '.') ?> kg</span>
-                    <span class="total-label">Peso Total</span>
-                </div>
-                <div class="total-item">
-                    <span class="total-number">R$ <?= number_format($total_valor, 2, ',', '.') ?></span>
-                    <span class="total-label">Valor Total</span>
-                </div>
+                    $cliente = $stmt->fetch(PDO::FETCH_ASSOC); 
+                    ?>
+                        
             </div>
             
-            <?php if (empty($_SESSION['materiais'])): ?>
-                <div class="lista-vazia">
-                    <p><i class="bi bi-search"></i> Nenhum material pesado ainda.</p>
-                    <p>Adicione materiais usando o painel ao lado.</p>
+        </div>
+
+        <div class="container-pesagem" style="height: 850px; width:1000px">
+            <!-- Painel de Pesagem -->
+            <div class="painel-pesagem">
+                <div class="header-pesagem">
+                    <h2><i class="bi bi-receipt"></i> Sistema de Pesagem</h2>
+                    <p>Adicione materiais recicláveis à lista</p>
                 </div>
-            <?php else: ?>
-                <?php foreach ($_SESSION['materiais'] as $material): ?>
-                    <div class="material-item">
-                        <div class="material-header">
-                            <span class="material-tipo"><?= htmlspecialchars($material['tipo']) ?></span>
-                            <div>
-                                <span class="material-peso"><?= number_format($material['peso'], 2, ',', '.') ?> kg</span>
-                                <span class="material-valor">R$ <?= number_format($material['valor_total'], 2, ',', '.') ?></span>
+                
+                <?php if (isset($mensagem_sucesso)): ?>
+                    <div class="alert alert-success">
+                        <?= htmlspecialchars($mensagem_sucesso) ?>
+                    </div>
+                <?php endif; ?>
+                
+                <form method="POST" class="form-pesagem">
+                    <?php 
+                        $sql = "SELECT * FROM tb_material WHERE status = 1 ORDER BY tipo ASC";
+                        $stmt = $pdo->query($sql);
+                        $options = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                    ?>
+
+                    <script>
+                    $(document).ready(function() {
+                        $('#tipo_material').select2({
+                        placeholder: "Digite para buscar...",
+                        allowClear: true
+                        });
+                    });
+                    </script>
+
+                    
+                    <div class="form-group">
+                        <label for="tipo_material">Material:</label>
+                        <select name="tipo_material" id="tipo_material" required>
+                            <option value="">Selecione o material...</option>
+                            <?php foreach ($options as $option): ?>
+                                <option value="<?= htmlspecialchars($option['id_material']) ?>" 
+                                        data-preco="<?= $option['preco_compra'] ?>"
+                                        data-nome="<?= $option['nm_material']?>">
+                                    <?= htmlspecialchars($option['nm_material']) . ' / ' . htmlspecialchars($option['tipo']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+
+                    <input type="hidden" id="nome_material" name="nome_material">
+                    
+                    <div class="form-group">
+                        <label for="peso">Peso (kg):</label>
+                        <input type="number" name="peso" id="peso" step="0.01" min="0.01" 
+                            class="peso-input" placeholder="0.00" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="valor_unitario">Valor por KG:</label>
+                        <input type="text" id="valor_unitario" class="valor-display" 
+                            placeholder="R$ 0,00" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="valor_total">Valor Total:</label>
+                        <input type="text" id="valor_total" class="valor-display valor-total" 
+                            placeholder="R$ 0,00" readonly>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="observacoes">Observações (opcional):</label>
+                        <textarea name="observacoes" id="observacoes" rows="3" 
+                                placeholder="Comentários adicionais sobre o material..."></textarea>
+                    </div>
+                    
+                    <button type="submit" name="adicionar_material" class="btn btn-primary">
+                        + Adicionar à Lista
+                    </button>
+                </form>
+            </div>
+            <!-- Lista de Materiais -->
+            <div class="lista-materiais" style="height: 850px; width:1200px">
+                <div class="totals-panel">
+                    <h3><i class="bi bi-person-lines-fill"></i> Resumo da Pesagem</h3>
+                    <?php if(!empty($_SESSION['cliente'])){?>
+                    <h4><?=$cliente['nome']?> <form method="post"><button type="submit" name="remover_cliente" class="btn btn-danger btn-sm"> Remvoer </button></form></h4> 
+                    <?php }?>
+                    <div class="total-item">
+                        <span class="total-number"><?= $total_itens ?></span>
+                        <span class="total-label">Itens</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="total-number"><?= number_format($total_peso, 2, ',', '.') ?> kg</span>
+                        <span class="total-label">Peso Total</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="total-number">R$ <?= number_format($total_valor, 2, ',', '.') ?></span>
+                        <span class="total-label">Valor Total</span>
+                    </div>
+                </div>
+                
+                <?php if (empty($_SESSION['materiais'])): ?>
+                    <div class="lista-vazia">
+                        <p><i class="bi bi-search"></i> Nenhum material pesado ainda.</p>
+                        <p>Adicione materiais usando o painel ao lado.</p>
+                    </div>
+                <?php else: ?>
+                <div style="height: 270px;overflow-y: auto;">
+                    <?php foreach ($_SESSION['materiais'] as $material): ?>
+                        <div class="material-item">
+                            <div class="material-header">
+                                <span class="material-tipo"><?= htmlspecialchars($material['tipo']) ?></span>
+                                <div>
+                                    <span class="material-peso"><?= number_format($material['peso'], 2, ',', '.') ?> kg</span>
+                                    <span class="material-valor">R$ <?= number_format($material['valor_total'], 2, ',', '.') ?></span>
+                                </div>
                             </div>
-                        </div>
-                        <div class="material-info">
-                            <i class="bi bi-calendar"></i> <?= htmlspecialchars($material['data_hora']) ?>
-                            | <i class="bi bi-cash-coin"></i> R$ <?= number_format($material['preco_unitario'], 2, ',', '.') ?>/kg
-                        </div>
-                        <?php if (!empty($material['observacoes'])): ?>
                             <div class="material-info">
-                                <?= htmlspecialchars($material['observacoes']) ?>
+                                <i class="bi bi-calendar"></i> <?= htmlspecialchars($material['data_hora']) ?>
+                                | <i class="bi bi-cash-coin"></i> R$ <?= number_format($material['preco_unitario'], 2, ',', '.') ?>/kg
                             </div>
-                        <?php endif; ?>
-                        <form method="POST" style="display: inline;">
-                            <input type="hidden" name="material_id" value="<?= $material['id'] ?>">
-                            <button type="submit" name="remover_material" class="btn btn-danger" 
-                                    onclick="return confirm('Remover este item?')">
-                                <i class="bi bi-trash3"></i> Remover
+                            <?php if (!empty($material['observacoes'])): ?>
+                                <div class="material-info">
+                                    <?= htmlspecialchars($material['observacoes']) ?>
+                                </div>
+                            <?php endif; ?>
+                            <form method="POST" style="display: inline;">
+                                <input type="hidden" name="material_id" value="<?= $material['id'] ?>">
+                                <button type="submit" name="remover_material" class="btn btn-danger" 
+                                        onclick="return confirm('Remover este item?')">
+                                    <i class="bi bi-trash3"></i> Remover
+                                </button>
+                            </form>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+                
+                <?php if (!empty($_SESSION['materiais'])): ?>
+                    <div class="actions-panel">
+                        <form method="POST" style="flex: 1;">
+                            <button type="submit" name="limpar_lista" class="btn btn-warning" 
+                                    onclick="return confirm('Limpar toda a lista?')" style="width: 100%;">
+                                <i class="bi bi-backspace"></i> Limpar Lista
+                            </button>
+                        </form>
+                        <form method="POST" style="flex: 1;">
+                            <button type="submit" name="salvar_pesagem" class="btn btn-success" 
+                                    style="width: 100%;">
+                                ✓Salvar Pesagem
                             </button>
                         </form>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-            
-            <?php if (!empty($_SESSION['materiais'])): ?>
-                <div class="actions-panel">
-                    <form method="POST" style="flex: 1;">
-                        <button type="submit" name="limpar_lista" class="btn btn-warning" 
-                                onclick="return confirm('Limpar toda a lista?')" style="width: 100%;">
-                            <i class="bi bi-backspace"></i> Limpar Lista
-                        </button>
-                    </form>
-                    <form method="POST" style="flex: 1;">
-                        <button type="submit" name="salvar_pesagem" class="btn btn-success" 
-                                style="width: 100%;">
-                             ✓Salvar Pesagem
-                        </button>
-                    </form>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
+
+        <div style="padding: 50px"> 
+                <button type="submit" class="btn btn-primary">Ver ultimas pessagens</button>
+            </div>
     </div>
-    
+
     <script>
         // Função para formatar valor em Real
         function formatarReal(valor) {
