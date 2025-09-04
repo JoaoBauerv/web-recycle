@@ -1,4 +1,5 @@
-composer require vlucas/phpdotenv composer require phpmailer/phpmailer
+composer require vlucas/phpdotenv 
+composer require phpmailer/phpmailer
 
 -- Tabela de usuários
 CREATE TABLE tb_usuario (
