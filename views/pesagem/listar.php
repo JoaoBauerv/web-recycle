@@ -2,25 +2,36 @@
 
 include '../../components/sidebar.php';
 
-$stmt = $pdo->prepare("SELECT  * FROM tb_pesagem WHERE total_valor > 0 ORDER BY id_pesagem ");
+$stmt = $pdo->prepare("SELECT  * FROM tb_pesagem WHERE total_valor > 0 ORDER BY data_pesagem ASC");
 $stmt->execute();
 $rowCount = $stmt->rowCount();
 
 if ($rowCount > 0):
 ?>
-<div class="container-fluid py-5">
+<div class="container-fluid py-4">
     <div class="row justify-content-center">
         <div class="col-9">
             <!-- Header da página -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-2">
+                            <li class="breadcrumb-item">
+                                <a href="listar.php" class="text-decoration-none">
+                                    <i class="bi bi-house-door me-1"></i>
+                                    Pesagens
+                                </a>
+                            </li>
+                        </ol>
+                    </nav>
                     <h2 class="mb-1 text-dark fw-bold">Relatório de Pesagens</h2>
                     <p class="text-muted mb-0">Visualize todas as pesagens com valores registrados</p>
                 </div>
-                <div class="d-flex align-items-center">
-                    <span class="badge bg-primary fs-6 px-3 py-2">
-                        Total: <?= $rowCount ?> registros
-                    </span>
+                <div class="d-flex gap-2">
+                    <a href="index.php" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>
+                        Voltar
+                    </a>
                 </div>
             </div>
 
@@ -252,7 +263,7 @@ $(document).ready(function() {
         },
         "pageLength": 10,
         "lengthMenu": [5, 10, 25, 50, 100],
-        "order": [[0, "asc"]],
+        "order": [[3, "desc"]],
         "responsive": true,
         "dom": "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
                "<'row'<'col-sm-12'tr>>" +

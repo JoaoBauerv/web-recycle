@@ -35,19 +35,19 @@ $stmt_itens = $pdo->prepare("
 $stmt_itens->execute([$id_pesagem]);
 $itens = $stmt_itens->fetchAll(PDO::FETCH_ASSOC);
 
-$cliente_nome = $cliente ? $cliente['nome'] : 'Cliente não encontrado';
+$cliente_nome = $cliente ? $cliente['nome'] : 'Desconhecido';
 ?>
 
 <div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-12">
+    <div class="row justify-content-center">
+        <div class="col-9">
             <!-- Breadcrumb e ações -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-2">
                             <li class="breadcrumb-item">
-                                <a href="index.php" class="text-decoration-none">
+                                <a href="listar.php" class="text-decoration-none">
                                     <i class="bi bi-house-door me-1"></i>
                                     Pesagens
                                 </a>
@@ -58,14 +58,14 @@ $cliente_nome = $cliente ? $cliente['nome'] : 'Cliente não encontrado';
                     <h2 class="mb-0 text-dark fw-bold">Detalhes da Pesagem</h2>
                 </div>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary" onclick="window.print()">
+                    <!-- <button class="btn btn-outline-primary" onclick="window.print()">
                         <i class="bi bi-printer me-1"></i>
                         Imprimir
-                    </button>
-                    <a href="editar.php?id=<?= $id_pesagem ?>" class="btn btn-warning">
+                    </button> -->
+                    <!-- <a href="editar.php?id=<? $id_pesagem ?>" class="btn btn-warning">
                         <i class="bi bi-pencil me-1"></i>
                         Editar
-                    </a>
+                    </a> -->
                     <a href="listar.php" class="btn btn-secondary">
                         <i class="bi bi-arrow-left me-1"></i>
                         Voltar
@@ -112,17 +112,14 @@ $cliente_nome = $cliente ? $cliente['nome'] : 'Cliente não encontrado';
                             <div class="d-flex align-items-center mb-3">
                                 <div class="bg-success-subtle text-success me-3 d-flex align-items-center justify-content-center" 
                                      style="width: 50px; height: 50px; border-radius: 12px; font-size: 20px;">
-                                    <i class="bi bi-weight"></i>
+                                    <i class="bi bi-bar-chart"></i>
                                 </div>
                                 <div>
                                     <h6 class="text-muted mb-1 text-uppercase fw-semibold" style="font-size: 12px; letter-spacing: 1px;">Peso Total</h6>
                                     <h5 class="mb-0 fw-bold text-success"><?= htmlspecialchars($pesagem['total_peso']) ?> kg</h5>
                                 </div>
                             </div>
-                            <div class="progress" style="height: 8px;">
-                                <div class="progress-bar bg-success" style="width: 85%"></div>
-                            </div>
-                            <small class="text-muted mt-2 d-block">Meta mensal: 85% atingida</small>
+                            
                         </div>
                     </div>
                 </div>
@@ -230,7 +227,7 @@ $cliente_nome = $cliente ? $cliente['nome'] : 'Cliente não encontrado';
                                 <table class="table table-hover align-middle mb-0">
                                     <thead class="table-light">
                                         <tr>
-                                            <th class="fw-semibold border-0 ps-4">Produto</th>
+                                            <th class="fw-semibold border-0 ps-4">Material</th>
                                             <th class="fw-semibold border-0">Peso (kg)</th>
                                             <th class="fw-semibold border-0">Preço/kg</th>
                                             <th class="fw-semibold border-0">Valor Total</th>
