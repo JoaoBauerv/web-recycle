@@ -33,22 +33,17 @@ $material = $stmt->fetch(PDO::FETCH_ASSOC);
                 </select>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Medida</label>
-                <select name="medida" class="form-select" required>
-                    <option value="UN" <?= ($material['medida'] == 'UN')? 'Selectd' : '' ?>>Unidade</option>
-                    <option value="KG" <?= ($material['medida'] == 'KG')? 'Selectd' : '' ?>>Quilo</option>
-                    <option value="L" <?= ($material['medida'] == 'L')? 'Selectd' : '' ?>>Litro</option>
-                    <option value="CX" <?= ($material['medida'] == 'CX')? 'Selectd' : '' ?>>Caixa</option>
-                </select>
-            </div>
-
             <input type="hidden" value="editar" name="acao">
             <input type="hidden" value="<?=$_REQUEST['id']?>" name ="id">
 
             <div class="mb-3">
-                <label class="form-label">Preço Compra</label>
+                <label class="form-label">Preço Normal</label>
                 <input type="number" step="0.01" name="preco_compra" class="form-control" placeholder="Ex: 10" value="<?= $material['preco_compra'] ?>" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Preço Especial</label>
+                <input type="number" step="0.01" name="preco_especial" class="form-control" placeholder="Ex: 12" value="<?= $material['preco_especial'] ?>" required>
             </div>
 
             <button type="submit" class="btn btn-primary w-100">Confirmar</button>

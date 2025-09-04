@@ -15,13 +15,26 @@ if (!isset($_SESSION['materiais'])) {
 // Processa a adição de materiais
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['adicionar_material'])) {
-        // Busca o preço do material no banco
-        $sql_preco = "SELECT preco_compra FROM tb_material WHERE id_material = ? AND status = 1";
+        // Busca o preço do material no banco (incluindo preço especial)
+        $sql_preco = "SELECT preco_compra, preco_especial FROM tb_material WHERE id_material = ? AND status = 1";
         $stmt_preco = $pdo->prepare($sql_preco);
         $stmt_preco->execute([$_POST['tipo_material']]);
         $material_data = $stmt_preco->fetch(PDO::FETCH_ASSOC);
         
-        $preco_unitario = $material_data ? floatval($material_data['preco_compra']) : 0;
+        // Determina qual preço usar baseado no checkbox e se existe preço especial
+        $usar_preco_especial = isset($_POST['preco_especial']) && $_POST['preco_especial'] === 'on';
+        
+        if ($material_data) {
+            // Se deve usar preço especial E existe preço especial no banco
+            if ($usar_preco_especial && !empty($material_data['preco_especial'])) {
+                $preco_unitario = floatval($material_data['preco_especial']);
+            } else {
+                $preco_unitario = floatval($material_data['preco_compra']);
+            }
+        } else {
+            $preco_unitario = 0;
+        }
+        
         $peso = floatval($_POST['peso']);
         $valor_total = $preco_unitario * $peso;
         
@@ -146,11 +159,11 @@ $total_itens = count($_SESSION['materiais']);
     </script>
 
      <?php 
-        $sql = "SELECT * FROM tb_usuario WHERE status = 1 ORDER BY nome";
+        $sql = "SELECT * FROM tb_usuario WHERE status = 1 AND cliente is not null ORDER BY nome";
         $stmt = $pdo->query($sql);
         $options = $stmt->fetchAll(PDO::FETCH_ASSOC);
     ?>
-    <div style="display: flex;flex-direction: row;">
+    <div  style="display: flex;flex-direction: row;">
         <div class="container-cliente"  >
             <div class="painel-pesagem">
                 
@@ -187,6 +200,7 @@ $total_itens = count($_SESSION['materiais']);
             
         </div>
 
+    
         <div class="container-pesagem" style="height: 850px; width:1000px">
             <!-- Painel de Pesagem -->
             <div class="painel-pesagem">
@@ -225,13 +239,21 @@ $total_itens = count($_SESSION['materiais']);
                             <?php foreach ($options as $option): ?>
                                 <option value="<?= htmlspecialchars($option['id_material']) ?>" 
                                         data-preco="<?= $option['preco_compra'] ?>"
+                                        data-preco-especial="<?= !empty($option['preco_especial']) ? $option['preco_especial'] : '' ?>"
                                         data-nome="<?= $option['nm_material']?>">
                                     <?= htmlspecialchars($option['nm_material']) . ' / ' . htmlspecialchars($option['tipo']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-
+                    
+                    <label><input type="checkbox" id="preco_especial" name="preco_especial"<?php                  
+                    if(!empty($_SESSION['cliente']) && $cliente['cliente'] == true){
+                    echo 'checked';
+                    }?>
+                    > Preço especial
+                    </label>
+                    
                     <input type="hidden" id="nome_material" name="nome_material">
                     
                     <div class="form-group">
@@ -246,6 +268,7 @@ $total_itens = count($_SESSION['materiais']);
                             placeholder="R$ 0,00" readonly>
                     </div>
                     
+
                     <div class="form-group">
                         <label for="valor_total">Valor Total:</label>
                         <input type="text" id="valor_total" class="valor-display valor-total" 
@@ -330,7 +353,7 @@ $total_itens = count($_SESSION['materiais']);
                             </button>
                         </form>
                         <form method="POST" style="flex: 1;">
-                            <button type="submit" name="salvar_pesagem" class="btn btn-success" 
+                            <button type="submit" name="salvar_pesagem" class="btn btn-primary" 
                                     style="width: 100%;">
                                 ✓Salvar Pesagem
                             </button>
@@ -341,65 +364,108 @@ $total_itens = count($_SESSION['materiais']);
         </div>
 
         <div style="padding: 50px"> 
-                <button type="submit" class="btn btn-primary">Ver ultimas pessagens</button>
+                <a href="listar.php" class="btn btn-secondary">
+                        Ver pesagens <i class="bi bi-arrow-right me-1"></i>
+                    </a>
             </div>
     </div>
 
     <script>
         // Função para formatar valor em Real
-        function formatarReal(valor) {
-            return 'R$ ' + valor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        }
-        
-        // Função para calcular valor total
-        function calcularValorTotal() {
-            const select = document.getElementById('tipo_material');
-            const pesoInput = document.getElementById('peso');
-            const valorUnitarioInput = document.getElementById('valor_unitario');
-            const valorTotalInput = document.getElementById('valor_total');
-            const nomeMaterialInput = document.getElementById('nome_material');
-            
-            const selectedOption = select.options[select.selectedIndex];
-            const precoUnitario = selectedOption ? parseFloat(selectedOption.getAttribute('data-preco')) || 0 : 0;
-            const peso = parseFloat(pesoInput.value) || 0;
-            
-            // Atualiza valor unitário
-            valorUnitarioInput.value = formatarReal(precoUnitario);
-            
-            // Calcula e atualiza valor total
-            const valorTotal = precoUnitario * peso;
-            valorTotalInput.value = formatarReal(valorTotal);
-
-            //Adiciona nome do material ao input hidden
-            const nomeMaterial = selectedOption ? selectedOption.getAttribute('data-nome') || '' : '';
-            nomeMaterialInput.value = nomeMaterial;
-
-        }
-        
-        // Event listeners
-        document.getElementById('tipo_material').addEventListener('change', function() {
-            calcularValorTotal();
-            if (this.value) {
-                document.getElementById('peso').focus();
+            function formatarReal(valor) {
+                return 'R$ ' + valor.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             }
-        });
-        
-        document.getElementById('peso').addEventListener('input', calcularValorTotal);
-        
-        // Permite usar Enter para adicionar rapidamente
-        document.getElementById('peso').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter' && this.value && document.getElementById('tipo_material').value) {
-                e.preventDefault();
-                document.querySelector('button[name="adicionar_material"]').click();
+
+            // Função para calcular valor total
+            function calcularValorTotal() {
+                const select = document.getElementById('tipo_material');
+                const pesoInput = document.getElementById('peso');
+                const valorUnitarioInput = document.getElementById('valor_unitario');
+                const valorTotalInput = document.getElementById('valor_total');
+                const nomeMaterialInput = document.getElementById('nome_material');
+                
+                const selectedOption = select.options[select.selectedIndex];
+                const precoUnitario = selectedOption ? parseFloat(selectedOption.getAttribute('data-preco')) || 0 : 0;
+                const peso = parseFloat(pesoInput.value) || 0;
+                
+                // Atualiza valor unitário
+                valorUnitarioInput.value = formatarReal(precoUnitario);
+                
+                // Calcula e atualiza valor total
+                const valorTotal = precoUnitario * peso;
+                valorTotalInput.value = formatarReal(valorTotal);
+
+                //Adiciona nome do material ao input hidden
+                const nomeMaterial = selectedOption ? selectedOption.getAttribute('data-nome') || '' : '';
+                nomeMaterialInput.value = nomeMaterial;
             }
-        });
-        
-        // Limpa o formulário após adicionar (se a página recarregar)
-        <?php if (isset($_POST['adicionar_material'])): ?>
-        document.getElementById('peso').value = '';
-        document.getElementById('observacoes').value = '';
-        document.getElementById('valor_unitario').value = '';
-        document.getElementById('valor_total').value = '';
-        document.getElementById('tipo_material').focus();
-        <?php endif; ?>
+
+            // Event listeners
+            document.getElementById('tipo_material').addEventListener('change', function() {
+                calcularValorTotal();
+                if (this.value) {
+                    document.getElementById('peso').focus();
+                }
+            });
+
+            document.getElementById('peso').addEventListener('input', calcularValorTotal);
+
+            // Permite usar Enter para adicionar rapidamente
+            document.getElementById('peso').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && this.value && document.getElementById('tipo_material').value) {
+                    e.preventDefault();
+                    document.querySelector('button[name="adicionar_material"]').click();
+                }
+            });
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const precoEspecialCheckbox = document.getElementById('preco_especial');
+                const tipoMaterialSelect = document.getElementById('tipo_material');
+                
+                function atualizarPrecos() {
+                    const isPrecoEspecial = precoEspecialCheckbox.checked;
+                    
+                    // Atualiza todos os options do select
+                    Array.from(tipoMaterialSelect.options).forEach(option => {
+                        if (option.value !== '') { // Não processar o option vazio
+                            const precoNormal = option.getAttribute('data-preco');
+                            const precoEspecial = option.getAttribute('data-preco-especial');
+                            
+                            if (isPrecoEspecial && precoEspecial && precoEspecial !== '') {
+                                option.setAttribute('data-preco', precoEspecial);
+                            } else {
+                                // Restaura o preço original (assumindo que você tem um backup)
+                                const precoOriginal = option.getAttribute('data-preco-original') || precoNormal;
+                                option.setAttribute('data-preco', precoOriginal);
+                            }
+                        }
+                    });
+                    
+                    // IMPORTANTE: Recalcula os valores após alterar os preços
+                    calcularValorTotal();
+                }
+                
+                // Salva os preços originais na primeira execução
+                Array.from(tipoMaterialSelect.options).forEach(option => {
+                    if (option.value !== '') {
+                        const precoOriginal = option.getAttribute('data-preco');
+                        option.setAttribute('data-preco-original', precoOriginal);
+                    }
+                });
+                
+                // Aplica a lógica inicial baseada no estado atual do checkbox
+                atualizarPrecos();
+                
+                // Escuta mudanças no checkbox
+                precoEspecialCheckbox.addEventListener('change', atualizarPrecos);
+            });
+                    
+            // Limpa o formulário após adicionar (se a página recarregar)
+            <?php if (isset($_POST['adicionar_material'])): ?>
+            document.getElementById('peso').value = '';
+            document.getElementById('observacoes').value = '';
+            document.getElementById('valor_unitario').value = '';
+            document.getElementById('valor_total').value = '';
+            document.getElementById('tipo_material').focus();
+            <?php endif; ?>
     </script>

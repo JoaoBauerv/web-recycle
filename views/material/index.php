@@ -18,8 +18,9 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 <thead class="table-primary text-dark">
                     <tr>
                         <th>Nome</th>
-                        <th>Medida</th>
-                        <th>Preço</th>
+                        <th>Tipo</th>
+                        <th>Preço Normal</th>
+                        <th>Preço Especial</th>
                         <th>Estoque</th>
                         <th>Ações</th>
                     </tr>
@@ -30,6 +31,7 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         <td><?= htmlspecialchars($p['nm_material']) ?></td>
                         <td><?= htmlspecialchars($p['tipo']) ?></td>
                         <td><?= number_format($p['preco_compra'], 2, ',', '.') ?></td>
+                        <td><?= number_format($p['preco_especial'], 2, ',', '.') ?> </td>
                         <td><?= $p['qt_estoque'] ?></td>
                         <td>
                             <a href="edit.php?id=<?=$p['id_material']?>" class="btn btn-warning btn-sm">Editar</a>

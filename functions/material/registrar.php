@@ -13,15 +13,16 @@ switch($_REQUEST['acao']){
     case 'cadastrar':
 
         try {
-            $sql = "INSERT INTO tb_material (nm_material, tipo, medida, qt_estoque, preco_compra) 
-                    VALUES (:nome, :categoria, :medida, 0, :preco)";
+            $sql = "INSERT INTO tb_material (nm_material, tipo, qt_estoque, preco_compra, preco_especial) 
+                    VALUES (:nome, :categoria, 0, :preco, :preco_especial)";
             $stmt = $pdo->prepare($sql);
 
             $dados = array(
                 ':nome' => $nome,
                 ':categoria' => $_REQUEST['categoria'],
                 ':medida' => $_REQUEST['medida'],
-                ':preco' => $_REQUEST['preco_compra']
+                ':preco' => $_REQUEST['preco_compra'],
+                ':preco_especial' => $_REQUEST['preco_especial']
             );
 
             // Verifica se foi enviado via POST (admin logado cadastrando outro)
@@ -54,15 +55,15 @@ switch($_REQUEST['acao']){
     case 'editar':
 
             try {
-            $sql = "UPDATE tb_material SET nm_material = :nome , tipo = :categoria, medida = :medida, preco_compra = :preco WHERE
+            $sql = "UPDATE tb_material SET nm_material = :nome , tipo = :categoria, preco_compra = :preco, preco_especial = :preco_especial WHERE
                     id_material = ".$_REQUEST['id']."";
             $stmt = $pdo->prepare($sql);
 
             $dados = array(
                 ':nome' => $nome,
                 ':categoria' => $_REQUEST['categoria'],
-                ':medida' => $_REQUEST['medida'],
-                ':preco' => $_REQUEST['preco_compra']
+                ':preco' => $_REQUEST['preco_compra'],
+                ':preco_especial' => $_REQUEST['preco_especial']
             );
 
             // Verifica se foi enviado via POST (admin logado cadastrando outro)
