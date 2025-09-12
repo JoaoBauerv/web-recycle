@@ -147,9 +147,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
-
-include '../../components/sidebar.php';
 require_once (__DIR__ . '/../../components/middleware.php');
+include '../../components/sidebar.php';
 
 ?>
 

@@ -1,7 +1,7 @@
 
 <?php 
-include '../../components/sidebar.php'; 
 require_once (__DIR__ . '/../../components/middleware.php');
+include '../../components/sidebar.php'; 
 unset($_SESSION['msg_erro']);
 unset($_SESSION['msg_sucesso']);
 

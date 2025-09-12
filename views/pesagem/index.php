@@ -1,8 +1,7 @@
 <?php
 date_default_timezone_set('America/Sao_Paulo');
-
-include '../../components/sidebar.php'; 
 require_once (__DIR__ . '/../../components/middleware.php');
+include '../../components/sidebar.php'; 
 
 if(!isset($_SESSION['cliente'])){
     $_SESSION['cliente']= 0;

@@ -1,5 +1,5 @@
 <?php
-
+require_once (__DIR__ . '/../../components/middleware.php');
 include '../../components/sidebar.php';
 
 $stmt = $pdo->prepare("SELECT  * FROM tb_pesagem WHERE total_valor > 0 ORDER BY data_pesagem ASC");

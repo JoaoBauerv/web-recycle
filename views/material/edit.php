@@ -1,6 +1,6 @@
 <?php 
-include '../../components/sidebar.php'; 
 require_once (__DIR__ . '/../../components/middleware.php');
+include '../../components/sidebar.php'; 
 
 $sql = "SELECT * FROM tb_material WHERE id_material = ".$_REQUEST['id']."";
 $stmt = $pdo->query($sql);

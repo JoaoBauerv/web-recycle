@@ -1,6 +1,6 @@
 <?php 
-include '../../components/sidebar.php'; 
 require_once (__DIR__ . '/../../components/middleware.php');
+include '../../components/sidebar.php'; 
 
 ?>
 

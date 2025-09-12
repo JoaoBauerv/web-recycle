@@ -1,6 +1,6 @@
 <?php 
-include '../../components/sidebar.php'; 
 require_once (__DIR__ . '/../../components/middleware.php');
+include '../../components/sidebar.php'; 
 
 $sql = "SELECT * FROM tb_material WHERE status = 1 ORDER BY nm_material ASC";
 $stmt = $pdo->query($sql);

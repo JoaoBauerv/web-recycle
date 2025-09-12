@@ -1,4 +1,5 @@
 <?php
+require_once (__DIR__ . '/../../components/middleware.php');
 include '../../components/sidebar.php';
 
 // Verificar se o ID foi passado
