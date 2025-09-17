@@ -37,25 +37,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $peso = floatval($_POST['peso']);
         $valor_total = $preco_unitario * $peso;
         
+        $item_id = uniqid('item_', true);
+                
         $material = [
-            'id' => $_POST['tipo_material'],
+            'item_id' => $item_id, // ID único para o item na sessão
+            'id' => $_POST['tipo_material'], // ID do material no banco
             'tipo' => $_POST['nome_material'],
             'peso' => $peso,
             'preco_unitario' => $preco_unitario,
             'valor_total' => $valor_total,
             'data_hora' => date('d/m/Y H:i:s'),
-            'observacoes' => $_POST['observacoes'] ?? ''
+            'observacoes' => $_POST['observacoes'] ?? '' // Corrigido o nome do campo
         ];
         $_SESSION['materiais'][] = $material;
     }
     
     // Remove material específico
     if (isset($_POST['remover_material'])) {
-        $id_remover = $_POST['material_id'];
-        $_SESSION['materiais'] = array_filter($_SESSION['materiais'], function($item) use ($id_remover) {
-            return $item['id'] !== $id_remover;
+        $item_id_remover = $_POST['material_item_id']; // Mudança no nome
+        $_SESSION['materiais'] = array_filter($_SESSION['materiais'], function($item) use ($item_id_remover) {
+            return $item['item_id'] !== $item_id_remover; // Usar item_id
         });
-        $_SESSION['materiais'] = array_values($_SESSION['materiais']); // Reindexar array
+        $_SESSION['materiais'] = array_values($_SESSION['materiais']);
     }
     
     // Limpa toda a lista
@@ -100,8 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt_material->bindParam(':preco_un', $material['preco_unitario'], PDO::PARAM_STR);
                 $stmt_material->bindParam(':peso_material', $material['peso'], PDO::PARAM_STR);
                 
-                // Se houver observação no array, usa ela, senão deixa null
-                $obs = isset($material['obs']) ? $material['obs'] : null;
+                // CORREÇÃO: Usar 'observacoes' em vez de 'obs'
+                $obs = isset($material['observacoes']) ? $material['observacoes'] : null;
                 $stmt_material->bindParam(':obs', $obs, PDO::PARAM_STR);
                 
                 $stmt_material->execute();
@@ -119,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } catch (PDOException $e) {
             // Em caso de erro, desfaz a transação
             $pdo->rollBack();
-            $mensagem_erro = "Erro ao salvar pesagem: " . $e->getMessage();
+            //$_SESSION['erro']=$mensagem_erro = "Erro ao salvar pesagem: " . $e->getMessage();
         } catch (Exception $e) {
                 // Em caso de outros erros
                 $pdo->rollBack();
@@ -142,7 +145,7 @@ $total_peso = array_sum(array_column($_SESSION['materiais'], 'peso'));
 $total_valor = array_sum(array_column($_SESSION['materiais'], 'valor_total'));
 $total_itens = count($_SESSION['materiais']);
 
-//var_dump($_SESSION['materiais']);
+//var_dump($_SESSION['erro']);
 
 ?>
 
@@ -332,7 +335,7 @@ $total_itens = count($_SESSION['materiais']);
                                 </div>
                             <?php endif; ?>
                             <form method="POST" style="display: inline;">
-                                <input type="hidden" name="material_id" value="<?= $material['id'] ?>">
+                                <input type="hidden" name="material_item_id" value="<?=  $material['item_id'] ?>">
                                 <button type="submit" name="remover_material" class="btn btn-danger" 
                                         onclick="return confirm('Remover este item?')">
                                     <i class="bi bi-trash3"></i> Remover
@@ -362,11 +365,6 @@ $total_itens = count($_SESSION['materiais']);
             </div>
         </div>
 
-        <div style="padding: 50px"> 
-                <a href="listar.php" class="btn btn-secondary">
-                        Ver pesagens <i class="bi bi-arrow-right me-1"></i>
-                    </a>
-            </div>
     </div>
 
     <script>
