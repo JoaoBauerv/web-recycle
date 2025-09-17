@@ -162,10 +162,10 @@ if ($rowCount > 0):
                     <p class="text-muted mb-4">
                         Não há registros de pesagens com valores no momento.
                     </p>
-                    <button class="btn btn-primary">
+                    <a href="index.php" type="button" class="btn btn-primary">
                         <i class="bi bi-plus-lg me-2"></i>
                         Nova Pesagem
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>

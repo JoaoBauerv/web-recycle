@@ -180,9 +180,15 @@ if (isset($_SESSION['precisa_alterar_senha']) && $_SESSION['precisa_alterar_senh
 
                                 <li class="nav-item mb-2">
                                     <a href="<?=$url_base?>/views/pesagem/index.php" class="nav-link active text-white bg-secondary rounded-3">
-                                        <i class="bi bi-boxes me-2"></i> Pesagem
+                                        <i class="bi bi-calculator-fill"></i> Balança
                                     </a>
                                 </li> 
+
+                                <li class="nav-item mb-2">
+                                   <a href="<?=$url_base?>/views/pesagem/listar.php" class="nav-link active text-white bg-secondary rounded-3">
+                                      <i class="bi bi-clipboard-data"></i> Pesagens 
+                                    </a>
+                                </li>
                                 <?php }?>
 
                                 
