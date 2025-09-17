@@ -62,8 +62,42 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <a href="create.php" class="btn btn-success">
                 <i class="fas fa-plus"></i> Novo Material
             </a>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#imprimirModal"> 
+                <i class="bi bi-envelope-paper"></i> Imprimir tabela de preços
+            </button>
         </div>
     </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="imprimirModal" tabindex="-1" aria-labelledby="imprimirModal" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel">Imprimessão preços</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form action="pdf.php" method="POST">
+            <label>Selecione o tipo de preço:</label>
+                <div>
+                    <input type="radio" id="normal" name="preco" value="normal" checked />
+                    <label for="normal">Normal</label>
+                </div>
+
+                <div>
+                    <input type="radio" id="especial" name="preco" value="especial" />
+                    <label for="especial">Especial</label>
+                </div>
+        
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        <button type="submit" class="btn btn-primary">Imprimir</button>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 
 </style>
