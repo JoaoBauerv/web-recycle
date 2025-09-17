@@ -299,6 +299,11 @@ $cliente_nome = $cliente ? $cliente['nome'] : 'Desconhecido';
                                             </th>
                                             <th class="py-3">
                                                 <span class="badge bg-primary px-3 py-2 fw-bold">100%</span>
+                                                <div style="text-align: right;">
+                                                <a href="pdf.php?id=<?=$id_pesagem?>" class="btn btn-primary btn-sm" > 
+                                                <i class="bi bi-envelope-paper"></i> Imprimir 
+                                                </a>
+                                                </div>
                                             </th>
                                         </tr>
                                     </tfoot>
