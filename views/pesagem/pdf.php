@@ -38,6 +38,28 @@ $stmt_itens = $pdo->prepare("
 $stmt_itens->execute([$id_pesagem]);
 $itens = $stmt_itens->fetchAll(PDO::FETCH_ASSOC);
 
+$itens_agrupados = [];
+foreach ($itens as $item) {
+    $material = $item['nm_material'] ?? '-';
+    $peso = $item['peso_material'] ?? 0;
+    $preco = $item['preco_un'] ?? 0;
+    $valor = $peso * $preco;
+
+    if (!isset($itens_agrupados[$material])) {
+        $itens_agrupados[$material] = [
+            'peso_total' => 0,
+            'preco_un' => $preco, // assumindo mesmo preço por kg
+            'valor_total' => 0,
+        ];
+    }
+
+    $itens_agrupados[$material]['peso_total'] += $peso;
+    $itens_agrupados[$material]['valor_total'] += $valor;
+}
+
+$logoPath = __DIR__ . "/../../images/logo.png"; // caminho absoluto
+$logoBase64 = "data:image/png;base64," . base64_encode(file_get_contents($logoPath));
+
 // Gerar HTML
 ob_start();
 ?>
@@ -55,15 +77,15 @@ ob_start();
         table th, table td { border:1px solid #ccc; padding:6px; font-size:11px; }
         table th { background:#f2f2f2; }
         .total { font-weight:bold; background:#f9f9f9; }
+        .logo { height: 60px; }
     </style>
 </head>
 <body>
 
 <div class="header">
+    <img src="<?=$logoBase64 ?>" class="logo">
     <h2>Relatório de Pesagem</h2>
-    <small>Preços sujeitos à alteração<br>
-    <?= date("d/m/Y H:i", strtotime("now")) ?><br>
-    Endereço da Empresa | Horário: 08h - 18h</small>
+    <?= $_ENV['APP_END'] ?> | Horário: 08h - 18h</small>
 </div>
 
 <div class="card">
@@ -81,13 +103,6 @@ ob_start();
        <b>Status:</b> Concluída</p>
 </div>
 
-<div class="card">
-    <h4>Totais</h4>
-    <p><b>Peso Total:</b> <?= $pesagem['total_peso'] ?> kg<br>
-       <b>Valor Total:</b> R$ <?= number_format($pesagem['total_valor'], 2, ',', '.') ?><br>
-       <b>Preço Médio/kg:</b> R$ <?= number_format($pesagem['total_valor'] / $pesagem['total_peso'], 2, ',', '.') ?></p>
-</div>
-
 <h4>Itens da Pesagem</h4>
 <table>
     <thead>
@@ -96,20 +111,17 @@ ob_start();
             <th>Peso (kg)</th>
             <th>Preço/kg</th>
             <th>Valor Total</th>
-            <th>%</th>
         </tr>
     </thead>
     <tbody>
-    <?php foreach ($itens as $item): 
+    <?php foreach ($itens_agrupados as $material => $item): 
         $valorItem = $item['preco_un'] * ($item['peso_material'] ?? 0);
-        $percentual = ($valorItem / $pesagem['total_valor']) * 100;
     ?>
         <tr>
-            <td><?= htmlspecialchars($item['nm_material'] ?? '-') ?></td>
-            <td><?= htmlspecialchars($item['peso_material']) ?></td>
+            <td><?= htmlspecialchars($material ?? '-') ?></td>
+            <td><?= htmlspecialchars($item['peso_total']) ?></td>
             <td>R$ <?= number_format($item['preco_un'], 2, ',', '.') ?></td>
-            <td>R$ <?= number_format($valorItem, 2, ',', '.') ?></td>
-            <td><?= number_format($percentual, 1) ?>%</td>
+            <td>R$ <?= number_format($item['valor_total'], 2, ',', '.') ?></td>
         </tr>
     <?php endforeach; ?>
     </tbody>
@@ -119,7 +131,6 @@ ob_start();
             <td><b><?= $pesagem['total_peso'] ?> kg</b></td>
             <td>-</td>
             <td><b>R$ <?= number_format($pesagem['total_valor'], 2, ',', '.') ?></b></td>
-            <td>100%</td>
         </tr>
     </tfoot>
 </table>
