@@ -78,7 +78,7 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form action="pdf.php" method="POST">
+        <form action="pdf.php" method="POST" target="_blank">
             <label>Selecione o tipo de preço:</label>
                 <div>
                     <input type="radio" id="normal" name="preco" value="normal" checked />
