@@ -2,10 +2,7 @@
 <?php 
 require __DIR__ . '/../../functions/funcoes.php';
 require __DIR__ . '/../../banco.php';
-
-
-
-session_start();
+require_once (__DIR__ . '/../../components/middleware.php');
 
 // Verificação de permissão no início
 if ($_SESSION['permissao'] !== 'Admin') {
@@ -147,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
-require_once (__DIR__ . '/../../components/middleware.php');
+
 include '../../components/sidebar.php';
 
 ?>
