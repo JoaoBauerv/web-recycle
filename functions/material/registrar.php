@@ -20,7 +20,6 @@ switch($_REQUEST['acao']){
             $dados = array(
                 ':nome' => $nome,
                 ':categoria' => $_REQUEST['categoria'],
-                ':medida' => $_REQUEST['medida'],
                 ':preco' => $_REQUEST['preco_compra'],
                 ':preco_especial' => $_REQUEST['preco_especial']
             );

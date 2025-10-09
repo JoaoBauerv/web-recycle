@@ -29,23 +29,16 @@ include '../../components/sidebar.php';
                 </select>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Medida</label>
-                <select name="medida" class="form-select" required>
-                    <option value="">Selecione</option>
-                    <option value="UN">Unidade</option>
-                    <option value="KG">Quilo</option>
-                    <option value="L">Litro</option>
-                    <option value="CX">Caixa</option>
-                </select>
-            </div>
-
             <input type="hidden" value="cadastrar" name="acao">
 
+            <div class="mb-3">
+                <label class="form-label">Preço Normal</label>
+                <input type="number" step="0.01" name="preco_compra" class="form-control" placeholder="Ex: 10" required>
+            </div>
 
             <div class="mb-3">
-                <label class="form-label">Preço Compra</label>
-                <input type="number" step="0.01" name="preco_compra" class="form-control" placeholder="Ex: 10" required>
+                <label class="form-label">Preço Especial</label>
+                <input type="number" step="0.01" name="preco_especial" class="form-control" placeholder="Ex: 10" required>
             </div>
 
             <button type="submit" class="btn btn-primary w-100">Confirmar</button>
