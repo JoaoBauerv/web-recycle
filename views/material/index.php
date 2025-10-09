@@ -89,6 +89,20 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <input type="radio" id="especial" name="preco" value="especial" />
                     <label for="especial">Especial</label>
                 </div>
+
+                <div>
+                    <select class="form-select mt-2" name="tipo" id="tipo">
+                        <option value="todos">Todos</option>
+                        <?php
+                        $sql = "SELECT DISTINCT tipo FROM tb_material WHERE status = 1 ORDER BY tipo ASC";
+                        $stmt = $pdo->query($sql);
+                        $tipos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+                        foreach ($tipos as $t):
+                            echo '<option value="'.htmlspecialchars($t['tipo']).'">'.htmlspecialchars($t['tipo']).'</option>';
+                        endforeach;
+                        ?>
+                    </select>
+                </div>
         
       </div>
       <div class="modal-footer">

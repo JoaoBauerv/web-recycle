@@ -11,7 +11,13 @@ $options->set('isHtml5ParserEnabled', true);
 $options->set('isRemoteEnabled', true); 
 $dompdf = new Dompdf($options);
 
-$sql = "SELECT * FROM tb_material WHERE status = 1 ORDER BY tipo ASC";
+if($_REQUEST['tipo']=='todos'){
+    $pesquisa_tipo = '';
+}else{
+    $pesquisa_tipo = "AND tipo = '".$_REQUEST['tipo']."'";
+}
+
+$sql = "SELECT * FROM tb_material WHERE status = 1 ".$pesquisa_tipo." ORDER BY tipo ASC";
 $stmt = $pdo->query($sql);
 $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
