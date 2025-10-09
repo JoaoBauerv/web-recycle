@@ -189,6 +189,12 @@ if (isset($_SESSION['precisa_alterar_senha']) && $_SESSION['precisa_alterar_senh
                                       <i class="bi bi-clipboard-data"></i> Pesagens 
                                     </a>
                                 </li>
+
+                                <li class="nav-item mb-2">
+                                   <a href="<?=$url_base?>/views/user/calendario.php" class="nav-link active text-white bg-secondary rounded-3">
+                                      <i class="bi bi-calendar3"></i> Calendário 
+                                    </a>
+                                </li>
                                 <?php }?>
 
                                 

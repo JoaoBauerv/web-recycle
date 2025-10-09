@@ -106,7 +106,6 @@ include '../../components/sidebar.php';
                     <?php 
 
                     $sql = "SELECT * FROM tb_endereco where id_usuario = '".$dados_usuario['id_usuario']."'";
-
                     $stmt = $pdo->prepare($sql);
                     $stmt->execute();
                     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -115,31 +114,31 @@ include '../../components/sidebar.php';
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label class="form-label">CEP</label>
-                            <input type="text" class="form-control" value="<?php echo $row['cep'] ?>"  readonly>
+                            <input type="text" class="form-control" value="<?php echo !empty($row['cep']) ? $row['cep'] : ''; ?>" readonly>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Logradouro</label>
-                            <input type="text" class="form-control" value="<?php echo $row['logradouro'] ?>"  readonly>
+                            <input type="text" class="form-control" value="<?php echo !empty($row['logradouro']) ? $row['logradouro'] : '';?>"  readonly>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label">Número</label>
-                            <input type="text" class="form-control" value="<?php echo $row['numero'] ?>"   readonly>
+                            <input type="text" class="form-control" value="<?php echo !empty($row['numero'] ) ? $row['numero']  : ''; ?>"   readonly>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Complemento</label>
-                            <input type="text" class="form-control" value="<?php echo $row['complemento'] ?>" readonly>
+                            <input type="text" class="form-control" value="<?php echo !empty($row['complemento']) ? $row['complemento'] : ''; ?>" readonly>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Cidade</label>
-                            <input type="text" class="form-control" value="<?php echo $row['cidade'] ?>" readonly>
+                            <input type="text" class="form-control" value="<?php echo !empty($row['cidade']) ? $row['cidade'] : ''; ?>" readonly>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Bairro</label>
-                            <input type="text" class="form-control" value="<?php echo $row['bairro'] ?>" readonly>
+                            <input type="text" class="form-control" value="<?php echo !empty($row['bairro']) ? $row['bairro'] : ''; ?>" readonly>
                         </div>
                         <div class="col-md-12">
                             <label class="form-label">Referência</label>
-                            <input type="text" class="form-control" value="<?php echo $row['referencia'] ?>" readonly>
+                            <input type="text" class="form-control" value="<?php echo !empty($row['referencia']) ? $row['referencia'] : ''; ?>" readonly>
                         </div>
                     </div>
                 </div>
