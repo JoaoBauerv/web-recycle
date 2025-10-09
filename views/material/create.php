@@ -25,6 +25,7 @@ include '../../components/sidebar.php';
                     <option value="Aluminio">Alumínio</option>
                     <option value="Cobre">Cobre</option>
                     <option value="Plastico">Plástico</option>
+                    <option value="Papel">Papel</option>
                     <option value="Outro">Outro</option>
                 </select>
             </div>

@@ -17,29 +17,45 @@ if($_REQUEST['tipo']=='todos'){
     $pesquisa_tipo = "AND tipo = '".$_REQUEST['tipo']."'";
 }
 
-$sql = "SELECT * FROM tb_material WHERE status = 1 ".$pesquisa_tipo." ORDER BY tipo ASC";
+$sql = "SELECT * FROM tb_material WHERE status = 1 ".$pesquisa_tipo." ORDER BY tipo ASC, nm_material ASC";
 $stmt = $pdo->query($sql);
 $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Montar as linhas da tabela em HTML
-$tableRows = '';
-foreach ($materiais as $p) {
-    if($_REQUEST['preco'] === 'normal'){
-        $preco = $p['preco_compra'];
-        $fornecedor = '';
-    }else{
-        $preco = $p['preco_especial'];
-        $fornecedor = ' - Fornecedor';
+// Agrupar materiais por tipo
+$materiaisPorTipo = [];
+foreach ($materiais as $material) {
+    $tipo = $material['tipo'];
+    if (!isset($materiaisPorTipo[$tipo])) {
+        $materiaisPorTipo[$tipo] = [];
     }
+    $materiaisPorTipo[$tipo][] = $material;
+}
 
+// Montar as linhas da tabela em HTML separadas por tipo
+$tableRows = '';
+foreach ($materiaisPorTipo as $tipo => $itens) {
+    // Adicionar linha de cabeçalho do tipo
+    $tableRows .= '<tr class="tipo-header">
+                    <td colspan="2"><strong>' . htmlspecialchars($tipo) . '</strong></td>
+                  </tr>';
+    
+    // Adicionar itens desse tipo
+    foreach ($itens as $p) {
+        if($_REQUEST['preco'] === 'normal'){
+            $preco = $p['preco_compra'];
+            $fornecedor = '';
+        }else{
+            $preco = $p['preco_especial'];
+            $fornecedor = ' - Fornecedor';
+        }
 
-    $tableRows .= 
-                '<tr>
-                    <td>' . htmlspecialchars($p['nm_material']) . '</td>
-                    <td>' . htmlspecialchars($p['tipo']) . '</td>
-                    <td>R$ ' . number_format($preco, 2, ',', '.') . '</td>
-                </tr>';
-            }
+        $tableRows .= 
+                    '<tr>
+                        <td>' . htmlspecialchars($p['nm_material']) . '</td>
+                        <td>R$ ' . number_format($preco, 2, ',', '.') . '</td>
+                    </tr>';
+    }
+}
 
 // Nome da empresa e data
 $empresa = $_ENV['APP_NAME'];
@@ -66,6 +82,7 @@ $html = '
     th, td { border: 1px solid #555; padding: 8px; text-align: center; }
     th { background: #f2f2f2; font-weight: bold; }
     tr:nth-child(even) { background: #fafafa; }
+    .tipo-header td { background: #e0e0e0; font-weight: bold; text-align: left; padding: 10px; }
 </style>
 </head>
 <body>
@@ -91,7 +108,6 @@ $html = '
     <thead>
         <tr>
             <th>Nome</th>
-            <th>Tipo</th>
             <th>Preço</th>
         </tr>
     </thead>
@@ -117,4 +133,3 @@ if($_REQUEST['preco'] === 'normal'){
 }else{
     $dompdf->stream("tabela_precos_fornecedor.pdf", ["Attachment" => false]);
 }
-
