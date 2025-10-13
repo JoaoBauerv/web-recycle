@@ -53,10 +53,21 @@ if (isset($_SESSION['precisa_alterar_senha']) && $_SESSION['precisa_alterar_senh
 
     <style> 
         .sidebar {
-        height: 100vh; 
-        background-color: #1c1c1c; 
-        color: white;
-        padding: 1rem;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            width: 250px;
+            background-color: #1c1c1c;
+            color: white;
+            padding: 1rem;
+            overflow-y: auto; 
+        }
+
+        .content {
+            margin-left: 250px; 
+            flex: 1;
+            padding: 1rem;
         }
 
         html, body {
