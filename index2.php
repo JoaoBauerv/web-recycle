@@ -1,5 +1,24 @@
 <?php 
 date_default_timezone_set('America/Sao_Paulo');
+
+include 'banco.php';
+
+$dados_usuario['permissao'] = ''; 
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Verificar se precisa alterar senha , se precisa ficar redirecionando o usuario para tela de alterar senha
+if (isset($_SESSION['precisa_alterar_senha']) && $_SESSION['precisa_alterar_senha'] === 1) {
+    // Permitir acesso apenas à página de alteração de senha
+    $arquivo_atual = basename($_SERVER['SCRIPT_NAME']);
+    if ($arquivo_atual !== 'alterar_senha.php') {
+        header('Location: '. $url_base. '/views/user/alterar_senha.php');
+        exit;
+    }
+}
+
 include __DIR__ . '/components/sidebar.php'; 
 ?>
 
@@ -9,9 +28,9 @@ include __DIR__ . '/components/sidebar.php';
         <!-- Cabeçalho de boas-vindas -->
         <div class="text-center mb-4">
             <h1 class="fw-bold text-success">
-                ♻️ Bem-vindo, <?= htmlspecialchars($dados_usuario['nome'] ?? 'Visitante') ?>!
+                Bem-vindo, <?= htmlspecialchars($dados_usuario['nome'] ?? 'Visitante') ?>!
             </h1>
-            <p class="text-muted fs-5">Gerencie suas vendas e acompanhe seu impacto no meio ambiente 🌱</p>
+            <p class="text-muted fs-5">Gerencie suas vendas e acompanhe seu impacto no meio ambiente</p>
         </div>
 
         <!-- Área de métricas / atalhos -->
