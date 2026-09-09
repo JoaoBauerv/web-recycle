@@ -28,10 +28,10 @@ switch($_REQUEST['acao']){
 
             if ($stmt->execute($dados)) {
                 
-                header("Location: ../../views/material/index.php?msgSucesso=Cadastro realizado com sucesso!");
+                header("Location: $url_base/materiais?msgSucesso=Cadastro realizado com sucesso!");
                 
             } else {
-                header("Location: ../../views/material/create.php?msgErro=Erro ao executar o cadastro.");
+                header("Location: $url_base/materiais/novo?msgErro=Erro ao executar o cadastro.");
             }
 
         } catch (Exception $e) {
@@ -45,7 +45,7 @@ switch($_REQUEST['acao']){
             
             // Mensagem genérica para o usuário
             
-            header("Location: $url_base/views/material/create.php?");
+            header("Location: $url_base/materiais/novo");
             exit;
         }
 
@@ -55,24 +55,25 @@ switch($_REQUEST['acao']){
 
             try {
             $sql = "UPDATE tb_material SET nm_material = :nome , tipo = :categoria, preco_compra = :preco, preco_especial = :preco_especial WHERE
-                    id_material = ".$_REQUEST['id']."";
+                    id_material = :id";
             $stmt = $pdo->prepare($sql);
 
             $dados = array(
                 ':nome' => $nome,
                 ':categoria' => $_REQUEST['categoria'],
                 ':preco' => $_REQUEST['preco_compra'],
-                ':preco_especial' => $_REQUEST['preco_especial']
+                ':preco_especial' => $_REQUEST['preco_especial'],
+                ':id' => (int) $_REQUEST['id']
             );
 
             // Verifica se foi enviado via POST (admin logado cadastrando outro)
 
             if ($stmt->execute($dados)) {
                 
-                header("Location: ../../views/material/index.php?msgSucesso=Atualizado material com sucesso!");
+                header("Location: $url_base/materiais?msgSucesso=Atualizado material com sucesso!");
                 
             } else {
-                header("Location: ../../views/material/index.php?msgErro=Erro ao executar edicao.");
+                header("Location: $url_base/materiais?msgErro=Erro ao executar edicao.");
             }
 
         } catch (Exception $e) {
@@ -86,7 +87,7 @@ switch($_REQUEST['acao']){
             
             // Mensagem genérica para o usuário
             
-            header("Location: $url_base/views/material/index.php?");
+            header("Location: $url_base/materiais");
             exit;
         }
 
@@ -97,11 +98,12 @@ switch($_REQUEST['acao']){
         
         try {
             $sql = "UPDATE tb_material SET status = 0
-                    WHERE id_material = ".$_REQUEST['id']."";
+                    WHERE id_material = :id";
             $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':id', (int) $_REQUEST['id'], PDO::PARAM_INT);
             $stmt->execute();
 
-            header("Location: ../../views/material/index.php?msgErro=Material excluído com sucesso!");
+            header("Location: $url_base/materiais?msgSucesso=Material excluído com sucesso!");
             
         } catch (Exception $e) {
             // Rollback da transação
@@ -114,7 +116,7 @@ switch($_REQUEST['acao']){
             
             // Mensagem genérica para o usuário
             
-            header("Location: $url_base/views/material/index.php?");
+            header("Location: $url_base/materiais");
             exit;
         }
 

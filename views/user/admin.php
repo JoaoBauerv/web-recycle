@@ -1,7 +1,8 @@
-
 <?php 
-require_once (__DIR__ . '/../../components/middleware.php');
-include '../../components/sidebar.php'; 
+if (empty($router_managed)) {
+    header('Location: ../../index2.php');
+    exit;
+}
 unset($_SESSION['msg_erro']);
 unset($_SESSION['msg_sucesso']);
 
@@ -19,14 +20,14 @@ if(!in_array($status, $status_permitidos)){
 
   
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="fw-semibold text-dark">👤 Painel de Administração</h2>
-    <a href="<?=$url_base?>/views/user/register.php" class="btn btn-success shadow-sm">
+    <h2 class="fw-semibold text-dark"> Painel de Administração</h2>
+    <a href="<?=$url_base?>/usuarios/novo" class="btn btn-success shadow-sm">
       <i class="bi bi-person-plus-fill me-1"></i> Novo Usuário
     </a>
   </div>
 
   <!-- importar o component de alertas -->
-  <?php require_once '../../components/alert.php'; ?>
+  <?php require_once __DIR__ . '/../../components/alert.php'; ?>
 
   <style>
   table.dataTable {
@@ -112,7 +113,7 @@ if(!in_array($status, $status_permitidos)){
               <td><?= htmlspecialchars($row["usuario"]) ?></td>
               <td><?= htmlspecialchars($row["nome"]) ?></td>
               <td class="text-center">
-                <a href="<?=$url_base?>/views/user/edit.php?id=<?= $row["id_usuario"] ?>" 
+                <a href="<?=$url_base?>/usuarios/editar?id=<?= $row["id_usuario"] ?>" 
                    class="btn btn-sm btn-warning me-1" title="Editar">
                   <i class="bi bi-pencil"></i>
                 </a>
@@ -138,14 +139,6 @@ if(!in_array($status, $status_permitidos)){
     </div>
   </div>
 </div>
-
-<!-- datatable -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-
-
 
 <script>
 $(document).ready(function() {

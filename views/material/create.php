@@ -1,7 +1,8 @@
-<?php 
-require_once (__DIR__ . '/../../components/middleware.php');
-include '../../components/sidebar.php'; 
-
+<?php
+if (empty($router_managed)) {
+    header('Location: ../../index2.php');
+    exit;
+}
 ?>
 
 <div class="container mt-5">

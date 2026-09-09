@@ -1,7 +1,8 @@
 <?php 
-require_once (__DIR__ . '/../../components/middleware.php');
-include '../../components/sidebar.php';
-
+if (empty($router_managed)) {
+    header('Location: ../../index2.php');
+    exit;
+}
 ?>
     
     <style>
@@ -493,7 +494,7 @@ $success = $_SESSION['msg_sucesso'] ?? '';
                                         </small>
                                     </div>
                                     <div>
-                                        <a href="<?=$url_base?>/views/user/admin.php" class="btn btn-outline-secondary me-2">
+                                        <a href="<?=$url_base?>/usuarios" class="btn btn-outline-secondary me-2">
                                             <i class="fas fa-times me-1"></i>Cancelar
                                         </a>
                                         <button type="submit" class="btn btn-primary">

@@ -1,9 +1,13 @@
 <?php 
-require_once (__DIR__ . '/../../components/middleware.php');
-include '../../components/sidebar.php'; 
+if (empty($router_managed)) {
+    header('Location: ../../index2.php');
+    exit;
+}
 
-$sql = "SELECT * FROM tb_material WHERE id_material = ".$_REQUEST['id']."";
-$stmt = $pdo->query($sql);
+$sql = "SELECT * FROM tb_material WHERE id_material = :id";
+$stmt = $pdo->prepare($sql);
+$stmt->bindValue(':id', (int) $_REQUEST['id'], PDO::PARAM_INT);
+$stmt->execute();
 $material = $stmt->fetch(PDO::FETCH_ASSOC);
 
 // var_dump($material);

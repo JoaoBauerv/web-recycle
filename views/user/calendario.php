@@ -1,14 +1,16 @@
 <?php 
-require_once (__DIR__ . '/../../components/middleware.php');
-include '../../components/sidebar.php'; 
+if (empty($router_managed)) {
+    header('Location: ../../index2.php');
+    exit;
+}
 ?>
 
-<link href="../../css/calendario.css" rel="stylesheet">
+<link href="<?=$url_base?>/css/calendario.css" rel="stylesheet">
 
-<script src='../../js/calendario/index.global.min.js'></script>
-<script src='../../js/calendario/core/locales/pt-br.global.min.js'></script>
-<script src='../../js/calendario/custom.js'></script>
-<script src='../../js/calendario/bootstrap5/index.global.min.js'></script>
+<script src='<?=$url_base?>/js/calendario/index.global.min.js'></script>
+<script src='<?=$url_base?>/js/calendario/core/locales/pt-br.global.min.js'></script>
+<script src='<?=$url_base?>/js/calendario/custom.js'></script>
+<script src='<?=$url_base?>/js/calendario/bootstrap5/index.global.min.js'></script>
 
 
     <div id='calendar'  style="flex: 1; max-height: 1000px; max-width: 1700px; margin-top: 30px">

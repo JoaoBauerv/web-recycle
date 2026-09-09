@@ -235,19 +235,19 @@ if (!empty($_REQUEST['id'])) {
 
             if ($emailEnviado) {
                 $mensagem = "Senha do usuário " . $usuario_reset['usuario'] . " resetada e enviada por email! O usuário será obrigado a alterar a senha no próximo login.";
-                header("Location: ../../views/user/admin.php?msgSucesso=" . urlencode($mensagem));
+                header("Location: $url_base/usuarios?msgSucesso=" . urlencode($mensagem));
             } else {
                 // Se falhou o envio do email, ainda informa que a senha foi resetada
                 $mensagem = "Senha resetada, mas houve problema no envio do email. Nova senha: " . $novaSenha . " - Usuário deve alterar no próximo login.";
-                header("Location: ../../views/user/admin.php?msgAviso=" . urlencode($mensagem));
+                header("Location: $url_base/usuarios?msgAviso=" . urlencode($mensagem));
             }
         } else {
-            header("Location: ../../views/user/admin.php?msgErro=Erro ao resetar senha!");
+            header("Location: $url_base/usuarios?msgErro=Erro ao resetar senha!");
         }
 
     } catch (Exception $e) {
         error_log("Erro ao resetar senha: " . $e->getMessage());
-        header("Location: ../../views/user/admin.php?msgErro=Erro interno do sistema!");
+        header("Location: $url_base/usuarios?msgErro=Erro interno do sistema!");
     }
 
 } else {

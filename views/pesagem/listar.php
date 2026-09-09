@@ -1,7 +1,8 @@
 <?php
-require_once (__DIR__ . '/../../components/middleware.php');
-include '../../components/sidebar.php';
-
+if (empty($router_managed)) {
+    header('Location: ../../index2.php');
+    exit;
+}
 $stmt = $pdo->prepare("SELECT  * FROM tb_pesagem WHERE total_valor > 0 ORDER BY data_pesagem ASC");
 $stmt->execute();
 $rowCount = $stmt->rowCount();
@@ -58,10 +59,11 @@ if ($rowCount > 0):
                             </thead>
                             <tbody>
                                 <?php while ($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
-                                <a href="pesagem.php?id=<?=$row['id_pesagem']?>">
+                                <a href="<?=$url_base?>/balanca/detalhe?id=<?=$row['id_pesagem']?>">
                                 <tr class="">
                                     <?php 
-                                        $stmt_nome = $pdo->prepare("SELECT nome FROM tb_usuario WHERE id_usuario = ".$row['id_cliente']." ");
+                                        $stmt_nome = $pdo->prepare("SELECT nome FROM clientes WHERE id_cliente = :id_cliente");
+                                        $stmt_nome->bindValue(':id_cliente', $row['id_cliente'], PDO::PARAM_INT);
                                         $stmt_nome->execute();
                                         $usuario = $stmt_nome->fetch(PDO::FETCH_ASSOC);
                                         $nome = $usuario ? $usuario['nome'] : 'Desconhecido';
@@ -96,7 +98,7 @@ if ($rowCount > 0):
                                         </div>
                                     </td>
                                     <td class="text-center py-3">
-                                        <a href="pesagem.php?id=<?=$row['id_pesagem']?>" class="btn btn-sm btn-primary">
+                                        <a href="<?=$url_base?>/balanca/detalhe?id=<?=$row['id_pesagem']?>" class="btn btn-sm btn-primary">
                                             <i class="bi bi-eye me-1"></i>
                                             Ver Detalhes
                                         </a>                                   
@@ -143,7 +145,7 @@ if ($rowCount > 0):
                     <p class="text-muted mb-4">
                         Não há registros de pesagens com valores no momento.
                     </p>
-                    <a href="index.php" type="button" class="btn btn-primary">
+                    <a href="<?=$url_base?>/balanca" type="button" class="btn btn-primary">
                         <i class="bi bi-plus-lg me-2"></i>
                         Nova Pesagem
                     </a>
@@ -228,13 +230,6 @@ td {
 
 }
 </style>
-
-<!-- DataTable CSS/JS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
 $(document).ready(function() {

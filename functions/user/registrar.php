@@ -80,10 +80,10 @@ try {
 
             registraMovimentacao($admin, $id_cadastrado['id_usuario'], 'Usuario criado por admin: ' . $admin, 'Cadastro Usuario', $pdo);
 
-            header("Location: ../../views/user/admin.php?msgSucesso=Cadastro realizado com sucesso!");
+            header("Location: $url_base/usuarios?msgSucesso=Cadastro realizado com sucesso!");
         }
     } else {
-        header("Location: ../../views/user/register.php?msgErro=Erro ao executar o cadastro.");
+        header("Location: $url_base/usuarios/novo?msgErro=Erro ao executar o cadastro.");
     }
 
 } catch (Exception $e) {
@@ -97,7 +97,7 @@ try {
     
     // Mensagem genérica para o usuário
     
-    header("Location: $url_base/views/user/register.php?");
+    header("Location: $url_base/usuarios/novo?");
     exit;
 }
 

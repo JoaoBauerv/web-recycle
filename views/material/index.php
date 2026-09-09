@@ -1,6 +1,8 @@
-<?php 
-require_once (__DIR__ . '/../../components/middleware.php');
-include '../../components/sidebar.php'; 
+<?php
+if (empty($router_managed)) {
+    header('Location: ../../index2.php');
+    exit;
+}
 
 $sql = "SELECT * FROM tb_material WHERE status = 1 ORDER BY nm_material ASC";
 $stmt = $pdo->query($sql);
@@ -11,7 +13,7 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <div class="card bg-secondary text-light shadow-lg p-4 rounded-4">
         <h2 class="text-center mb-4"><i class="bi bi-box-seam-fill"></i> Materiais Cadastrados</h2>
 
-        <?php require_once '../../components/alert.php'; ?>
+        <?php require_once __DIR__ . '/../../components/alert.php'; ?>
 
         <?php if (count($materiais) > 0): ?>
             <div class="table-responsive">
@@ -36,7 +38,7 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td><?= $p['qt_estoque'] ?></td>
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a href="edit.php?id=<?=$p['id_material']?>" 
+                                    <a href="<?=$url_base?>/materiais/editar?id=<?=$p['id_material']?>" 
                                        class="btn btn-warning btn-sm" 
                                        title="Editar Material">
                                         <i class="fas fa-edit"></i> Editar
@@ -59,7 +61,7 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <?php endif; ?>
 
         <div class="d-flex justify-content-between mt-3">
-            <a href="create.php" class="btn btn-success">
+            <a href="<?=$url_base?>/materiais/novo" class="btn btn-success">
                 <i class="fas fa-plus"></i> Novo Material
             </a>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#imprimirModal"> 
@@ -78,7 +80,7 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <form action="pdf.php" method="POST" target="_blank">
+        <form action="<?=$url_base?>/views/material/pdf.php" method="POST" target="_blank">
             <label>Selecione o tipo de preço:</label>
                 <div>
                     <input type="radio" id="normal" name="preco" value="normal" checked />
@@ -115,13 +117,6 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </div>
 
 </style>
-
-<!-- DataTable CSS/JS -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
 $(document).ready(function() {

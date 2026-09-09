@@ -1,7 +1,9 @@
 <?php
 date_default_timezone_set('America/Sao_Paulo');
-require_once (__DIR__ . '/../../components/middleware.php');
-include '../../components/sidebar.php'; 
+if (empty($router_managed)) {
+    header('Location: ../../index2.php');
+    exit;
+}
 
 if(!isset($_SESSION['cliente'])){
     $_SESSION['cliente']= 0;
@@ -68,6 +70,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     // Salva os dados (aqui você pode implementar salvamento em banco de dados)
     if (isset($_POST['salvar_pesagem'])) {
+        if (empty($_SESSION['cliente'])) {
+            $mensagem_erro = "Selecione um cliente antes de salvar a pesagem.";
+        } else {
         try {
             // Inicia uma transação para garantir consistência dos dados
             $pdo->beginTransaction();
@@ -95,6 +100,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             VALUES (:id_pesagem, :id_material, :preco_un, :peso_material, :obs)";
             
             $stmt_material = $pdo->prepare($sql_material);
+
+            // RN06 — compra concluída gera entrada no estoque.
+            // Atualiza o saldo de tb_material.qt_estoque e registra o histórico em estoque_movimentacoes.
+            $sql_estoque_update = "UPDATE tb_material SET qt_estoque = COALESCE(qt_estoque, 0) + :peso
+                                    WHERE id_material = :id_material
+                                    RETURNING qt_estoque";
+            $stmt_estoque_update = $pdo->prepare($sql_estoque_update);
+
+            $sql_estoque_mov = "INSERT INTO estoque_movimentacoes
+                                    (id_material, tipo, quantidade, origem_tipo, origem_id, saldo_apos, id_usuario, observacoes)
+                                VALUES
+                                    (:id_material, 'entrada', :quantidade, 'pesagem', :origem_id, :saldo_apos, :id_usuario, :observacoes)";
+            $stmt_estoque_mov = $pdo->prepare($sql_estoque_mov);
             
             // Insere cada material na tabela tb_pesagem_material
             foreach ($_SESSION['materiais'] as $material) {
@@ -108,6 +126,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $stmt_material->bindParam(':obs', $obs, PDO::PARAM_STR);
                 
                 $stmt_material->execute();
+
+                // Atualiza o saldo do material e recupera o novo total
+                $stmt_estoque_update->bindValue(':peso', $material['peso'], PDO::PARAM_STR);
+                $stmt_estoque_update->bindValue(':id_material', $material['id'], PDO::PARAM_INT);
+                $stmt_estoque_update->execute();
+                $novo_saldo = $stmt_estoque_update->fetchColumn();
+
+                // Registra o histórico da movimentação
+                $stmt_estoque_mov->bindValue(':id_material', $material['id'], PDO::PARAM_INT);
+                $stmt_estoque_mov->bindValue(':quantidade', $material['peso'], PDO::PARAM_STR);
+                $stmt_estoque_mov->bindValue(':origem_id', $id_pesagem, PDO::PARAM_INT);
+                $stmt_estoque_mov->bindValue(':saldo_apos', $novo_saldo, PDO::PARAM_STR);
+                $stmt_estoque_mov->bindValue(':id_usuario', $_SESSION['id_usuario'], PDO::PARAM_INT);
+                $stmt_estoque_mov->bindValue(':observacoes', "Compra/Pesagem #{$id_pesagem} - " . $material['tipo'], PDO::PARAM_STR);
+                $stmt_estoque_mov->execute();
             }
             
             // Confirma a transação
@@ -122,12 +155,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } catch (PDOException $e) {
             // Em caso de erro, desfaz a transação
             $pdo->rollBack();
-            //$_SESSION['erro']=$mensagem_erro = "Erro ao salvar pesagem: " . $e->getMessage();
+            $mensagem_erro = "Erro ao salvar pesagem: " . $e->getMessage();
         } catch (Exception $e) {
                 // Em caso de outros erros
                 $pdo->rollBack();
                 $mensagem_erro = "Erro inesperado: " . $e->getMessage();
             }
+        }
     }
 
     if (isset($_POST['selecionar_cliente'])) {
@@ -149,7 +183,7 @@ $total_itens = count($_SESSION['materiais']);
 
 ?>
 
-    <link rel="stylesheet" href="../../css/pesagem.css">
+    <link rel="stylesheet" href="<?=$url_base?>/css/pesagem.css">
 
     <script>
     $(document).ready(function() {
@@ -161,7 +195,7 @@ $total_itens = count($_SESSION['materiais']);
     </script>
 
      <?php 
-        $sql = "SELECT * FROM tb_usuario WHERE status = 1 AND cliente is not null ORDER BY nome";
+        $sql = "SELECT id_cliente, nome, preco_especial FROM clientes WHERE status = 1 ORDER BY nome";
         $stmt = $pdo->query($sql);
         $options = $stmt->fetchAll(PDO::FETCH_ASSOC);
     ?>
@@ -179,7 +213,7 @@ $total_itens = count($_SESSION['materiais']);
                                 <select name="cliente" id="cliente" required>
                                     <option value="">Selecione o cliente...</option>
                                     <?php foreach ($options as $option): ?>
-                                        <option value="<?= htmlspecialchars($option['id_usuario']) ?>">
+                                        <option value="<?= htmlspecialchars($option['id_cliente']) ?>">
                                             <?= htmlspecialchars($option['nome']) ?>
                                         </option>
                                     <?php endforeach; ?>
@@ -193,8 +227,10 @@ $total_itens = count($_SESSION['materiais']);
                 </form>
                     
                     <?php 
-                    $sql = "SELECT * FROM tb_usuario WHERE status = 1 AND id_usuario = '".$_SESSION['cliente']."' ORDER BY nome ";
-                    $stmt = $pdo->query($sql);
+                    $sql = "SELECT * FROM clientes WHERE status = 1 AND id_cliente = :id_cliente";
+                    $stmt = $pdo->prepare($sql);
+                    $stmt->bindValue(':id_cliente', (int) $_SESSION['cliente'], PDO::PARAM_INT);
+                    $stmt->execute();
                     $cliente = $stmt->fetch(PDO::FETCH_ASSOC); 
                     ?>
                         
@@ -214,6 +250,12 @@ $total_itens = count($_SESSION['materiais']);
                 <?php if (isset($mensagem_sucesso)): ?>
                     <div class="alert alert-success">
                         <?= htmlspecialchars($mensagem_sucesso) ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (isset($mensagem_erro)): ?>
+                    <div class="alert alert-danger">
+                        <?= htmlspecialchars($mensagem_erro) ?>
                     </div>
                 <?php endif; ?>
                 
@@ -250,7 +292,7 @@ $total_itens = count($_SESSION['materiais']);
                     </div>
                     
                     <label><input type="checkbox" id="preco_especial" name="preco_especial"<?php                  
-                    if(!empty($_SESSION['cliente']) && $cliente['cliente'] == true){
+                    if(!empty($_SESSION['cliente']) && $cliente['preco_especial'] == true){
                     echo 'checked';
                     }?>
                     > Preço especial

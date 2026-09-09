@@ -4,7 +4,7 @@
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-2">
                             <li class="breadcrumb-item">
-                                <a href="listar.php" class="text-decoration-none">
+                                <a href="<?=$url_base?>/balanca/listar" class="text-decoration-none">
                                     <i class="bi bi-house-door me-1"></i>
                                     Pesagens 
                                 </a>
@@ -22,22 +22,22 @@
                     <div class="mb-3">
                         <div class="d-flex flex-wrap gap-2">
 
-                            <a href="relatorio.php?tipo=geral" class="btn btn-sm btn-outline-primary">
+                            <a href="<?=$url_base?>/balanca/relatorio?tipo=geral" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-bar-chart-line me-1"></i>
                                 Geral
                             </a>
 
-                            <a href="relatorio.php?tipo=cliente" class="btn btn-sm btn-outline-success">
+                            <a href="<?=$url_base?>/balanca/relatorio?tipo=cliente" class="btn btn-sm btn-outline-success">
                                 <i class="bi bi-person me-1"></i>
                                 Por Cliente
                             </a>
 
-                            <a href="relatorio.php?tipo=periodo" class="btn btn-sm btn-outline-warning">
+                            <a href="<?=$url_base?>/balanca/relatorio?tipo=periodo" class="btn btn-sm btn-outline-warning">
                                 <i class="bi bi-calendar-range me-1"></i>
                                 Por Período
                             </a>
 
-                            <a href="relatorio.php?tipo=produto" class="btn btn-sm btn-outline-info">
+                            <a href="<?=$url_base?>/balanca/relatorio?tipo=produto" class="btn btn-sm btn-outline-info">
                                 <i class="bi bi-box-seam me-1"></i>
                                 Por Produto
                             </a>

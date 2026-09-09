@@ -1,16 +1,10 @@
-<!-- Sidebar -->
 <?php 
-require __DIR__ . '/../../functions/funcoes.php';
-require __DIR__ . '/../../banco.php';
-require_once (__DIR__ . '/../../components/middleware.php');
-
-// Verificação de permissão no início
-if ($_SESSION['permissao'] !== 'Admin') {
-
-    // Redireciona para página de acesso negado ou index
-    header('Location: '.$url_base.'/index2.php?error=access_denied');
+if (empty($router_managed)) {
+    header('Location: ../../index2.php');
     exit;
 }
+
+require __DIR__ . '/../../functions/funcoes.php';
 
 function post_data($field) {
     $_POST[$field] ??= '';
@@ -145,15 +139,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-include '../../components/sidebar.php';
-
 ?>
 
 <!-- Página escura de fundo -->
 <div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center">
     <div class="card shadow-lg bg-dark p-4" style="width: 100%; max-width: 800px;">
         <div class="text-center mb-4">
-            <img src="../../images/logo.jpg" alt="" style="max-height: 80px;" class="rounded-circle me-2">
+            <img src="<?=$url_base?>/images/logo.jpg" alt="" style="max-height: 80px;" class="rounded-circle me-2">
             <h3 class="mt-2 text-white">Registrar Usuário</h3>
         </div>
 
