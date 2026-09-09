@@ -1,154 +1,9 @@
+        <div class="d-flex">
+        <div class="sidebar d-flex flex-column p-3 text-white bg-dark" style="width: 250px; height: 100vh;">
 
-<!DOCTYPE html>
-<html lang="en" data-bs-theme="auto">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Reciclagem</title>
+            <h5 class="mb-4 text-center text-uppercase fw-bold border-bottom pb-2"><?=$_ENV['APP_NAME']?></h5>
 
-   
-<!-- JS -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-
-<!-- filepond -->
-<!-- CSS FilePond + Preview -->
-<link href="https://unpkg.com/filepond/dist/filepond.min.css" rel="stylesheet" />
-<link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.min.css" rel="stylesheet" />
-
-<!-- JS FilePond + Plugins -->
-<script src="https://unpkg.com/filepond/dist/filepond.min.js"></script>
-<script src="https://unpkg.com/filepond-plugin-file-encode/dist/filepond-plugin-file-encode.min.js"></script>
-<script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.min.js"></script>
-<script src="https://unpkg.com/filepond-plugin-image-exif-orientation/dist/filepond-plugin-image-exif-orientation.min.js"></script>
-<script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.min.js"></script>
-<script src="https://unpkg.com/filepond-plugin-image-crop/dist/filepond-plugin-image-crop.min.js"></script>
-<script src="https://unpkg.com/filepond-plugin-image-resize/dist/filepond-plugin-image-resize.min.js"></script>
-<script src="https://unpkg.com/filepond-plugin-image-transform/dist/filepond-plugin-image-transform.min.js"></script>
-   
-
-
-    <style> 
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            height: 100vh;
-            width: 250px;
-            background-color: #1c1c1c;
-            color: white;
-            padding: 1rem;
-            overflow-y: auto; 
-        }
-
-        .content {
-            margin-left: 250px; 
-            flex: 1;
-            padding: 1rem;
-        }
-
-        html, body {
-            height: 100%;
-        }
-
-        body {
-            display: flex;
-            flex-direction: column;
-            
-        }
-
-        td {
-        border: 4px solid #333;
-        width: 200px;
-        }
-
-        thead,
-        tfoot {
-        background-color: #333;
-        color: #fff;
-        }
-
-        main {
-            flex: 1; 
-        }
-
-        .nav-link:hover {
-            color:rgb(6, 87, 248) !important; 
-        }
-
-        select {
-        color:#333 /* Cor da fonte dentro do select */
-        
-        }
-
-
-
-        .scFormPage .select2-container .select2-dropdown {
-            border-color:rgb(255, 255, 255) !important;
-        }
-
-        .select2-dropdown {
-            border-radius: 0 0 10px 10px !important;
-            overflow: hidden !important;
-        }
-
-        .select2-container--default .select2-search--dropdown .select2-search__field {
-            border-color:rgb(255, 255, 255) ;
-            border-radius: 10px !important;
-        }
-
-        /*
-        * FilePond Custom Styles
-        */
-
-            .filepond--drop-label {
-                color: #4c4e53;
-            }
-
-            .filepond--label-action {
-                text-decoration-color: #babdc0;
-            }
-
-            .filepond--panel-root {
-                background-color: #edf0f4;
-            }
-
-
-            /**
-            * circulo da foto no registrar
-            */
-            .filepond--root {
-            max-width: 100px;
-            font-size: 12px;
-            flex: auto;
-            margin-left: auto;
-            margin-right: auto;
-            display: block;
-            margin-bottom: 0%;
-            }
-            
-
-    </style>
-
-</head>
-
-<body>
-    <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
-    </svg>
-
-    <main class="d-flex flex-nowrap">
-        
-
-                    <div class="d-flex">
-                    <div class="sidebar d-flex flex-column p-3 text-white bg-dark" style="width: 250px; height: 100vh;">
-
-                            <h5 class="mb-4 text-center text-uppercase fw-bold border-bottom pb-2"><?=$_ENV['APP_NAME']?></h5>
-
-                        
-                            <ul class="nav nav-pills flex-column mb-auto">
+            <ul class="nav nav-pills flex-column mb-auto">
                                 <li class="nav-item mb-2">
                                     <?php 
                                     if(!empty($_SESSION['logado'])){
@@ -164,25 +19,37 @@
                                 
                                 <?php if(!empty($_SESSION['logado'])){?>
                                 <li class="nav-item mb-2">
-                                    <a href="<?=$url_base?>/views/material/index.php" class="nav-link active text-white bg-secondary rounded-3">
+                                    <a href="<?=$url_base?>/materiais" class="nav-link active text-white bg-secondary rounded-3">
                                         <i class="bi bi-shop me-2"></i> Materiais
                                     </a>
                                 </li>
 
                                 <li class="nav-item mb-2">
-                                    <a href="<?=$url_base?>/views/pesagem/index.php" class="nav-link active text-white bg-secondary rounded-3">
+                                    <a href="<?=$url_base?>/clientes" class="nav-link active text-white bg-secondary rounded-3">
+                                        <i class="bi bi-person-lines-fill me-2"></i> Clientes
+                                    </a>
+                                </li>
+
+                                <li class="nav-item mb-2">
+                                    <a href="<?=$url_base?>/fornecedores" class="nav-link active text-white bg-secondary rounded-3">
+                                        <i class="bi bi-truck me-2"></i> Fornecedores
+                                    </a>
+                                </li>
+
+                                <li class="nav-item mb-2">
+                                    <a href="<?=$url_base?>/balanca" class="nav-link active text-white bg-secondary rounded-3">
                                         <i class="bi bi-calculator-fill"></i> Balança
                                     </a>
                                 </li> 
 
                                 <li class="nav-item mb-2">
-                                   <a href="<?=$url_base?>/views/pesagem/listar.php" class="nav-link active text-white bg-secondary rounded-3">
+                                   <a href="<?=$url_base?>/balanca/listar" class="nav-link active text-white bg-secondary rounded-3">
                                       <i class="bi bi-clipboard-data"></i> Pesagens 
                                     </a>
                                 </li>
 
                                 <li class="nav-item mb-2">
-                                   <a href="<?=$url_base?>/views/user/calendario.php" class="nav-link active text-white bg-secondary rounded-3">
+                                   <a href="<?=$url_base?>/calendario" class="nav-link active text-white bg-secondary rounded-3">
                                       <i class="bi bi-calendar3"></i> Calendário 
                                     </a>
                                 </li>
@@ -252,10 +119,10 @@
 
                                 <ul class="dropdown-menu dropdown-menu-dark shadow-sm mt-2">
                                     <?php if ($dados_usuario['permissao'] == 'Admin'){ ?>    
-                                        <li><a class="dropdown-item" href="<?=$url_base?>/views/user/admin.php"><i class="bi bi-gear me-2"></i> Admin</a></li>
+                                        <li><a class="dropdown-item" href="<?=$url_base?>/usuarios"><i class="bi bi-gear me-2"></i> Admin</a></li>
                                     <?php } ?> 
                                     <li><a class="dropdown-item" href="#"><i class="bi bi-sliders me-2"></i> Settings</a></li>
-                                    <li><a class="dropdown-item" href="<?=$url_base?>/views/user/perfil.php"><i class="bi bi-person-circle me-2"></i> Profile</a></li>
+                                    <li><a class="dropdown-item" href="<?=$url_base?>/perfil"><i class="bi bi-person-circle me-2"></i> Profile</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item text-danger" href='<?=$url_base?>/functions/user/logout.php'><i class="bi bi-box-arrow-right me-2"></i> Sign out</a></li>
                                 </ul>
@@ -264,7 +131,7 @@
                         <?php }else{ ?>
                             <div class="d-grid gap-2">
                                 <a href="<?=$url_base?>/views/user/login.php" class="btn btn-primary btn-sm"><i class="bi bi-box-arrow-in-right me-1"></i> Login</a>
-                                <!--a href="<?=$url_base?>/views/user/register.php" class="btn btn-warning btn-sm"><i class="bi bi-person-plus me-1"></i> Registrar-se</!--a -->
+                                <!--a href="<?=$url_base?>/usuarios/novo" class="btn btn-warning btn-sm"><i class="bi bi-person-plus me-1"></i> Registrar-se</!--a -->
                             </div>
                         <?php }; ?>
                         
@@ -273,14 +140,3 @@
                     </div>
 
                     <div class="content d-flex justify-content-center" style="flex: 1;">
-
-       
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
-    
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-
-</body>
-</html>
