@@ -1,7 +1,8 @@
 <?php
-require_once (__DIR__ . '/../../components/middleware.php');
-include '../../components/sidebar.php';
-
+if (empty($router_managed)) {
+    header('Location: ../../index2.php');
+    exit;
+}
 // Verificar se o ID foi passado
 if (!isset($_GET['id']) || empty($_GET['id'])) {
     header('Location: index.php');
@@ -21,7 +22,7 @@ if (!$pesagem) {
 }
 
 // Buscar dados do cliente
-$stmt_cliente = $pdo->prepare("SELECT * FROM tb_usuario WHERE id_usuario = ?");
+$stmt_cliente = $pdo->prepare("SELECT * FROM clientes WHERE id_cliente = ?");
 $stmt_cliente->execute([$pesagem['id_cliente']]);
 $cliente = $stmt_cliente->fetch(PDO::FETCH_ASSOC);
 
@@ -48,7 +49,7 @@ $cliente_nome = $cliente ? $cliente['nome'] : 'Desconhecido';
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-2">
                             <li class="breadcrumb-item">
-                                <a href="listar.php" class="text-decoration-none">
+                                <a href="<?=$url_base?>/balanca/listar" class="text-decoration-none">
                                     <i class="bi bi-house-door me-1"></i>
                                     Pesagens
                                 </a>
@@ -67,7 +68,7 @@ $cliente_nome = $cliente ? $cliente['nome'] : 'Desconhecido';
                         <i class="bi bi-pencil me-1"></i>
                         Editar
                     </a> -->
-                    <a href="listar.php" class="btn btn-secondary">
+                    <a href="<?=$url_base?>/balanca/listar" class="btn btn-secondary">
                         <i class="bi bi-arrow-left me-1"></i>
                         Voltar
                     </a>
@@ -300,7 +301,7 @@ $cliente_nome = $cliente ? $cliente['nome'] : 'Desconhecido';
                                             <th class="py-3">
                                                 <span class="badge bg-primary px-3 py-2 fw-bold">100%</span>
                                                 <div style="text-align: right;">
-                                                <a href="pdf.php?id=<?=$id_pesagem?>" target="_blank" class="btn btn-primary btn-sm" > 
+                                                <a href="<?=$url_base?>/views/pesagem/pdf.php?id=<?=$id_pesagem?>" target="_blank" class="btn btn-primary btn-sm" > 
                                                 <i class="bi bi-envelope-paper"></i> Imprimir 
                                                 </a>
                                                 </div>

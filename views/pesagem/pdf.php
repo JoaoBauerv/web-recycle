@@ -22,7 +22,7 @@ if (!$pesagem) {
 }
 
 // Buscar cliente
-$stmt_cliente = $pdo->prepare("SELECT * FROM tb_usuario WHERE id_usuario = ?");
+$stmt_cliente = $pdo->prepare("SELECT * FROM clientes WHERE id_cliente = ?");
 $stmt_cliente->execute([$pesagem['id_cliente']]);
 $cliente = $stmt_cliente->fetch(PDO::FETCH_ASSOC);
 $cliente_nome = $cliente ? $cliente['nome'] : 'Desconhecido';
