@@ -147,8 +147,10 @@ function validarCPF($cpf) {
 }
 
 function processarUploadFoto($arquivo, $usuario) {
-    // Usar a função melhorada do exemplo anterior
-    $uploadDir = realpath(__DIR__ . '/../../images/user/') . DIRECTORY_SEPARATOR;
+    // Este arquivo fica em functions/, então um único ".." chega na raiz do projeto.
+    // Sem realpath(): se o diretório ainda não existir, realpath() devolve false e o
+    // caminho degenera para a raiz do disco, fazendo o mkdir abaixo nunca ser usado.
+    $uploadDir = __DIR__ . '/../images/user/';
     $allowedTypes = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png', 
