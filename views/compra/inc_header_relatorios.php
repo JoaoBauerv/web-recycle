@@ -4,45 +4,31 @@
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-2">
                             <li class="breadcrumb-item">
-                                <a href="<?=$url_base?>/balanca/listar" class="text-decoration-none">
+                                <a href="<?=$url_base?>/compras/listar" class="text-decoration-none">
                                     <i class="bi bi-house-door me-1"></i>
-                                    Pesagens 
+                                    Compras
                                 </a>
-                                
                             </li>
-                            <?php if(!empty($_REQUEST['tipo'])){
-                                    echo '<li class="breadcrumb-item active" aria-current="page"> Relátorio '.$_REQUEST['tipo'].'</li>';
-                                } ?>
+                            <?php if (!empty($tela_relatorio)): ?>
+                                <li class="breadcrumb-item active" aria-current="page">Relatório</li>
+                            <?php endif; ?>
                         </ol>
                     </nav>
-                    <br>
-                    <h2 class="mb-1 text-dark fw-bold"><?php if(empty($_REQUEST['tipo'])){ ?>Lista de Pesagens <?php }else{?>Relatório <?php echo $_REQUEST['tipo']; }?></h2>
-                    
-                    <br>
+                    <h2 class="mb-1 text-dark fw-bold">
+                        <?= !empty($tela_relatorio) ? 'Relatório de Compras' : 'Lista de Compras' ?>
+                    </h2>
                     <div class="mb-3">
-                        <div class="d-flex flex-wrap gap-2">
-
-                            <a href="<?=$url_base?>/balanca/relatorio?tipo=geral" class="btn btn-sm btn-outline-primary">
+                        <?php if (!empty($tela_relatorio)): ?>
+                            <a href="<?=$url_base?>/compras/listar" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-list-ul me-1"></i>
+                                Ver lista de compras
+                            </a>
+                        <?php else: ?>
+                            <a href="<?=$url_base?>/compras/relatorio" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-bar-chart-line me-1"></i>
-                                Geral
+                                Ver relatório
                             </a>
-
-                            <a href="<?=$url_base?>/balanca/relatorio?tipo=cliente" class="btn btn-sm btn-outline-success">
-                                <i class="bi bi-person me-1"></i>
-                                Por Cliente
-                            </a>
-
-                            <a href="<?=$url_base?>/balanca/relatorio?tipo=periodo" class="btn btn-sm btn-outline-warning">
-                                <i class="bi bi-calendar-range me-1"></i>
-                                Por Período
-                            </a>
-
-                            <a href="<?=$url_base?>/balanca/relatorio?tipo=produto" class="btn btn-sm btn-outline-info">
-                                <i class="bi bi-box-seam me-1"></i>
-                                Por Produto
-                            </a>
-
-                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

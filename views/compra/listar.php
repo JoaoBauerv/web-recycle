@@ -19,12 +19,12 @@ if ($rowCount > 0):
 
             <!-- Card principal -->
             <div class="card shadow-sm border-0">
-                <div class="card-header bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <div class="card-header bg-gradient" style="background: var(--color-primary);">
                     <div class="row align-items-center">
                         <div class="col">
                             <h5 class="card-title text-white mb-0 fw-semibold">
                                 <i class="bi bi-table me-2"></i>
-                                Dados das Pesagens
+                                Dados das Compras
                             </h5>
                         </div>
                        
@@ -50,7 +50,7 @@ if ($rowCount > 0):
                                     </th>
                                     <th class="fw-semibold text-dark border-0">
                                         <i class="bi bi-calendar-event me-2 text-info"></i>
-                                        Data da Pesagem
+                                        Data da Compra
                                     </th>
                                      <th class="fw-semibold text-dark border-0">
                                     </th>
@@ -59,7 +59,7 @@ if ($rowCount > 0):
                             </thead>
                             <tbody>
                                 <?php while ($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
-                                <a href="<?=$url_base?>/balanca/detalhe?id=<?=$row['id_pesagem']?>">
+                                <a href="<?=$url_base?>/compras/detalhe?id=<?=$row['id_pesagem']?>">
                                 <tr class="">
                                     <?php 
                                         $stmt_nome = $pdo->prepare("SELECT nome FROM clientes WHERE id_cliente = :id_cliente");
@@ -87,7 +87,7 @@ if ($rowCount > 0):
                                             R$ <?= number_format($row["total_valor"], 2, ',', '.') ?>
                                         </span>
                                     </td>
-                                    <td class="py-3">
+                                    <td class="py-3" data-order="<?= strtotime($row['data_pesagem']) ?>">
                                         <div class="d-flex flex-column">
                                             <span class="fw-medium text-dark">
                                                 <?= date("d/m/Y", strtotime($row['data_pesagem'])) ?>
@@ -98,7 +98,7 @@ if ($rowCount > 0):
                                         </div>
                                     </td>
                                     <td class="text-center py-3">
-                                        <a href="<?=$url_base?>/balanca/detalhe?id=<?=$row['id_pesagem']?>" class="btn btn-sm btn-primary">
+                                        <a href="<?=$url_base?>/compras/detalhe?id=<?=$row['id_pesagem']?>" class="btn btn-sm btn-primary">
                                             <i class="bi bi-eye me-1"></i>
                                             Ver Detalhes
                                         </a>                                   
@@ -141,13 +141,13 @@ if ($rowCount > 0):
                     <div class="mb-4">
                         <i class="bi bi-inbox display-1 text-muted"></i>
                     </div>
-                    <h4 class="text-muted mb-3">Nenhuma pesagem encontrada</h4>
+                    <h4 class="text-muted mb-3">Nenhuma compra encontrada</h4>
                     <p class="text-muted mb-4">
-                        Não há registros de pesagens com valores no momento.
+                        Não há registros de compras com valores no momento.
                     </p>
-                    <a href="<?=$url_base?>/balanca" type="button" class="btn btn-primary">
+                    <a href="<?= $url_base ?>/compras" type="button" class="btn btn-primary">
                         <i class="bi bi-plus-lg me-2"></i>
-                        Nova Pesagem
+                        Nova Compra
                     </a>
                 </div>
             </div>
@@ -159,7 +159,7 @@ if ($rowCount > 0):
 <!-- Estilos customizados -->
 <style>
 .bg-gradient {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    background: var(--color-primary) !important;
 }
 
 .table-hover tbody tr:hover {
@@ -234,10 +234,11 @@ td {
 <script>
 $(document).ready(function() {
     $('#usuariosTable').DataTable({
+        "autoWidth": false, // sem isto o DataTables grava um width inline e a tabela encolhe
         "language": {
             "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
         },
-        "pageLength": 10,
+        "pageLength": 5,
         "lengthMenu": [5, 10, 25, 50, 100],
         "order": [[3, "desc"]],
         "responsive": true,
