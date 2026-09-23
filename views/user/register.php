@@ -141,32 +141,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 ?>
 
-<!-- Página escura de fundo -->
 <div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center">
-    <div class="card shadow-lg bg-dark p-4" style="width: 100%; max-width: 800px;">
+    <div class="card shadow-lg p-4" style="width: 100%; max-width: 800px;">
         <div class="text-center mb-4">
-            <img src="<?=$url_base?>/images/logo.jpg" alt="" style="max-height: 80px;" class="rounded-circle me-2">
-            <h3 class="mt-2 text-white">Registrar Usuário</h3>
+            <img src="<?=$url_base?>/images/logo.jpg" alt="Logo Web Recycle" style="max-height: 80px;" class="rounded-circle me-2">
+            <h3 class="mt-2">Registrar Usuário</h3>
         </div>
 
-        <form action="" method="POST" enctype="multipart/form-data">
-            
+        <form action="" method="POST" enctype="multipart/form-data" novalidate>
+
             <div class="row">
                 <div class="col mb-3">
-                    <label for="nome" class="form-label text-white">Nome</label>
-                    <input type="text" class="form-control <?php echo isset($errors['nome']) ? 'is-invalid' : '' ?>" 
-                           id="nome" name="nome" value="<?php echo $nome ?>" >
-                    <div class="invalid-feedback"> 
+                    <label for="nome" class="form-label">Nome</label>
+                    <input type="text" class="form-control <?php echo isset($errors['nome']) ? 'is-invalid' : '' ?>"
+                           id="nome" name="nome" value="<?php echo $nome ?>" aria-describedby="nome-erro">
+                    <div class="invalid-feedback" id="nome-erro">
                         <?php echo $errors['nome'] ?? '' ?>
                     </div>
                 </div>
 
 
                 <div class="col mb-3">
-                    <label for="sobrenome" class="form-label text-white">Sobrenome</label>
-                    <input type="text" class="form-control <?php echo isset($errors['sobrenome']) ? 'is-invalid' : '' ?>" 
-                           id="sobrenome" name="sobrenome" value="<?php echo $sobrenome ?>" >
-                    <div class="invalid-feedback"> 
+                    <label for="sobrenome" class="form-label">Sobrenome</label>
+                    <input type="text" class="form-control <?php echo isset($errors['sobrenome']) ? 'is-invalid' : '' ?>"
+                           id="sobrenome" name="sobrenome" value="<?php echo $sobrenome ?>" aria-describedby="sobrenome-erro">
+                    <div class="invalid-feedback" id="sobrenome-erro">
                         <?php echo $errors['sobrenome'] ?? '' ?>
                     </div>
 
@@ -175,19 +174,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             <div class="mb-3">
 
-                <label for="email" class="form-label text-white">Email</label>
-                <input type="email" class="form-control <?php echo isset($errors['email']) ? 'is-invalid' : '' ?>" 
-                       id="email" name="email" value="<?php echo $email ?>" >
-                <div class="invalid-feedback"> 
+                <label for="email" class="form-label">Email</label>
+                <input type="email" class="form-control <?php echo isset($errors['email']) ? 'is-invalid' : '' ?>"
+                       id="email" name="email" value="<?php echo $email ?>" aria-describedby="email-erro">
+                <div class="invalid-feedback" id="email-erro">
                     <?php echo $errors['email'] ?? '' ?>
                 </div>
             </div>
 
             <div class="mb-3">
-                <label for="data" class="form-label text-white">Data Nascimento</label>
-                <input type="date" class="form-control <?php echo isset($errors['data']) ? 'is-invalid' : '' ?>" 
-                       id="data" name="data" value="<?php echo $data ?>" >
-                <div class="invalid-feedback"> 
+                <label for="data" class="form-label">Data Nascimento</label>
+                <input type="date" class="form-control <?php echo isset($errors['data']) ? 'is-invalid' : '' ?>"
+                       id="data" name="data" value="<?php echo $data ?>" aria-describedby="data-erro">
+                <div class="invalid-feedback" id="data-erro">
                     <?php echo $errors['data'] ?? '' ?>
                 </div>
             </div>
@@ -213,7 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div> -->
 
             <div class="mb-3 centralizar-filepond" style="text-align: center;">
-                <label for="file" class="form-label text-white">Escolha uma foto de perfil</label>
+                <label for="file" class="form-label">Escolha uma foto de perfil</label>
                 <input type="file" id="file" name="arquivos[]" class="filepond" accept="image/*" />
                 <?php if (isset($errors['arquivo'])): ?>
                     <div class="invalid-feedback d-block text-danger">
@@ -251,7 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="hidden" name="admin" id="admin" value="<?= $dados_usuario['id_usuario'] ?? '' ?>">
             
             <div class="d-grid gap-2">
-                <button type="submit" class="btn btn-warning">Cadastrar</button>
+                <button type="submit" class="btn btn-primary">Cadastrar</button>
             </div>
         </form>
     </div>

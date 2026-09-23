@@ -39,6 +39,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
+?>
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="auto">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reciclagem</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script>
+    <?php include __DIR__ . '/../../components/head-fonts.php'; ?>
+    <link href="<?=$url_base?>/css/theme.css" rel="stylesheet">
+
+    <style>
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .content {
+            margin-left: 250px;
+            flex: 1;
+            padding: 1rem;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        main {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <svg xmlns="http://www.w3.org/2000/svg" class="d-none"></svg>
+
+    <main class="d-flex flex-nowrap">
+<?php
 include '../../components/sidebar.php'; 
 
 
@@ -53,28 +103,28 @@ if(empty($_SESSION['usuario'])){
       <?php require_once '../../components/alert.php'; ?>
     </div>
 
-    <div class="card shadow-lg bg-dark p-4" style="width: 100%; max-width: 400px;">
-      
+    <div class="card shadow-lg p-4" style="width: 100%; max-width: 400px;">
+
       <div class="text-center mb-4">
-        <img src="../../images/logo.jpg" alt="" style="max-height: 80px;" class="rounded-circle me-2">
-        <h3 class="mt-2 text-white">Login</h3>
+        <img src="../../images/logo.jpg" alt="Logo Web Recycle" style="max-height: 80px;" class="rounded-circle me-2">
+        <h3 class="mt-2">Login</h3>
       </div>
 
-      <form action="" method="POST">
+      <form action="" method="POST" novalidate>
         <div class="mb-3">
-          <label for="usuario" class="form-label text-white">Usuário</label>
-        <input type="text" class="form-control <?php echo isset($errors['usuario']) ? 'is-invalid' : '' ?>" id="usuario" name="usuario" value="<?php echo $user ?>" >
-          <div class="invalid-feedback"> 
+          <label for="usuario" class="form-label">Usuário</label>
+        <input type="text" class="form-control <?php echo isset($errors['usuario']) ? 'is-invalid' : '' ?>" id="usuario" name="usuario" value="<?php echo $user ?>" aria-describedby="usuario-erro">
+          <div class="invalid-feedback" id="usuario-erro">
         <?php echo $errors['usuario'] ?>
           </div>
         </div>
 
         <div class="mb-3">
-          <label for="senha" class="form-label text-white">Senha</label>
+          <label for="senha" class="form-label">Senha</label>
 
-        <input type="password"  class="form-control <?php echo isset($errors['senha']) ? 'is-invalid' : '' ?>" id="senha" name="senha" >
+        <input type="password"  class="form-control <?php echo isset($errors['senha']) ? 'is-invalid' : '' ?>" id="senha" name="senha" aria-describedby="senha-erro">
 
-          <div class="invalid-feedback"> 
+          <div class="invalid-feedback" id="senha-erro">
         <?php echo $errors['senha'] ?>
           </div>
         </div>

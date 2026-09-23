@@ -1,0 +1,480 @@
+/*
+ * Web Recycle — Design System stylesheet
+ * See design-system/web-recycle/MASTER.md for the full rationale/palette.
+ * Loaded AFTER bootstrap.min.css on every page so these rules win.
+ * Fonts are loaded via a <link> tag in <head> (see components/head-fonts.php),
+ * not @import here — @import is render-blocking and delays every rule in
+ * this file until the Google Fonts round-trip finishes (visible as a flash
+ * of unstyled Bootstrap defaults on first paint).
+ */
+
+:root {
+  --color-primary: #334155;
+  --color-primary-dark: #24303f;
+  --color-secondary: #475569;
+  --color-accent: #059669;
+  --color-accent-hover: #047857;
+  --color-on-accent: #ffffff;
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #475569;
+  --color-border: #e2e8f0;
+  --color-destructive: #dc2626;
+  --color-ring: #334155;
+
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 2px 10px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 10px 30px rgba(15, 23, 42, 0.14);
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: 'Source Sans 3', 'Segoe UI', Tahoma, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6,
+.navbar-brand {
+  font-family: 'Lexend', 'Segoe UI', sans-serif;
+  font-weight: 600;
+}
+
+a { cursor: pointer; }
+
+/* ---------------------------------------------------------------------- */
+/* Layout: sidebar + content workspace                                    */
+/* ---------------------------------------------------------------------- */
+
+.sidebar {
+  background-color: var(--color-primary) !important;
+  width: 250px;
+  transition: transform 200ms ease;
+}
+
+.sidebar h5 {
+  letter-spacing: 0.04em;
+}
+
+/* Marca no topo da sidebar */
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.25rem 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  font-family: 'Lexend', 'Segoe UI', sans-serif;
+  font-weight: 600;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+}
+
+.sidebar-brand i {
+  font-size: 1.4rem;
+  color: var(--color-accent);
+}
+
+/* Rótulo de categoria entre os grupos de menu */
+.sidebar-grupo {
+  padding: 1rem 0.75rem 0.35rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.sidebar-grupo:first-child {
+  padding-top: 0.25rem;
+}
+
+.sidebar-nav .nav-item + .nav-item {
+  margin-top: 0.15rem;
+}
+
+.sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.85) !important;
+  background-color: transparent !important;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.5rem 0.75rem;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.sidebar .nav-link i {
+  font-size: 1rem;
+  width: 1.15rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebar .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+.sidebar .nav-link.active {
+  background-color: var(--color-accent) !important;
+  color: #ffffff !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 1060;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-md);
+}
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 1040;
+}
+
+@media (max-width: 767.98px) {
+  .sidebar-toggle { display: inline-flex; }
+
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 1050;
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar.show { transform: translateX(0); }
+
+  .sidebar-backdrop.show { display: block; }
+
+  .content {
+    margin-left: 0 !important;
+    padding-top: 4rem !important;
+  }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Menu do usuário logado, no rodapé da sidebar                           */
+/* ---------------------------------------------------------------------- */
+
+.sidebar-usuario {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.sidebar-usuario-botao {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #fff;
+  text-align: left;
+  transition: background-color 150ms ease;
+}
+
+.sidebar-usuario-botao:hover,
+.sidebar-usuario-botao[aria-expanded="true"] {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-usuario-botao::after {
+  margin-left: auto;
+}
+
+.sidebar-usuario-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.sidebar-usuario-nome {
+  font-weight: 600;
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-usuario-papel {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* ----------------------------------------------------------------------- */
+/* Página — cabeçalho e cartões de indicador reaproveitáveis               */
+/* ---------------------------------------------------------------------- */
+
+.pagina-cabecalho {
+  margin-bottom: 1.5rem;
+}
+
+.pagina-cabecalho h2 {
+  font-size: 1.5rem;
+  margin-bottom: 0.15rem;
+}
+
+.pagina-cabecalho p {
+  color: var(--color-muted-foreground);
+  margin-bottom: 0;
+}
+
+.card-indicador .card-body {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.card-indicador .indicador-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-muted);
+  color: var(--color-muted-foreground);
+  font-size: 1.25rem;
+}
+
+.card-indicador .indicador-rotulo {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted-foreground);
+  margin-bottom: 0.1rem;
+}
+
+.card-indicador .indicador-valor {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  display: block;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Buttons                                                                */
+/* ---------------------------------------------------------------------- */
+
+.btn {
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
+}
+
+.btn:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible,
+.nav-link:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--color-ring);
+  outline-offset: 2px;
+}
+
+.btn-primary {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-on-accent);
+  /* O Bootstrap 5.3 pinta o estado :disabled a partir destas variáveis, e não do
+     background-color acima — sem isso um botão desabilitado volta ao azul padrão. */
+  --bs-btn-disabled-bg: var(--color-accent);
+  --bs-btn-disabled-border-color: var(--color-accent);
+  --bs-btn-disabled-color: var(--color-on-accent);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+.btn-primary:active { transform: translateY(1px); }
+
+.btn-success {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  --bs-btn-disabled-bg: var(--color-accent);
+  --bs-btn-disabled-border-color: var(--color-accent);
+  --bs-btn-disabled-color: var(--color-on-accent);
+}
+
+.btn-success:hover { background-color: var(--color-accent-hover); border-color: var(--color-accent-hover); }
+
+/* ---------------------------------------------------------------------- */
+/* Identidade por módulo                                                  */
+/* Compras e Vendas usam o mesmo layout de propósito (quem opera aprende  */
+/* uma tela só), então a cor é o que diferencia num relance. Azul x verde */
+/* em vez de âmbar x verde: âmbar e verde se confundem na deuteranopia,   */
+/* azul se distingue em todos os tipos comuns de daltonismo. A cor nunca  */
+/* vem sozinha — o ícone e o rótulo também mudam.                        */
+/* Como todo o tema usa var(--color-accent), reatribuir a variável aqui   */
+/* recolore botões, totais, selos e o item ativo do menu de uma vez.      */
+/* ---------------------------------------------------------------------- */
+
+.modulo-compra {
+  --color-accent: #0369a1;
+  --color-accent-hover: #075985;
+}
+
+.modulo-venda {
+  --color-accent: #059669;
+  --color-accent-hover: #047857;
+}
+
+/* As telas antigas de compra usam utilitários fixos do Bootstrap; dentro do
+   módulo elas passam a seguir a cor dele em vez do verde padrão. */
+.modulo-compra .avatar-circle.bg-primary,
+.modulo-compra .avatar-lg.bg-primary {
+  background-color: var(--color-accent) !important;
+}
+
+.modulo-compra .text-success {
+  color: var(--color-accent) !important;
+}
+
+.modulo-compra .bg-success-subtle {
+  background-color: #e0f2fe !important;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Cards — re-theme the existing "bg-secondary text-light" dark-card      */
+/* pattern used across cliente/fornecedor/material/pesagem/user views     */
+/* into the light modern card, without editing every view file.          */
+/* ---------------------------------------------------------------------- */
+
+.card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.card.bg-secondary {
+  background-color: var(--color-card) !important;
+  color: var(--color-card-foreground) !important;
+  border-color: var(--color-border) !important;
+}
+
+.card.bg-secondary .text-white,
+.card.bg-secondary .text-light {
+  color: var(--color-card-foreground) !important;
+}
+
+.card.bg-secondary .form-label {
+  color: var(--color-muted-foreground) !important;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.card.bg-secondary hr,
+.card.bg-secondary hr.border-light {
+  border-color: var(--color-border) !important;
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Forms                                                                   */
+/* ---------------------------------------------------------------------- */
+
+.form-control,
+.form-select {
+  border-radius: var(--radius-sm);
+  border-color: var(--color-border);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--color-ring);
+  box-shadow: 0 0 0 3px rgba(51, 65, 85, 0.15);
+}
+
+.invalid-feedback {
+  font-size: 0.85rem;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tables — re-theme table-dark / table-primary via Bootstrap's CSS vars  */
+/* so existing markup renders light + modern instead of heavy/dark.       */
+/* ---------------------------------------------------------------------- */
+
+.table {
+  --bs-table-border-color: var(--color-border);
+}
+
+.table-dark {
+  --bs-table-bg: var(--color-card);
+  --bs-table-color: var(--color-card-foreground);
+  --bs-table-border-color: var(--color-border);
+  --bs-table-striped-bg: var(--color-muted);
+  --bs-table-striped-color: var(--color-card-foreground);
+  --bs-table-active-bg: var(--color-muted);
+  --bs-table-active-color: var(--color-card-foreground);
+  --bs-table-hover-bg: var(--color-muted);
+  --bs-table-hover-color: var(--color-card-foreground);
+}
+
+.table-primary {
+  --bs-table-bg: var(--color-muted);
+  --bs-table-color: var(--color-muted-foreground);
+  --bs-table-border-color: var(--color-border);
+}
+
+.table thead th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+}
+
+/* O DataTables roda com autoWidth ligado por padrão: ele mede o conteúdo e
+   grava um width inline na tabela, que então fica estreita e encostada à
+   esquerda dentro de um card largo. Forçar 100% devolve a tabela ao tamanho
+   do container em todas as telas que usam DataTables de uma vez. */
+table.dataTable {
+  width: 100% !important;
+}
+
+.dataTables_wrapper {
+  width: 100%;
+}
+
+/* Barra de busca/paginação do DataTables sem encostar nas bordas do card. */
+.dataTables_wrapper .row {
+  align-items: center;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Reduced motion                                                         */
+/* ---------------------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 0.001ms !important; animation-duration: 0.001ms !important; }
+}

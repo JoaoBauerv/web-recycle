@@ -1,0 +1,11 @@
+RewriteEngine On
+
+# Se o pedido corresponder a um arquivo ou pasta real (css, js, images, views/user/login.php,
+# functions/*, vendor/, etc.), serve normalmente — nada é reescrito.
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# /pagina  ou  /pagina/acao   =>  index2.php?pagina=pagina/acao
+# (preserva querystring existente, ex: /clientes/editar?id=5)
+RewriteRule ^([a-zA-Z0-9_\-]+(/[a-zA-Z0-9_\-]+)?)/?$ index2.php?pagina=$1 [QSA,L]

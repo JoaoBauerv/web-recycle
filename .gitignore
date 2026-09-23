@@ -1,2 +1,5 @@
 .env
 /vendor
+.claude
+/balanca-agent
+/sql
