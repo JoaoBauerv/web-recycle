@@ -1,80 +1,166 @@
-<div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center bg-light">
-    <div class="card shadow-lg border-0 p-4 w-100" style="max-width: 900px; border-radius: 1rem;">
-        
-        <!-- Cabeçalho de boas-vindas -->
-        <div class="text-center mb-4">
-            <h1 class="fw-bold text-success">
-                Bem-vindo, <?= htmlspecialchars($dados_usuario['nome'] ?? 'Visitante') ?>!
-            </h1>
-            <p class="text-muted fs-5">Gerencie suas vendas e acompanhe seu impacto no meio ambiente</p>
-        </div>
+<?php
+/**
+ * Painel inicial. Todos os números vêm de consultas às tabelas existentes —
+ * nenhum valor é fixo ou fictício.
+ */
+$logado = !empty($_SESSION['logado']);
+$eh_admin = ($dados_usuario['permissao'] ?? '') === 'Admin';
 
-        <!-- Área de métricas / atalhos -->
-        <div class="row g-4 text-center">
-            <!-- Total de vendas -->
-            <div class="col-md-4">
-                <div class="p-3 bg-white rounded shadow-sm h-100 border-start border-4 border-success">
-                    <i class="bi bi-cash-stack fs-2 text-success"></i>
-                    <h5 class="mt-2">Minhas Vendas</h5>
-                    <p class="text-muted mb-0">Consulte valores e histórico</p>
-                </div>
-            </div>
+if ($logado) {
+    $inicio_mes = date('Y-m-01');
+    $fim_mes    = date('Y-m-d', strtotime($inicio_mes . ' +1 month'));
 
-            <!-- Materiais reciclados -->
-            <div class="col-md-4">
-                <div class="p-3 bg-white rounded shadow-sm h-100 border-start border-4 border-primary">
-                    <i class="bi bi-recycle fs-2 text-primary"></i>
-                    <h5 class="mt-2">Materiais</h5>
-                    <p class="text-muted mb-0">Controle de recicláveis</p>
-                </div>
-            </div>
+    $stmt = $pdo->prepare("SELECT COUNT(*) AS qtd, COALESCE(SUM(total_valor), 0) AS valor, COALESCE(SUM(total_peso), 0) AS peso
+                           FROM tb_pesagem
+                           WHERE total_valor > 0 AND data_pesagem >= :inicio AND data_pesagem < :fim");
+    $stmt->execute([':inicio' => $inicio_mes, ':fim' => $fim_mes]);
+    $compras_mes = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            <!-- Relatórios -->
-            <div class="col-md-4">
-                <div class="p-3 bg-white rounded shadow-sm h-100 border-start border-4 border-warning">
-                    <i class="bi bi-graph-up-arrow fs-2 text-warning"></i>
-                    <h5 class="mt-2">Relatórios</h5>
-                    <p class="text-muted mb-0">Veja seu desempenho mensal</p>
-                </div>
-            </div>
-        </div>
+    $stmt = $pdo->prepare("SELECT COUNT(*) AS qtd, COALESCE(SUM(total_valor), 0) AS valor
+                           FROM vendas
+                           WHERE data_venda >= :inicio AND data_venda < :fim");
+    $stmt->execute([':inicio' => $inicio_mes, ':fim' => $fim_mes]);
+    $vendas_mes = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        <!-- Linha extra com atalhos administrativos (opcional, só se for admin) -->
-        <?php if ($dados_usuario['permissao'] == 'Admin'): ?>
-        <div class="row g-4 text-center mt-3">
-            <div class="col-md-6">
-                <div class="p-3 bg-white rounded shadow-sm h-100 border-start border-4 border-info">
-                    <i class="bi bi-people-fill fs-2 text-info"></i>
-                    <h5 class="mt-2">Usuários</h5>
-                    <p class="text-muted mb-0">Gerencie contas do sistema</p>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="p-3 bg-white rounded shadow-sm h-100 border-start border-4 border-danger">
-                    <i class="bi bi-gear-fill fs-2 text-danger"></i>
-                    <h5 class="mt-2">Configurações</h5>
-                    <p class="text-muted mb-0">Ajuste preferências do sistema</p>
-                </div>
-            </div>
-        </div>
-        <?php endif; ?>
+    $estoque_total    = (float) $pdo->query("SELECT COALESCE(SUM(qt_estoque), 0) FROM tb_material WHERE status = 1")->fetchColumn();
+    $total_clientes   = (int) $pdo->query("SELECT COUNT(*) FROM clientes WHERE status = 1")->fetchColumn();
+    $total_materiais  = (int) $pdo->query("SELECT COUNT(*) FROM tb_material WHERE status = 1")->fetchColumn();
 
-        <!-- Botão de ação -->
-         <?php if ($dados_usuario['permissao'] == 'Admin'){ ?>
-        <div class="text-center mt-5">
-            <a href="<?=$url_base?>/usuarios" class="btn btn-success btn-lg shadow-sm px-4">
-                <i class="bi bi-arrow-right-circle me-2"></i> Entrar no Painel
+    $mes_referencia = strtr(date('F/Y'), [
+        'January' => 'Janeiro', 'February' => 'Fevereiro', 'March' => 'Março', 'April' => 'Abril',
+        'May' => 'Maio', 'June' => 'Junho', 'July' => 'Julho', 'August' => 'Agosto',
+        'September' => 'Setembro', 'October' => 'Outubro', 'November' => 'Novembro', 'December' => 'Dezembro',
+    ]);
+}
+
+function inicioMoeda(float $valor): string
+{
+    return 'R$ ' . number_format($valor, 2, ',', '.');
+}
+?>
+
+<?php if (!$logado): ?>
+
+    <div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center py-5">
+        <div class="card border-0 shadow-sm p-4 p-md-5 text-center" style="max-width: 520px;">
+            <i class="bi bi-recycle display-4 mb-3" style="color: var(--color-accent);" aria-hidden="true"></i>
+            <h1 class="h3 fw-bold mb-2"><?= htmlspecialchars($_ENV['APP_NAME'] ?? 'Sistema de Reciclagem') ?></h1>
+            <p class="text-muted mb-4">Entre com sua conta para acessar o sistema.</p>
+            <a href="<?= $url_base ?>/views/user/login.php" class="btn btn-primary btn-lg">
+                <i class="bi bi-box-arrow-in-right me-2" aria-hidden="true"></i> Entrar
             </a>
         </div>
-        <?php }else{ ?>
-        <div class="text-center mt-5">
-            <a href="<?=$url_base?>/views/user/login.php" class="btn btn-success btn-lg shadow-sm px-4">
-                <i class="bi bi-arrow-right-circle me-2"></i> Realize login
-            </a>
-        </div>
-        <?php } ?>
     </div>
-</div>
 
-<!-- Bootstrap Icons -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<?php else: ?>
+
+    <div class="container-fluid py-4" style="max-width: 1400px;">
+
+        <div class="pagina-cabecalho">
+            <h2 class="fw-bold">Olá, <?= htmlspecialchars(explode(' ', trim($dados_usuario['nome'] ?? 'Usuário'))[0]) ?></h2>
+            <p>Resumo de <?= htmlspecialchars($mes_referencia) ?></p>
+        </div>
+
+        <?php require_once __DIR__ . '/../components/alert.php'; ?>
+
+        <!-- Indicadores do mês -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-indicador h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <span class="indicador-icone"><i class="bi bi-cart-plus" aria-hidden="true"></i></span>
+                        <div class="min-w-0">
+                            <span class="indicador-rotulo">Compras no mês</span>
+                            <span class="indicador-valor"><?= inicioMoeda((float) $compras_mes['valor']) ?></span>
+                            <small class="text-muted"><?= (int) $compras_mes['qtd'] ?> compra(s) · <?= number_format((float) $compras_mes['peso'], 2, ',', '.') ?> kg</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-indicador h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <span class="indicador-icone"><i class="bi bi-cart-check" aria-hidden="true"></i></span>
+                        <div class="min-w-0">
+                            <span class="indicador-rotulo">Vendas no mês</span>
+                            <span class="indicador-valor"><?= inicioMoeda((float) $vendas_mes['valor']) ?></span>
+                            <small class="text-muted"><?= (int) $vendas_mes['qtd'] ?> venda(s)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-indicador h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <span class="indicador-icone"><i class="bi bi-box-seam" aria-hidden="true"></i></span>
+                        <div class="min-w-0">
+                            <span class="indicador-rotulo">Estoque atual</span>
+                            <span class="indicador-valor"><?= number_format($estoque_total, 2, ',', '.') ?> kg</span>
+                            <small class="text-muted"><?= $total_materiais ?> material(is) ativo(s)</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-indicador h-100 border-0 shadow-sm">
+                    <div class="card-body">
+                        <span class="indicador-icone"><i class="bi bi-person-lines-fill" aria-hidden="true"></i></span>
+                        <div class="min-w-0">
+                            <span class="indicador-rotulo">Clientes ativos</span>
+                            <span class="indicador-valor"><?= $total_clientes ?></span>
+                            <small class="text-muted">cadastrados no sistema</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Atalhos -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom">
+                <h3 class="h6 fw-semibold mb-0"><i class="bi bi-lightning-charge me-2" aria-hidden="true"></i>Atalhos</h3>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4 col-sm-6">
+                        <a href="<?= $url_base ?>/compras" class="btn btn-outline-secondary w-100 text-start py-3">
+                            <i class="bi bi-cart-plus me-2" aria-hidden="true"></i> Nova compra
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <a href="<?= $url_base ?>/vendas" class="btn btn-outline-secondary w-100 text-start py-3">
+                            <i class="bi bi-cart-check me-2" aria-hidden="true"></i> Nova venda
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <a href="<?= $url_base ?>/compras/relatorio" class="btn btn-outline-secondary w-100 text-start py-3">
+                            <i class="bi bi-bar-chart-line me-2" aria-hidden="true"></i> Relatório de compras
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <a href="<?= $url_base ?>/clientes" class="btn btn-outline-secondary w-100 text-start py-3">
+                            <i class="bi bi-person-lines-fill me-2" aria-hidden="true"></i> Clientes
+                        </a>
+                    </div>
+                    <div class="col-md-4 col-sm-6">
+                        <a href="<?= $url_base ?>/materiais" class="btn btn-outline-secondary w-100 text-start py-3">
+                            <i class="bi bi-box-seam me-2" aria-hidden="true"></i> Materiais
+                        </a>
+                    </div>
+                    <?php if ($eh_admin): ?>
+                        <div class="col-md-4 col-sm-6">
+                            <a href="<?= $url_base ?>/usuarios" class="btn btn-outline-secondary w-100 text-start py-3">
+                                <i class="bi bi-people me-2" aria-hidden="true"></i> Usuários
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+<?php endif; ?>

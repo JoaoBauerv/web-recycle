@@ -6,48 +6,71 @@ if (empty($router_managed)) {
 ?>
     
     <style>
+        /* Segue os tokens do design system (css/theme.css) em vez de cores fixas. */
         .avatar-container {
             position: relative;
             display: inline-block;
         }
+
         .avatar-preview {
-            width: 150px;
-            height: 150px;
+            width: 128px;
+            height: 128px;
             object-fit: cover;
-            border: 3px solid #dee2e6;
+            border: 1px solid var(--color-border);
         }
+
         .upload-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
+            inset: 0;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: rgba(15, 23, 42, 0.65);
+            color: #fff;
             opacity: 0;
-            transition: opacity 0.3s;
-            border-radius: 8px;
+            transition: opacity 200ms ease;
             cursor: pointer;
         }
-        .avatar-container:hover .upload-overlay {
+
+        .avatar-container:hover .upload-overlay,
+        .avatar-container:focus-within .upload-overlay {
             opacity: 1;
         }
-        .form-section {
-            background: #f8f9fa;
-            border-left: 4px solid #007bff;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
+
         .required {
-            color: #dc3545;
+            color: var(--color-destructive);
         }
+
         .field-error {
-            border-color: #dc3545 !important;
+            border-color: var(--color-destructive) !important;
         }
+
         .field-success {
-            border-color: #198754 !important;
+            border-color: var(--color-accent) !important;
+        }
+
+        /* Abas do cartão, no mesmo tom do restante do sistema */
+        .nav-tabs-card {
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .nav-tabs-card .nav-link {
+            border: none;
+            border-bottom: 2px solid transparent;
+            background: none;
+            color: var(--color-muted-foreground);
+            font-weight: 500;
+        }
+
+        .nav-tabs-card .nav-link.active,
+        .nav-tabs-card .nav-link:hover {
+            color: var(--color-accent);
+            border-bottom-color: var(--color-accent);
+            background: none;
+        }
+
+        @media (max-width: 768px) {
+            .avatar-preview { width: 96px; height: 96px; }
         }
     </style>
 
@@ -97,45 +120,54 @@ $success = $_SESSION['msg_sucesso'] ?? '';
 ?>
 
 
-<div class="container-fluid p-4">
+<div class="container-fluid py-4" style="max-width: 1400px;">
     <div class="row">
         <div class="col-12">
-            <!-- Header -->
-            <div class="d-flex justify-content-between align-items-center mb-4">
+
+            <div class="pagina-cabecalho d-flex flex-wrap justify-content-between align-items-start gap-3">
                 <div>
-                    <h2 class="fw-bold text-primary mb-1">
-                        <i class="fas fa-user-edit me-2"></i>
-                        <?= htmlspecialchars($usuario['nome'] ?? 'Usuário') ?>
-                    </h2>
-                    <p class="text-muted mb-0">Editar informações do usuário</p>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-2">
+                            <li class="breadcrumb-item">
+                                <a href="<?= $url_base ?>/usuarios" class="text-decoration-none">
+                                    <i class="bi bi-people me-1" aria-hidden="true"></i>Usuários
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item active">Editar</li>
+                        </ol>
+                    </nav>
+                    <h2 class="fw-bold mb-1"><?= htmlspecialchars($usuario['nome'] ?? 'Usuário') ?></h2>
+                    <p>Editar informações do usuário</p>
                 </div>
-                <div>
-                    <span class="badge bg-<?= ($usuario['status'] == 1) ? 'success' : 'danger' ?> fs-6">
-                        <i class="fas fa-circle me-1"></i>
-                        <?= ($usuario['status'] == 1) ? 'Ativo' : 'Inativo' ?>
-                    </span>
-                </div>
+                <span class="badge <?= ($usuario['status'] == 1) ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' ?>">
+                    <i class="bi <?= ($usuario['status'] == 1) ? 'bi-check-circle' : 'bi-slash-circle' ?> me-1" aria-hidden="true"></i>
+                    <?= ($usuario['status'] == 1) ? 'Ativo' : 'Inativo' ?>
+                </span>
             </div>
 
             <!-- Alertas -->
             <?php if (!empty($success)): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    <?= htmlspecialchars($success) ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                <div class="alert alert-success alert-dismissible fade show d-flex align-items-start gap-2" role="alert">
+                    <i class="bi bi-check-circle-fill mt-1" aria-hidden="true"></i>
+                    <div><?= htmlspecialchars($success) ?></div>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Fechar"></button>
                 </div>
             <?php endif; ?>
 
             <?php if (!empty($errors)): ?>
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Corrija os seguintes erros:</strong>
-                    <ul class="mb-0 mt-2">
-                        <?php foreach ($errors as $field => $error): ?>
-                            <li><?= htmlspecialchars($error) ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-exclamation-triangle-fill mt-1" aria-hidden="true"></i>
+                        <div>
+                            <strong>Corrija os seguintes erros:</strong>
+                            <ul class="mb-0 mt-2">
+                                <?php foreach ($errors as $field => $error): ?>
+                                    <li><?= htmlspecialchars($error) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                        </div>
+                        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Fechar"></button>
+                    </div>
                 </div>
             <?php endif; ?>
 
@@ -148,137 +180,133 @@ $success = $_SESSION['msg_sucesso'] ?? '';
                     <!-- Coluna Lateral - Foto e Configurações -->
                     <div class="col-xl-3 col-lg-4">
                         <!-- Foto do Usuário -->
-                        <div class="card shadow-sm mb-4">
-                            <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0"><i class="fas fa-camera me-2"></i>Foto do Perfil</h6>
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-white border-bottom">
+                                <h3 class="h6 fw-semibold mb-0"><i class="bi bi-camera me-2" aria-hidden="true"></i>Foto do perfil</h3>
                             </div>
                             <div class="card-body text-center">
                                 <div class="avatar-container mb-3">
-                                    
-                            <?php
-                            $foto = !empty($usuario['foto']) && file_exists($_SERVER['DOCUMENT_ROOT'] . $url_base."/images/user/" . $usuario['foto']) 
-                                ? $usuario['foto'] 
-                                : 'padrao.png';
-                            ?>
-                            <img src="<?=$url_base?>/images/user/<?= $foto ?>"
-
-                                         alt="Foto do usuário" 
-                                         class="rounded avatar-preview"
-                                         id="avatarPreview">
-                                    <div class="upload-overlay rounded" onclick="document.getElementById('fotoInput').click()">
-                                        <div class="text-white">
-                                            <i class="fas fa-camera fa-2x mb-2"></i>
-                                            <div>Alterar Foto</div>
+                                    <?php
+                                    $foto = !empty($usuario['foto']) && file_exists($_SERVER['DOCUMENT_ROOT'] . $url_base . "/images/user/" . $usuario['foto'])
+                                        ? $usuario['foto']
+                                        : 'padrao.png';
+                                    ?>
+                                    <img src="<?= $url_base ?>/images/user/<?= htmlspecialchars($foto) ?>"
+                                         alt="Foto de <?= htmlspecialchars($usuario['nome'] ?? 'usuário') ?>"
+                                         class="rounded-circle avatar-preview"
+                                         id="avatarPreview"
+                                         onerror="this.src='<?= $url_base ?>/images/user/padrao.png'">
+                                    <div class="upload-overlay rounded-circle" onclick="document.getElementById('fotoInput').click()">
+                                        <div>
+                                            <i class="bi bi-camera fs-3 d-block" aria-hidden="true"></i>
+                                            <small>Alterar</small>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <input type="file" 
-                                       name="foto" 
+
+                                <input type="file"
+                                       name="foto"
                                        id="fotoInput"
-                                       class="d-none" 
+                                       class="d-none"
                                        accept="image/jpeg,image/png,image/gif,image/webp"
                                        onchange="previewImage(this)">
-                                       
+
                                 <div class="d-grid gap-2">
-                                    <button type="button" 
-                                            class="btn btn-outline-primary btn-sm" 
+                                    <button type="button"
+                                            class="btn btn-outline-secondary btn-sm"
                                             onclick="document.getElementById('fotoInput').click()">
-                                        <i class="fas fa-upload me-1"></i>Escolher Arquivo
+                                        <i class="bi bi-upload me-1" aria-hidden="true"></i>Escolher arquivo
                                     </button>
-                                    <button type="button" 
-                                            class="btn btn-outline-danger btn-sm" 
+                                    <button type="button"
+                                            class="btn btn-outline-danger btn-sm"
                                             onclick="removePhoto()">
-                                        <i class="fas fa-trash me-1"></i>Remover Foto
+                                        <i class="bi bi-trash3 me-1" aria-hidden="true"></i>Remover foto
                                     </button>
                                 </div>
-                                
-                                <small class="text-muted d-block mt-2">
-                                    Formatos: JPG, PNG, GIF, WebP<br>
-                                    Tamanho máximo: 5MB
+
+                                <small class="text-muted d-block mt-3">
+                                    JPG, PNG, GIF ou WebP · até 5 MB
                                 </small>
                             </div>
                         </div>
 
                         <!-- Permissões -->
-                        <div class="card shadow-sm mb-4">
-                            <div class="card-header bg-warning text-dark">
-                                <h6 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Permissões</h6>
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-white border-bottom">
+                                <h3 class="h6 fw-semibold mb-0"><i class="bi bi-shield-lock me-2" aria-hidden="true"></i>Permissão</h3>
                             </div>
                             <div class="card-body">
                                 <div class="form-check mb-2">
-                                    <input type="radio" class="form-check-input" name="permissao" 
-                                           id="permissaoAdmin" value="Admin" 
+                                    <input type="radio" class="form-check-input" name="permissao"
+                                           id="permissaoAdmin" value="Admin"
                                            <?= ($usuario['permissao'] === 'Admin') ? 'checked' : '' ?>>
                                     <label class="form-check-label" for="permissaoAdmin">
-                                        <i class="fas fa-crown text-warning me-1"></i>Administrador
+                                        Administrador
+                                        <small class="text-muted d-block">Acesso total, incluindo usuários</small>
                                     </label>
                                 </div>
                                 <div class="form-check mb-2">
-                                    <input type="radio" class="form-check-input" name="permissao" 
-                                           id="permissaoGerente" value="Gerente" 
+                                    <input type="radio" class="form-check-input" name="permissao"
+                                           id="permissaoGerente" value="Gerente"
                                            <?= ($usuario['permissao'] === 'Gerente') ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="permissaoGerente">
-                                        <i class="fas fa-user-tie text-info me-1"></i>Gerente
-                                    </label>
+                                    <label class="form-check-label" for="permissaoGerente">Gerente</label>
                                 </div>
                                 <div class="form-check">
-                                    <input type="radio" class="form-check-input" name="permissao" 
-                                           id="permissaoUsuario" value="Usuario" 
+                                    <input type="radio" class="form-check-input" name="permissao"
+                                           id="permissaoUsuario" value="Usuario"
                                            <?= ($usuario['permissao'] === 'Usuario') ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="permissaoUsuario">
-                                        <i class="fas fa-user text-secondary me-1"></i>Usuário
-                                    </label>
+                                    <label class="form-check-label" for="permissaoUsuario">Usuário</label>
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Status -->
-                        <div class="card shadow-sm mb-4">
-                            <div class="card-header bg-info text-white">
-                                <h6 class="mb-0"><i class="fas fa-toggle-on me-2"></i>Status</h6>
+                        <div class="card border-0 shadow-sm mb-4">
+                            <div class="card-header bg-white border-bottom">
+                                <h3 class="h6 fw-semibold mb-0"><i class="bi bi-toggle-on me-2" aria-hidden="true"></i>Situação</h3>
                             </div>
                             <div class="card-body">
                                 <div class="form-check mb-2">
-                                    <input type="radio" class="form-check-input" name="status" 
-                                           id="statusAtivo" value="1" 
+                                    <input type="radio" class="form-check-input" name="status"
+                                           id="statusAtivo" value="1"
                                            <?= ($usuario['status'] == 1) ? 'checked' : '' ?>>
-                                    <label class="form-check-label text-success" for="statusAtivo">
-                                        <i class="fas fa-check-circle me-1"></i>Ativo
+                                    <label class="form-check-label" for="statusAtivo">
+                                        Ativo
+                                        <small class="text-muted d-block">Pode acessar o sistema</small>
                                     </label>
                                 </div>
-                                <div class="form-check mb-2">
-                                    <input type="radio" class="form-check-input" name="status" 
-                                           id="statusInativo" value="0" 
+                                <div class="form-check">
+                                    <input type="radio" class="form-check-input" name="status"
+                                           id="statusInativo" value="0"
                                            <?= ($usuario['status'] == 0) ? 'checked' : '' ?>>
-                                    <label class="form-check-label text-danger" for="statusInativo">
-                                        <i class="fas fa-times-circle me-1"></i>Inativo
+                                    <label class="form-check-label" for="statusInativo">
+                                        Inativo
+                                        <small class="text-muted d-block">Acesso bloqueado</small>
                                     </label>
                                 </div>
-                                
                             </div>
                         </div>
                     </div>
 
                     <!-- Conteúdo Principal -->
                     <div class="col-xl-9 col-lg-8">
-                        <div class="card shadow-sm">
+                        <div class="card border-0 shadow-sm">
                             <!-- Tabs -->
-                            <div class="card-header p-0">
+                            <div class="card-header bg-white p-0">
                                 <ul class="nav nav-tabs nav-tabs-card" id="editTabs" role="tablist">
                                     <li class="nav-item">
                                         <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#pessoais" type="button">
-                                            <i class="fas fa-user me-2"></i>Dados Pessoais
+                                            <i class="bi bi-person-vcard me-2" aria-hidden="true"></i>Dados pessoais
                                         </button>
                                     </li>
                                     <li class="nav-item">
                                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#endereco" type="button">
-                                            <i class="fas fa-map-marker-alt me-2"></i>Endereço
+                                            <i class="bi bi-geo-alt me-2" aria-hidden="true"></i>Endereço
                                         </button>
                                     </li>
                                     <li class="nav-item">
                                         <button class="nav-link" data-bs-toggle="tab" data-bs-target="#documentos" type="button">
-                                            <i class="fas fa-id-card me-2"></i>Documentos
+                                            <i class="bi bi-card-text me-2" aria-hidden="true"></i>Documentos
                                         </button>
                                     </li>
                                 </ul>
@@ -288,10 +316,8 @@ $success = $_SESSION['msg_sucesso'] ?? '';
                                 <div class="tab-content">
                                     <!-- Dados Pessoais -->
                                     <div class="tab-pane fade show active" id="pessoais">
-                                        <div class="form-section">
-                                            <h5 class="text-primary mb-3">
-                                                <i class="fas fa-info-circle me-2"></i>Informações Básicas
-                                            </h5>
+                                        <div>
+                                            <h4 class="h6 fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:.05em;">Informações básicas</h4>
                                             
                                             <div class="row g-3">
                                                 <div class="col-md-6">
@@ -370,10 +396,8 @@ $success = $_SESSION['msg_sucesso'] ?? '';
 
                                     <!-- Endereço -->
                                     <div class="tab-pane fade" id="endereco">
-                                        <div class="form-section">
-                                            <h5 class="text-primary mb-3">
-                                                <i class="fas fa-home me-2"></i>Informações de Endereço
-                                            </h5>
+                                        <div>
+                                            <h4 class="h6 fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:.05em;">Informações de endereço</h4>
                                             
                                             <div class="row g-3">
                                                 <div class="col-md-3">
@@ -386,7 +410,7 @@ $success = $_SESSION['msg_sucesso'] ?? '';
                                                            data-mask="00000-000"
                                                            id="cep">
                                                     <button type="button" class="btn btn-outline-secondary btn-sm mt-1" onclick="buscarCEP()">
-                                                        <i class="fas fa-search me-1"></i>Buscar
+                                                        <i class="bi bi-search me-1" aria-hidden="true"></i>Buscar
                                                     </button>
                                                 </div>
                                                 
@@ -446,10 +470,8 @@ $success = $_SESSION['msg_sucesso'] ?? '';
 
                                     <!-- Documentos -->
                                     <div class="tab-pane fade" id="documentos">
-                                        <div class="form-section">
-                                            <h5 class="text-primary mb-3">
-                                                <i class="fas fa-file-alt me-2"></i>Documentos Pessoais
-                                            </h5>
+                                        <div>
+                                            <h4 class="h6 fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:.05em;">Documentos pessoais</h4>
                                             
                                             <div class="row g-3">
                                                 <div class="col-md-4">
@@ -489,16 +511,16 @@ $success = $_SESSION['msg_sucesso'] ?? '';
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div>
                                         <small class="text-muted">
-                                            <i class="fas fa-info-circle me-1"></i>
+                                            
                                             Campos marcados com <span class="required">*</span> são obrigatórios
                                         </small>
                                     </div>
                                     <div>
                                         <a href="<?=$url_base?>/usuarios" class="btn btn-outline-secondary me-2">
-                                            <i class="fas fa-times me-1"></i>Cancelar
+                                            <i class="bi bi-x-lg me-1" aria-hidden="true"></i>Cancelar
                                         </a>
                                         <button type="submit" class="btn btn-primary">
-                                            <i class="fas fa-save me-1"></i>Salvar Alterações
+                                            <i class="bi bi-check-lg me-1" aria-hidden="true"></i>Salvar alterações
                                         </button>
                                     </div>
                                 </div>
@@ -626,10 +648,10 @@ document.getElementById('cpf').addEventListener('blur', function() {
     const validationDiv = document.getElementById('cpfValidation');
     
     if (cpf && !validarCPF(cpf)) {
-        validationDiv.innerHTML = '<i class="fas fa-times text-danger me-1"></i>CPF inválido';
+        validationDiv.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i>CPF inválido';
         this.classList.add('field-error');
     } else if (cpf) {
-        validationDiv.innerHTML = '<i class="fas fa-check text-success me-1"></i>CPF válido';
+        validationDiv.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>CPF válido';
         this.classList.remove('field-error');
         this.classList.add('field-success');
     } else {
@@ -688,7 +710,7 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
     const submitBtn = document.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Salvando...';
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>Salvando...';
     
     // Restaurar botão após um tempo (caso haja erro)
     setTimeout(() => {
@@ -742,7 +764,7 @@ function saveFormData() {
     indicator.className = 'alert alert-info alert-dismissible fade show position-fixed';
     indicator.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 250px;';
     indicator.innerHTML = `
-        <i class="fas fa-save me-1"></i>
+        <i class="bi bi-check-lg me-1"></i>
         Rascunho salvo automaticamente
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     `;
@@ -775,7 +797,7 @@ function loadFormData() {
         const alert = document.createElement('div');
         alert.className = 'alert alert-warning alert-dismissible fade show';
         alert.innerHTML = `
-            <i class="fas fa-exclamation-triangle me-1"></i>
+            <i class="bi bi-exclamation-triangle me-1"></i>
             Dados de rascunho foram restaurados. 
             <button type="button" class="btn btn-sm btn-outline-dark ms-2" onclick="clearSavedData()">
                 Limpar Rascunho
@@ -842,99 +864,4 @@ document.querySelectorAll('input').forEach(input => {
 
 </script>
 
-<style>
-.nav-tabs-card {
-    border-bottom: 1px solid #dee2e6;
-}
-
-.nav-tabs-card .nav-link {
-    border: none;
-    border-bottom: 2px solid transparent;
-    background: none;
-    color: #6c757d;
-    font-weight: 500;
-}
-
-.nav-tabs-card .nav-link.active {
-    color: #007bff;
-    border-bottom-color: #007bff;
-    background: none;
-}
-
-.nav-tabs-card .nav-link:hover {
-    color: #007bff;
-    border-color: transparent;
-}
-
-.card-shadow {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    transition: box-shadow 0.15s ease-in-out;
-}
-
-.card-shadow:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-}
-
-.form-floating-custom {
-    position: relative;
-}
-
-.form-floating-custom label {
-    position: absolute;
-    top: 0;
-    left: 0.75rem;
-    padding: 0 0.25rem;
-    background: white;
-    font-size: 0.75rem;
-    color: #6c757d;
-    transform: translateY(-50%);
-}
-
-@media (max-width: 768px) {
-    .container-fluid {
-        padding: 1rem !important;
-    }
-    
-    .card-body {
-        padding: 1rem;
-    }
-    
-    .avatar-preview {
-        width: 100px;
-        height: 100px;
-    }
-}
-
-/* Animações personalizadas */
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-.loading {
-    animation: pulse 1.5s infinite;
-}
-
-/* Tooltips customizados */
-.custom-tooltip {
-    position: relative;
-    cursor: help;
-}
-
-.custom-tooltip:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: 125%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 0.5rem;
-    border-radius: 0.25rem;
-    font-size: 0.75rem;
-    white-space: nowrap;
-    z-index: 1000;
-}
-</style>
 

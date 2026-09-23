@@ -9,7 +9,7 @@ $stmt = $pdo->query($sql);
 $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
-<div class="container mt-5">
+<div class="container-fluid py-4" style="max-width: 1400px;">
     <div class="card bg-secondary text-light shadow-lg p-4 rounded-4">
         <h2 class="text-center mb-4"><i class="bi bi-box-seam-fill"></i> Materiais Cadastrados</h2>
 
@@ -121,6 +121,7 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <script>
 $(document).ready(function() {
     $('#materiaisTable').DataTable({
+        "autoWidth": false, // sem isto o DataTables grava um width inline e a tabela encolhe
         "language": {
             "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
         },

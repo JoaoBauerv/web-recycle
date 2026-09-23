@@ -13,9 +13,8 @@ if (empty($router_managed)) {
 <script src='<?=$url_base?>/js/calendario/bootstrap5/index.global.min.js'></script>
 
 
-    <div id='calendar'  style="flex: 1; max-height: 1000px; max-width: 1700px; margin-top: 30px">
-
-
+    <div class="container-fluid py-4" style="max-width: 1400px;">
+        <div id='calendar' style="max-height: 1000px;"></div>
     </div>
 
     <!-- Modal  visualizar-->
