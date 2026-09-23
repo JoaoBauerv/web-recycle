@@ -18,7 +18,7 @@ $stmt = $pdo->prepare("SELECT * FROM tb_pesagem WHERE id_pesagem = ?");
 $stmt->execute([$id_pesagem]);
 $pesagem = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$pesagem) {
-    die("Pesagem não encontrada.");
+    die("Compra não encontrada.");
 }
 
 // Buscar cliente
@@ -39,22 +39,32 @@ $stmt_itens->execute([$id_pesagem]);
 $itens = $stmt_itens->fetchAll(PDO::FETCH_ASSOC);
 
 $itens_agrupados = [];
+$total_tara = 0;
+$total_peso_bruto = 0;
 foreach ($itens as $item) {
     $material = $item['nm_material'] ?? '-';
     $peso = $item['peso_material'] ?? 0;
+    $tara = $item['tara'] ?? 0;
+    $peso_bruto = $item['peso_bruto'] ?? $peso;
     $preco = $item['preco_un'] ?? 0;
     $valor = $peso * $preco;
 
     if (!isset($itens_agrupados[$material])) {
         $itens_agrupados[$material] = [
+            'peso_bruto_total' => 0,
+            'tara_total' => 0,
             'peso_total' => 0,
             'preco_un' => $preco, // assumindo mesmo preço por kg
             'valor_total' => 0,
         ];
     }
 
+    $itens_agrupados[$material]['peso_bruto_total'] += $peso_bruto;
+    $itens_agrupados[$material]['tara_total'] += $tara;
     $itens_agrupados[$material]['peso_total'] += $peso;
     $itens_agrupados[$material]['valor_total'] += $valor;
+    $total_tara += $tara;
+    $total_peso_bruto += $peso_bruto;
 }
 
 $logoPath = __DIR__ . "/../../images/logo.png"; // caminho absoluto
@@ -84,7 +94,7 @@ ob_start();
 
 <div class="header">
     <img src="<?=$logoBase64 ?>" class="logo">
-    <h2>Relatório de Pesagem</h2>
+    <h2>Comprovante de Compra</h2>
     <?= $_ENV['APP_END'] ?> | Horário: 08h - 18h</small>
 </div>
 
@@ -96,30 +106,32 @@ ob_start();
 </div>
 
 <div class="card">
-    <h4>Informações da Pesagem</h4>
+    <h4>Informações da Compra</h4>
     <p><b>ID:</b> #<?= $id_pesagem ?><br>
        <b>Data:</b> <?= date("d/m/Y", strtotime($pesagem['data_pesagem'])) ?><br>
        <b>Horário:</b> <?= date("H:i:s", strtotime($pesagem['data_pesagem'])) ?><br>
        <b>Status:</b> Concluída</p>
 </div>
 
-<h4>Itens da Pesagem</h4>
+<h4>Itens da Compra</h4>
 <table>
     <thead>
         <tr>
             <th>Material</th>
-            <th>Peso (kg)</th>
+            <th>Peso Bruto</th>
+            <th>Tara</th>
+            <th>Peso Líquido</th>
             <th>Preço/kg</th>
             <th>Valor Total</th>
         </tr>
     </thead>
     <tbody>
-    <?php foreach ($itens_agrupados as $material => $item): 
-        $valorItem = $item['preco_un'] * ($item['peso_material'] ?? 0);
-    ?>
+    <?php foreach ($itens_agrupados as $material => $item): ?>
         <tr>
             <td><?= htmlspecialchars($material ?? '-') ?></td>
-            <td><?= htmlspecialchars($item['peso_total']) ?></td>
+            <td><?= number_format($item['peso_bruto_total'], 2, ',', '.') ?> kg</td>
+            <td><?= $item['tara_total'] > 0 ? '− ' . number_format($item['tara_total'], 2, ',', '.') . ' kg' : '-' ?></td>
+            <td><?= number_format($item['peso_total'], 2, ',', '.') ?> kg</td>
             <td>R$ <?= number_format($item['preco_un'], 2, ',', '.') ?></td>
             <td>R$ <?= number_format($item['valor_total'], 2, ',', '.') ?></td>
         </tr>
@@ -128,7 +140,9 @@ ob_start();
     <tfoot>
         <tr class="total">
             <td><b>TOTAL</b></td>
-            <td><b><?= $pesagem['total_peso'] ?> kg</b></td>
+            <td><b><?= number_format($total_peso_bruto, 2, ',', '.') ?> kg</b></td>
+            <td><b><?= $total_tara > 0 ? '− ' . number_format($total_tara, 2, ',', '.') . ' kg' : '-' ?></b></td>
+            <td><b><?= number_format($pesagem['total_peso'], 2, ',', '.') ?> kg</b></td>
             <td>-</td>
             <td><b>R$ <?= number_format($pesagem['total_valor'], 2, ',', '.') ?></b></td>
         </tr>
@@ -150,4 +164,4 @@ $dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
 
 // Baixar ou abrir no navegador
-$dompdf->stream("pesagem_$id_pesagem.pdf", ["Attachment" => false]);
+$dompdf->stream("compra_$id_pesagem.pdf", ["Attachment" => false]);

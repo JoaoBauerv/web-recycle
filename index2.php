@@ -42,10 +42,14 @@ $paginas_disponiveis = [
     'fornecedores/novo'     => ['arquivo' => 'fornecedor/create',   'auth' => true,  'admin' => true],
     'fornecedores/editar'   => ['arquivo' => 'fornecedor/edit',     'auth' => true,  'admin' => true],
 
-    'balanca'               => ['arquivo' => 'pesagem/index',       'auth' => true,  'admin' => false],
-    'balanca/listar'        => ['arquivo' => 'pesagem/listar',      'auth' => true,  'admin' => false],
-    'balanca/detalhe'       => ['arquivo' => 'pesagem/pesagem',     'auth' => true,  'admin' => false],
-    'balanca/relatorio'     => ['arquivo' => 'pesagem/relatorio',   'auth' => true,  'admin' => false],
+    'compras'               => ['arquivo' => 'compra/index',        'auth' => true,  'admin' => false],
+    'compras/listar'        => ['arquivo' => 'compra/listar',       'auth' => true,  'admin' => false],
+    'compras/detalhe'       => ['arquivo' => 'compra/detalhe',      'auth' => true,  'admin' => false],
+    'compras/comprovante'   => ['arquivo' => 'compra/comprovante',  'auth' => true,  'admin' => false],
+    'compras/relatorio'     => ['arquivo' => 'compra/relatorio',    'auth' => true,  'admin' => false],
+
+    'vendas'                => ['arquivo' => 'venda/index',         'auth' => true,  'admin' => false],
+    'vendas/listar'         => ['arquivo' => 'venda/listar',        'auth' => true,  'admin' => false],
 
     'usuarios'              => ['arquivo' => 'user/admin',          'auth' => true,  'admin' => true],
     'usuarios/novo'         => ['arquivo' => 'user/register',       'auth' => true,  'admin' => true],
@@ -98,10 +102,13 @@ $router_managed = true;
     <link href="https://unpkg.com/filepond/dist/filepond.min.css" rel="stylesheet" />
     <link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+    <?php include __DIR__ . '/components/head-fonts.php'; ?>
+    <link href="<?=$url_base?>/css/theme.css" rel="stylesheet">
 
     <!-- JS -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/pt-BR.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
@@ -121,11 +128,8 @@ $router_managed = true;
             left: 0;
             top: 0;
             height: 100vh;
-            width: 250px;
-            background-color: #1c1c1c;
-            color: white;
-            padding: 1rem;
             overflow-y: auto;
+            padding: 1rem;
         }
 
         .content {
@@ -143,23 +147,8 @@ $router_managed = true;
             flex-direction: column;
         }
 
-        td {
-        border: 4px solid #333;
-        width: 200px;
-        }
-
-        thead,
-        tfoot {
-        background-color: #333;
-        color: #fff;
-        }
-
         main {
             flex: 1;
-        }
-
-        .nav-link:hover {
-            color:rgb(6, 87, 248) !important;
         }
 
         select {
@@ -207,7 +196,7 @@ $router_managed = true;
 <body>
     <svg xmlns="http://www.w3.org/2000/svg" class="d-none"></svg>
 
-    <main class="d-flex flex-nowrap">
+    <main class="d-flex flex-nowrap <?= str_starts_with($pagina, 'compras') ? 'modulo-compra' : (str_starts_with($pagina, 'vendas') ? 'modulo-venda' : '') ?>">
 <?php
 include __DIR__ . '/components/sidebar.php';
 
