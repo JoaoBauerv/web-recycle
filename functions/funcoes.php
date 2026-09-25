@@ -221,7 +221,9 @@ function verificarUsuarioExiste($pdo, $id) {
 }
 
 function verificarEmailUnico($pdo, $email, $idUsuario) {
-    $sql = "SELECT COUNT(*) FROM tb_usuario WHERE email = :email AND id_usuario != :id";
+    // LOWER nos dois lados, igual ao login: sem isso seria possível cadastrar
+    // "Joao@x.com" com "joao@x.com" já existente, e o login acharia dois registros.
+    $sql = "SELECT COUNT(*) FROM tb_usuario WHERE LOWER(email) = LOWER(:email) AND id_usuario != :id";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':email' => $email, ':id' => $idUsuario]);
     return $stmt->fetchColumn() == 0;

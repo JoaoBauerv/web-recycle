@@ -128,8 +128,7 @@ $total_admins   = (int) $pdo->query("SELECT COUNT(*) FROM tb_usuario WHERE statu
                         <thead class="table-light">
                             <tr>
                                 <th class="ps-4">Nome</th>
-                                <th>Usuário</th>
-                                <th>E-mail</th>
+                                <th>E-mail (login)</th>
                                 <th>Permissão</th>
                                 <th class="text-end pe-4">Ações</th>
                             </tr>
@@ -145,7 +144,6 @@ $total_admins   = (int) $pdo->query("SELECT COUNT(*) FROM tb_usuario WHERE statu
                                         <span class="fw-medium"><?= htmlspecialchars($u['nome']) ?></span>
                                     </div>
                                 </td>
-                                <td class="text-muted"><?= htmlspecialchars($u['usuario']) ?></td>
                                 <td class="text-muted"><?= htmlspecialchars($u['email'] ?: '—') ?></td>
                                 <td>
                                     <?php if ($u['permissao'] === 'Admin'): ?>
@@ -216,7 +214,7 @@ $(function () {
             "pageLength": 10,
             "lengthMenu": [10, 25, 50],
             "order": [[0, "asc"]],
-            "columnDefs": [{ "orderable": false, "targets": [4] }]
+            "columnDefs": [{ "orderable": false, "targets": [3] }]
         });
     }
 

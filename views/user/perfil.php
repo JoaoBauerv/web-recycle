@@ -58,7 +58,7 @@ $aba_ativa = ($_GET['aba'] ?? 'dados') === 'seguranca' ? 'seguranca' : 'dados';
                          onerror="this.src='<?= $url_base ?>/images/user/padrao.png'">
 
                     <h3 class="h5 fw-bold mb-1"><?= htmlspecialchars($usuario['nome'] ?? '') ?></h3>
-                    <p class="text-muted small mb-3">@<?= htmlspecialchars($usuario['usuario'] ?? '') ?></p>
+                    <p class="text-muted small mb-3 text-break"><?= htmlspecialchars($usuario['email'] ?? '') ?></p>
 
                     <span class="badge <?= ($usuario['permissao'] ?? '') === 'Admin' ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary' ?>">
                         <i class="bi <?= ($usuario['permissao'] ?? '') === 'Admin' ? 'bi-shield-check' : 'bi-person' ?> me-1" aria-hidden="true"></i>

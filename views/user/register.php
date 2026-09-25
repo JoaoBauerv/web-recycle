@@ -133,8 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'admin' => $admin
         ];
 
-        $query = http_build_query($dados);
-        header('Location: '.$url_base.'/functions/user/registrar.php?' . $query);
+        // Os dados seguem pela sessão, não pela query string: a senha em texto puro
+        // numa URL fica gravada no histórico do navegador, no log de acesso do
+        // servidor e vaza pelo cabeçalho Referer.
+        $_SESSION['novo_usuario'] = $dados;
+        header('Location: '.$url_base.'/functions/user/registrar.php');
         exit;
     }
 }

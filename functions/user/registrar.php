@@ -6,14 +6,24 @@ require_once(__DIR__ . '/../funcoes.php');
 
 
 
-$nomeCompleto = ucwords(strtolower($_REQUEST['nome_completo'] ?? ''));
-$usuario = $_REQUEST['usuario'] ?? '';
-$email = $_REQUEST['email'] ?? '';
-$senha = $_REQUEST['senha'] ?? '';
-$foto = $_REQUEST['foto_nome'] ?? '';
-$data = $_REQUEST['data'] ?? '';
-$admin = $_REQUEST['admin'] ?? '';
-$permissao = $_REQUEST['permissao'] ?? 'Usuario';
+// A tela de cadastro entrega os dados pela sessão (a senha não pode trafegar na
+// URL). O fallback em $_REQUEST mantém funcionando qualquer chamada direta.
+$entrada = $_SESSION['novo_usuario'] ?? [];
+unset($_SESSION['novo_usuario']);
+
+function dadoCadastro(array $entrada, string $campo, string $padrao = '')
+{
+    return $entrada[$campo] ?? $_REQUEST[$campo] ?? $padrao;
+}
+
+$nomeCompleto = ucwords(strtolower(dadoCadastro($entrada, 'nome_completo')));
+$usuario = dadoCadastro($entrada, 'usuario');
+$email = dadoCadastro($entrada, 'email');
+$senha = dadoCadastro($entrada, 'senha');
+$foto = dadoCadastro($entrada, 'foto_nome');
+$data = dadoCadastro($entrada, 'data');
+$admin = dadoCadastro($entrada, 'admin');
+$permissao = dadoCadastro($entrada, 'permissao', 'Usuario');
 $precisa_alterar_senha = 1;
 
 

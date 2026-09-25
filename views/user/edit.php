@@ -187,7 +187,10 @@ $success = $_SESSION['msg_sucesso'] ?? '';
                             <div class="card-body text-center">
                                 <div class="avatar-container mb-3">
                                     <?php
-                                    $foto = !empty($usuario['foto']) && file_exists($_SERVER['DOCUMENT_ROOT'] . $url_base . "/images/user/" . $usuario['foto'])
+                                    // $url_base é uma URL (http://...), não um caminho de disco: concatená-la
+                                    // com DOCUMENT_ROOT gerava um caminho inexistente, e o file_exists()
+                                    // sempre falhava — por isso a foto real nunca aparecia.
+                                    $foto = !empty($usuario['foto']) && is_file(__DIR__ . '/../../images/user/' . $usuario['foto'])
                                         ? $usuario['foto']
                                         : 'padrao.png';
                                     ?>

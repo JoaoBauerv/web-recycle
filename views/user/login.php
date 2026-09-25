@@ -10,17 +10,19 @@ function post_data($field){
 define('REQUIRED_FIELD_ERROR', 'É necessario preencher esse campo!');
 $errors = [];
 
-$user = '';
+$email = '';
 $senha = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  $user = post_data('usuario');
+  $email = trim(post_data('email'));
   $senha = $_POST['senha'];
 
   // Validações
-  if (!$user) {
-    $errors['usuario'] = REQUIRED_FIELD_ERROR;
-  } 
+  if (!$email) {
+    $errors['email'] = REQUIRED_FIELD_ERROR;
+  } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    $errors['email'] = 'Informe um e-mail válido.';
+  }
 
   if (!$senha) {
     $errors['senha'] = REQUIRED_FIELD_ERROR;
@@ -31,9 +33,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (session_status() === PHP_SESSION_NONE) {
       session_start();
     }
-    $_SESSION['usuario'] = $user;
+    $_SESSION['login_email'] = $email;
     $_SESSION['senha'] = $senha;
-    
+
     header('Location: '.$url_base.'/functions/user/login.php');
     exit;
   }
@@ -92,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 include '../../components/sidebar.php'; 
 
 
-if(empty($_SESSION['usuario'])){
+if(empty($_SESSION['logado'])){
 ?>
 
 <!-- Página escura de fundo -->
@@ -112,10 +114,13 @@ if(empty($_SESSION['usuario'])){
 
       <form action="" method="POST" novalidate>
         <div class="mb-3">
-          <label for="usuario" class="form-label">Usuário</label>
-        <input type="text" class="form-control <?php echo isset($errors['usuario']) ? 'is-invalid' : '' ?>" id="usuario" name="usuario" value="<?php echo $user ?>" aria-describedby="usuario-erro">
-          <div class="invalid-feedback" id="usuario-erro">
-        <?php echo $errors['usuario'] ?>
+          <label for="email" class="form-label">E-mail</label>
+          <input type="email" class="form-control <?php echo isset($errors['email']) ? 'is-invalid' : '' ?>"
+                 id="email" name="email" value="<?php echo $email ?>"
+                 autocomplete="username" placeholder="voce@exemplo.com"
+                 aria-describedby="email-erro">
+          <div class="invalid-feedback" id="email-erro">
+            <?php echo $errors['email'] ?? '' ?>
           </div>
         </div>
 
