@@ -130,6 +130,68 @@ switch ($acao) {
         header("Location: $tela");
         exit;
 
+    // ------------------------------------------------- voltar para as colunas
+    // Quando a detecção automática acerta, o fluxo pula a etapa de colunas.
+    // Isto traz o usuário de volta a ela para corrigir o mapeamento, trocar de
+    // modelo ou salvar o mapeamento atual como modelo novo.
+    case 'ajustar_colunas':
+        if (empty($_SESSION['importacao'])) {
+            importacaoVoltar($tela, 'Erro', 'Nenhuma importação em andamento.');
+        }
+
+        $_SESSION['importacao']['etapa'] = 'mapear';
+        header("Location: $tela");
+        exit;
+
+    // ------------------------------------------------- aplicar outro modelo
+    case 'trocar_modelo':
+        if (empty($_SESSION['importacao'])) {
+            importacaoVoltar($tela, 'Erro', 'Nenhuma importação em andamento.');
+        }
+
+        $id_modelo = (int) ($_POST['id_modelo'] ?? 0) ?: null;
+        $_SESSION['importacao']['etapa'] = 'mapear';
+
+        if ($id_modelo === null) {
+            // "Nenhum modelo" volta à detecção automática sobre o mesmo arquivo.
+            try {
+                $linhas = importacaoLerPlanilha($_SESSION['importacao']['arquivo_tmp']);
+            } catch (Throwable $e) {
+                importacaoVoltar($tela, 'Erro', 'O arquivo não está mais disponível. Envie a planilha de novo.');
+            }
+
+            $detectado = planilhaLocalizarCabecalho($linhas);
+            $_SESSION['importacao']['id_modelo'] = null;
+            $_SESSION['importacao']['mapa'] = $detectado['mapa'] ?? [];
+            $_SESSION['importacao']['linha_cabecalho'] = $detectado['linha'] ?? 0;
+            $_SESSION['importacao']['edicoes'] = [];
+
+            importacaoVoltar($tela, 'Sucesso', $detectado
+                ? 'Colunas detectadas automaticamente. Confira abaixo.'
+                : 'Não reconheci os cabeçalhos. Indique as colunas manualmente.');
+        }
+
+        $stmt = $pdo->prepare("SELECT mapeamento, linha_cabecalho, nome FROM importacao_modelo
+                               WHERE id_modelo = ? AND status = 1");
+        $stmt->execute([$id_modelo]);
+        $modelo = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$modelo) {
+            importacaoVoltar($tela, 'Erro', 'Modelo de importação não encontrado.');
+        }
+
+        $_SESSION['importacao']['id_modelo'] = $id_modelo;
+        $_SESSION['importacao']['mapa'] = json_decode($modelo['mapeamento'], true) ?: [];
+        $_SESSION['importacao']['linha_cabecalho'] = max((int) $modelo['linha_cabecalho'] - 1, 0);
+        // Mapa diferente muda o significado de cada linha, então as edições
+        // feitas sobre o mapa anterior deixam de valer.
+        $_SESSION['importacao']['edicoes'] = [];
+
+        $pdo->prepare("UPDATE importacao_historico SET id_modelo = ? WHERE id_importacao = ?")
+            ->execute([$id_modelo, $_SESSION['importacao']['id_importacao']]);
+
+        importacaoVoltar($tela, 'Sucesso', 'Modelo "' . $modelo['nome'] . '" aplicado.');
+
     // ---------------------------------------------------------- mapeamento
     case 'mapear':
         if (empty($_SESSION['importacao'])) {

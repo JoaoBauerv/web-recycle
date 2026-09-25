@@ -103,15 +103,32 @@ $badge_situacao = [
     $passos = [1 => 'Arquivo', 2 => 'Colunas', 3 => 'Conferência'];
     ?>
     <div class="d-flex flex-wrap gap-2 mb-4">
-        <?php foreach ($passos as $n => $rotulo): ?>
-            <div class="px-3 py-2 rounded-3 border <?= $n === $etapa_atual ? 'border-2' : 'opacity-50' ?>"
-                 style="<?= $n === $etapa_atual ? 'border-color: var(--color-accent) !important;' : '' ?>">
+        <?php foreach ($passos as $n => $rotulo):
+            // Passo já vencido é navegável: voltar às colunas é o caminho para
+            // corrigir o mapeamento, e voltar ao arquivo descarta a importação.
+            $destino = null;
+            if ($n < $etapa_atual) {
+                $destino = $n === 1
+                    ? $acoes . '?acao=cancelar'
+                    : $acoes . '?acao=ajustar_colunas';
+            }
+
+            $classe = 'px-3 py-2 rounded-3 border text-decoration-none text-body '
+                    . ($n === $etapa_atual ? 'border-2' : ($destino ? '' : 'opacity-50'));
+            $estilo = $n === $etapa_atual ? 'border-color: var(--color-accent) !important;' : '';
+            $tag = $destino ? 'a' : 'div';
+        ?>
+            <<?= $tag ?> class="<?= $classe ?>"
+                <?= $destino ? 'href="' . $destino . '"' : '' ?>
+                <?= $destino && $n === 1 ? 'onclick="return confirm(\'Trocar de arquivo descarta esta importação. Continuar?\');"' : '' ?>
+                style="<?= $estilo ?>"
+                <?= $n === $etapa_atual ? 'aria-current="step"' : '' ?>>
                 <span class="badge rounded-pill <?= $n < $etapa_atual ? 'bg-success' : ($n === $etapa_atual ? '' : 'bg-secondary') ?>"
                       style="<?= $n === $etapa_atual ? 'background: var(--color-accent);' : '' ?>">
                     <?= $n < $etapa_atual ? '<i class="bi bi-check"></i>' : $n ?>
                 </span>
                 <span class="ms-1 <?= $n === $etapa_atual ? 'fw-semibold' : '' ?>"><?= $rotulo ?></span>
-            </div>
+            </<?= $tag ?>>
         <?php endforeach; ?>
     </div>
 
@@ -193,6 +210,39 @@ $badge_situacao = [
 <?php elseif ($estado['etapa'] === 'mapear' && !$erro_leitura): ?>
 
     <!-- ================================================== ETAPA 2: COLUNAS -->
+
+    <!-- Trocar de modelo recarrega o mapeamento, então fica num formulário
+         próprio: enviar junto com o mapeamento manual seria ambíguo. -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="POST" action="<?= $acoes ?>" class="row g-2 align-items-end">
+                <input type="hidden" name="acao" value="trocar_modelo">
+                <div class="col-md-7">
+                    <label for="modelo_ativo" class="form-label small text-muted mb-1">
+                        Modelo de importação
+                    </label>
+                    <select name="id_modelo" id="modelo_ativo" class="form-select">
+                        <option value="">Detectar colunas automaticamente</option>
+                        <?php foreach ($modelos as $m): ?>
+                            <option value="<?= (int) $m['id_modelo'] ?>"
+                                <?= (int) ($estado['id_modelo'] ?? 0) === (int) $m['id_modelo'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($m['nome']) ?><?= $m['nome_razao_social'] ? ' — ' . htmlspecialchars($m['nome_razao_social']) : '' ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <button type="submit" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-arrow-repeat me-1"></i> Aplicar modelo
+                    </button>
+                    <small class="form-text text-muted">
+                        Recarrega o mapeamento e descarta as edições da conferência.
+                    </small>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <form method="POST" action="<?= $acoes ?>">
         <input type="hidden" name="acao" value="mapear">
 
@@ -277,7 +327,10 @@ $badge_situacao = [
                         </div>
 
                         <div class="d-flex gap-2">
-                            <a href="<?= $acoes ?>?acao=cancelar" class="btn btn-outline-secondary">Cancelar</a>
+                            <a href="<?= $acoes ?>?acao=cancelar" class="btn btn-outline-danger"
+                               onclick="return confirm('Cancelar a importação e descartar o arquivo?');">
+                                Cancelar
+                            </a>
                             <button type="submit" class="btn btn-primary flex-grow-1">
                                 <i class="bi bi-arrow-right me-1"></i> Continuar
                             </button>
@@ -435,11 +488,27 @@ $badge_situacao = [
             <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
                     <h3 class="h6 fw-semibold mb-0"><i class="bi bi-card-checklist me-2"></i>Conferência dos itens</h3>
-                    <small class="text-muted">
+                    <small class="text-muted d-block">
                         Todos os campos são editáveis. Altere e use <em>Recalcular</em> para rever o estoque.
                         <?php if (!$tem_tara_planilha): ?>
                             A planilha não tem coluna de tara — preencha aqui se houver.
                         <?php endif; ?>
+                    </small>
+                    <small class="text-muted d-block">
+                        <i class="bi bi-table me-1"></i>
+                        <?php
+                        $modelo_ativo = null;
+                        foreach ($modelos as $mo) {
+                            if ((int) $mo['id_modelo'] === (int) ($estado['id_modelo'] ?? 0)) {
+                                $modelo_ativo = $mo['nome'];
+                                break;
+                            }
+                        }
+                        echo $modelo_ativo
+                            ? 'Modelo: <strong>' . htmlspecialchars($modelo_ativo) . '</strong>'
+                            : 'Colunas detectadas automaticamente';
+                        ?>
+                        · <a href="<?= $acoes ?>?acao=ajustar_colunas">ajustar ou trocar de modelo</a>
                     </small>
                 </div>
                 <span class="text-muted small">
@@ -596,6 +665,10 @@ $badge_situacao = [
                 <a href="<?= $acoes ?>?acao=cancelar" class="btn btn-outline-danger"
                    onclick="return confirm('Cancelar a importação e descartar o arquivo?');">
                     <i class="bi bi-x-lg me-1"></i> Cancelar
+                </a>
+
+                <a href="<?= $acoes ?>?acao=ajustar_colunas" class="btn btn-outline-secondary">
+                    <i class="bi bi-table me-1"></i> Ajustar colunas
                 </a>
 
                 <button type="submit" name="acao" value="recalcular" class="btn btn-outline-secondary">
