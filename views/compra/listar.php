@@ -3,262 +3,134 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
-$stmt = $pdo->prepare("SELECT  * FROM tb_pesagem WHERE total_valor > 0 ORDER BY data_pesagem ASC");
-$stmt->execute();
-$rowCount = $stmt->rowCount();
 
-if ($rowCount > 0):
+// JOIN com clientes: antes o nome era buscado com uma query dentro do laço,
+// ou seja, uma consulta por linha da tabela.
+$compras = $pdo->query("SELECT p.id_pesagem, p.total_peso, p.total_valor, p.data_pesagem,
+                               c.nome AS cliente_nome
+                        FROM tb_pesagem p
+                        LEFT JOIN clientes c ON c.id_cliente = p.id_cliente
+                        WHERE p.total_valor > 0
+                        ORDER BY p.data_pesagem DESC")->fetchAll(PDO::FETCH_ASSOC);
+
+$total_compras = count($compras);
 ?>
-<div class="container-fluid py-4">
-    <div class="row justify-content-center">
-        <div class="col-9">
-            
-            <?php
-            include 'inc_header_relatorios.php';
-            ?>
 
-            <!-- Card principal -->
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-gradient" style="background: var(--color-primary);">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <h5 class="card-title text-white mb-0 fw-semibold">
-                                <i class="bi bi-table me-2"></i>
-                                Dados das Compras
-                            </h5>
-                        </div>
-                       
-                    </div>
-                </div>
-                
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table id="usuariosTable" class="table table-hover align-middle mb-0">
-                            <thead class="table-light sticky-top">
-                                <tr>
-                                    <th class="fw-semibold text-dark border-0 ps-4">
-                                        <i class="bi bi-person-fill me-2 text-primary"></i>
-                                        Cliente
-                                    </th>
-                                    <th class="fw-semibold text-dark border-0">
-                                        <i class="bi bi-weight me-2 text-success"></i>
-                                        Peso Total
-                                    </th>
-                                    <th class="fw-semibold text-dark border-0">
-                                        <i class="bi bi-currency-dollar me-2 text-warning"></i>
-                                        Valor Total
-                                    </th>
-                                    <th class="fw-semibold text-dark border-0">
-                                        <i class="bi bi-calendar-event me-2 text-info"></i>
-                                        Data da Compra
-                                    </th>
-                                     <th class="fw-semibold text-dark border-0">
-                                    </th>
+<div class="container-fluid py-4" style="max-width: 1400px;">
 
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php while ($row = $stmt->fetch(PDO::FETCH_ASSOC)): ?>
-                                <a href="<?=$url_base?>/compras/detalhe?id=<?=$row['id_pesagem']?>">
-                                <tr class="">
-                                    <?php 
-                                        $stmt_nome = $pdo->prepare("SELECT nome FROM clientes WHERE id_cliente = :id_cliente");
-                                        $stmt_nome->bindValue(':id_cliente', $row['id_cliente'], PDO::PARAM_INT);
-                                        $stmt_nome->execute();
-                                        $usuario = $stmt_nome->fetch(PDO::FETCH_ASSOC);
-                                        $nome = $usuario ? $usuario['nome'] : 'Desconhecido';
-                                    ?>
-                                    <td class="fw-medium text-dark ps-4 py-3">
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-circle bg-primary text-white me-3 d-flex align-items-center justify-content-center" 
-                                                 style="width: 35px; height: 35px; border-radius: 50%; font-size: 14px; font-weight: 600;">
-                                                <?= strtoupper(substr($nome, 0, 1)) ?>
-                                            </div>
-                                            <span><?= htmlspecialchars($nome) ?></span>
-                                        </div>
-                                    </td>
-                                    <td class="py-3">
-                                        <span class="badge bg-success-subtle text-success px-3 py-2 fs-6 fw-semibold">
-                                            <?= htmlspecialchars($row["total_peso"]) ?> kg
-                                        </span>
-                                    </td>
-                                    <td class="py-3">
-                                        <span class="text-success fw-bold fs-6">
-                                            R$ <?= number_format($row["total_valor"], 2, ',', '.') ?>
-                                        </span>
-                                    </td>
-                                    <td class="py-3" data-order="<?= strtotime($row['data_pesagem']) ?>">
-                                        <div class="d-flex flex-column">
-                                            <span class="fw-medium text-dark">
-                                                <?= date("d/m/Y", strtotime($row['data_pesagem'])) ?>
-                                            </span>
-                                            <small class="text-muted">
-                                                <?= date("H:i:s", strtotime($row['data_pesagem'])) ?>
-                                            </small>
-                                        </div>
-                                    </td>
-                                    <td class="text-center py-3">
-                                        <a href="<?=$url_base?>/compras/detalhe?id=<?=$row['id_pesagem']?>" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-eye me-1"></i>
-                                            Ver Detalhes
-                                        </a>                                   
-                                    </td>
-                                </tr>
-                                </a>
-                                <?php endwhile; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-                
-                <!-- Footer do card -->
-                <div class="card-footer bg-light border-0">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <small class="text-muted">
-                                <i class="bi bi-info-circle me-1"></i>
-                                Dados atualizados em tempo real
-                            </small>
-                        </div>
-                        <div class="col-auto">
-                            <small class="text-muted">
-                                Última atualização: <?= date('d/m/Y H:i') ?>
-                            </small>
-                        </div>
-                    </div>
+    <?php include 'inc_header_relatorios.php'; ?>
+
+    <?php require_once __DIR__ . '/../../components/alert.php'; ?>
+
+    <?php if ($total_compras === 0): ?>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-inbox display-4 text-muted d-block mb-3" aria-hidden="true"></i>
+                <h2 class="h5 text-muted mb-1">Nenhuma compra registrada</h2>
+                <p class="text-muted mb-4">Quando você comprar material de um cliente, o histórico aparece aqui.</p>
+                <a href="<?= $url_base ?>/compras" class="btn btn-primary">
+                    <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Registrar a primeira compra
+                </a>
+            </div>
+        </div>
+
+    <?php else: ?>
+
+        <!-- Lista -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h2 class="h6 fw-semibold mb-0">
+                    <i class="bi bi-list-ul me-2" aria-hidden="true"></i>Compras realizadas
+                </h2>
+                <a href="<?= $url_base ?>/compras" class="btn btn-primary btn-sm">
+                    <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Nova compra
+                </a>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table id="comprasTable" class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-4">Compra</th>
+                                <th>Cliente</th>
+                                <th>Data</th>
+                                <th class="text-end">Peso</th>
+                                <th class="text-end">Valor</th>
+                                <th class="text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($compras as $c):
+                            $nome = $c['cliente_nome'] ?: 'Cliente removido';
+                        ?>
+                            <tr>
+                                <td class="ps-4 fw-semibold">#<?= (int) $c['id_pesagem'] ?></td>
+                                <td><?= htmlspecialchars($nome) ?></td>
+                                <td data-order="<?= strtotime($c['data_pesagem']) ?>">
+                                    <?= date('d/m/Y', strtotime($c['data_pesagem'])) ?>
+                                    <small class="text-muted d-block"><?= date('H:i', strtotime($c['data_pesagem'])) ?></small>
+                                </td>
+                                <td class="text-end" data-order="<?= (float) $c['total_peso'] ?>">
+                                    <?= number_format((float) $c['total_peso'], 2, ',', '.') ?> kg
+                                </td>
+                                <td class="text-end fw-semibold" style="color: var(--color-accent);"
+                                    data-order="<?= (float) $c['total_valor'] ?>">
+                                    R$ <?= number_format((float) $c['total_valor'], 2, ',', '.') ?>
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="<?= $url_base ?>/compras/detalhe?id=<?= (int) $c['id_pesagem'] ?>"
+                                       class="btn btn-sm btn-outline-secondary"
+                                       aria-label="Ver detalhes da compra #<?= (int) $c['id_pesagem'] ?>">
+                                        <i class="bi bi-eye me-1" aria-hidden="true"></i> Detalhes
+                                    </a>
+                                    <a href="<?= $url_base ?>/compras/comprovante?id=<?= (int) $c['id_pesagem'] ?>"
+                                       class="btn btn-sm btn-outline-secondary"
+                                       aria-label="Ver comprovante da compra #<?= (int) $c['id_pesagem'] ?>">
+                                        <i class="bi bi-receipt me-1" aria-hidden="true"></i> Comprovante
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
-    </div>
+
+    <?php endif; ?>
 </div>
 
-<?php else: ?>
-<div class="container-fluid py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card border-0 shadow-sm">
-                <div class="card-body text-center py-5">
-                    <div class="mb-4">
-                        <i class="bi bi-inbox display-1 text-muted"></i>
-                    </div>
-                    <h4 class="text-muted mb-3">Nenhuma compra encontrada</h4>
-                    <p class="text-muted mb-4">
-                        Não há registros de compras com valores no momento.
-                    </p>
-                    <a href="<?= $url_base ?>/compras" type="button" class="btn btn-primary">
-                        <i class="bi bi-plus-lg me-2"></i>
-                        Nova Compra
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-<?php endif; ?>
-
-<!-- Estilos customizados -->
 <style>
-.bg-gradient {
-    background: var(--color-primary) !important;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-    transform: translateY(-1px);
-    transition: all 0.2s ease;
-}
-
-.avatar-circle {
-    transition: all 0.2s ease;
-}
-
-.avatar-circle:hover {
-    transform: scale(1.1);
-}
-
 .card {
     border-radius: 12px;
     overflow: hidden;
 }
 
-.card-header {
-    border-bottom: none;
-}
-
-.badge {
-    border-radius: 8px;
-}
-
-.btn-outline-light:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.5);
-}
-
-.table th {
-    background-color: #f8f9fa;
-    font-size: 14px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-}
-
-.border-bottom {
-    border-bottom: 2px solid #e9ecef !important;
-}
-
-.border-bottom:last-child {
-    border-bottom: none !important;
-}
-
-@media (max-width: 768px) {
-    .d-flex.justify-content-between {
-        flex-direction: column;
-        gap: 1rem;
-    }
-    
-    .btn-group {
-        width: 100%;
-    }
-    
-    .btn-group .btn {
-        flex: 1;
-    }
-}
-
-td {
-    border-radius: 5px;
-    border-width: 1px;
-
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
 }
 </style>
 
 <script>
-$(document).ready(function() {
-    $('#usuariosTable').DataTable({
+$(function () {
+    if (!$('#comprasTable').length) return;
+
+    $('#comprasTable').DataTable({
         "autoWidth": false, // sem isto o DataTables grava um width inline e a tabela encolhe
-        "language": {
-            "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
-        },
-        "pageLength": 5,
-        "lengthMenu": [5, 10, 25, 50, 100],
-        "order": [[3, "desc"]],
+        "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json" },
+        "pageLength": 10,
+        "lengthMenu": [10, 25, 50, 100],
+        "order": [[2, "desc"]],
         "responsive": true,
         "dom": "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
                "<'row'<'col-sm-12'tr>>" +
                "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
         "columnDefs": [
-            { "orderable": true, "targets": [0, 1, 2, 3] },
-            { "searchable": true, "targets": [0, 3] },
-            { "className": "text-center", "targets": [1, 2] }
-        ],
-        "drawCallback": function() {
-            // Adiciona animação suave após cada redraw
-            $('tbody tr').css('opacity', '0').animate({ opacity: 1 }, 300);
-        }
-    });
-
-    // Animação de entrada
-    $('tbody tr').css('opacity', '0').each(function(i) {
-        $(this).delay(i * 50).animate({ opacity: 1 }, 300);
+            { "orderable": false, "targets": [5] },
+            { "className": "text-end", "targets": [3, 4] }
+        ]
     });
 });
 </script>

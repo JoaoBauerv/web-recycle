@@ -44,7 +44,6 @@ $total_peso_bruto = array_sum(array_map(
 ));
 
 $cliente_nome = $cliente ? $cliente['nome'] : 'Desconhecido';
-$preco_medio = $pesagem['total_peso'] > 0 ? $pesagem['total_valor'] / $pesagem['total_peso'] : 0;
 ?>
 
 <div class="container-fluid py-4">
@@ -90,8 +89,15 @@ $preco_medio = $pesagem['total_peso'] > 0 ? $pesagem['total_valor'] / $pesagem['
                             <strong class="fs-5 d-block text-truncate" title="<?= htmlspecialchars($cliente_nome) ?>">
                                 <?= htmlspecialchars($cliente_nome) ?>
                             </strong>
-                            <?php if ($cliente && !empty($cliente['telefone'])): ?>
-                                <span class="small text-muted"><?= htmlspecialchars($cliente['telefone']) ?></span>
+                            <?php if (!empty($cliente['email'])): ?>
+                                <span class="small text-muted d-block text-truncate" title="<?= htmlspecialchars($cliente['email']) ?>">
+                                    <i class="bi bi-envelope me-1" aria-hidden="true"></i><?= htmlspecialchars($cliente['email']) ?>
+                                </span>
+                            <?php endif; ?>
+                            <?php if (!empty($cliente['telefone'])): ?>
+                                <span class="small text-muted d-block">
+                                    <i class="bi bi-telephone me-1" aria-hidden="true"></i><?= htmlspecialchars($cliente['telefone']) ?>
+                                </span>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -115,7 +121,6 @@ $preco_medio = $pesagem['total_peso'] > 0 ? $pesagem['total_valor'] / $pesagem['
                             <strong class="fs-4 d-block" style="color: var(--color-accent);">
                                 R$ <?= number_format((float) $pesagem['total_valor'], 2, ',', '.') ?>
                             </strong>
-                            <span class="small text-muted">R$ <?= number_format($preco_medio, 2, ',', '.') ?>/kg em média</span>
                         </div>
                     </div>
                 </div>

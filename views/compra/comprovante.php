@@ -82,6 +82,9 @@ $cliente_endereco = comprovanteEndereco($cliente);
                     </div>
                 <?php endif; ?>
 
+                <?php // Feedback do envio por e-mail (msgSucesso / msgErro na URL) ?>
+                <?php require_once __DIR__ . '/../../components/alert.php'; ?>
+
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0">
@@ -115,6 +118,9 @@ $cliente_endereco = comprovanteEndereco($cliente);
                             <a href="<?= $url_base ?>/views/compra/pdf.php?id=<?= $id_pesagem ?>" target="_blank" class="btn btn-outline-primary">
                                 <i class="bi bi-file-earmark-pdf me-1"></i> Baixar PDF
                             </a>
+                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEnviarEmail">
+                                <i class="bi bi-envelope me-1"></i> Enviar por e-mail
+                            </button>
                             <a href="<?= $url_base ?>/compras/detalhe?id=<?= $id_pesagem ?>" class="btn btn-outline-secondary">
                                 <i class="bi bi-eye me-1"></i> Ver Detalhes
                             </a>
@@ -132,6 +138,49 @@ $cliente_endereco = comprovanteEndereco($cliente);
                 </div>
             </div>
 
+            <!-- Envio por e-mail (não imprime) -->
+            <div class="modal fade no-print" id="modalEnviarEmail" tabindex="-1" aria-labelledby="tituloEnviarEmail" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <form method="POST" action="<?= $url_base ?>/functions/compra/enviar_comprovante.php" class="modal-content">
+                        <input type="hidden" name="id_pesagem" value="<?= $id_pesagem ?>">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="tituloEnviarEmail">
+                                <i class="bi bi-envelope me-2" aria-hidden="true"></i>Enviar comprovante
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <p class="text-muted small">
+                                O comprovante da compra #<?= $id_pesagem ?> será enviado em PDF anexado.
+                            </p>
+
+                            <label for="email_destino" class="form-label">E-mail do cliente</label>
+                            <input type="email" class="form-control" id="email_destino" name="email"
+                                   value="<?= htmlspecialchars($cliente['email'] ?? '') ?>"
+                                   placeholder="cliente@exemplo.com" required
+                                   aria-describedby="ajuda-email">
+
+                            <small class="form-text text-muted" id="ajuda-email">
+                                <?php if (!empty($cliente['email'])): ?>
+                                    Endereço cadastrado para <?= htmlspecialchars($cliente_nome) ?>. Pode ser alterado só para este envio.
+                                <?php else: ?>
+                                    Este cliente não tem e-mail cadastrado — informe um endereço para enviar.
+                                <?php endif; ?>
+                            </small>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-1" aria-hidden="true"></i> Enviar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
             <!-- Comprovante (isto é o que imprime) -->
             <div id="comprovante" class="recibo formato-a4">
 
@@ -143,7 +192,7 @@ $cliente_endereco = comprovanteEndereco($cliente);
                     <?php endif; ?>
 
                     <div class="recibo-titulo mt-3">
-                        <strong>COMPROVANTE DE COMPRA DE MATERIAIS RECICLÁVEIS</strong>
+                        <strong>COMPROVANTE DE VENDA DE MATERIAIS RECICLÁVEIS</strong>
                     </div>
                     <div class="small text-muted">
                         Nº <?= str_pad($id_pesagem, 8, '0', STR_PAD_LEFT) ?>
@@ -212,7 +261,7 @@ $cliente_endereco = comprovanteEndereco($cliente);
                 <hr>
 
                 <div class="recibo-total d-flex justify-content-between">
-                    <span>TOTAL DA COMPRA</span>
+                    <span>TOTAL DA VENDA</span>
                     <strong>R$ <?= number_format((float) $pesagem['total_valor'], 2, ',', '.') ?></strong>
                 </div>
                 <div class="d-flex justify-content-between small text-muted">
