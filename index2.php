@@ -1,4 +1,9 @@
 <?php
+// O roteador imprime o HTML da página ANTES de incluir a view, então qualquer
+// header('Location: ...') dentro de uma view falharia com "headers already sent".
+// Com o buffer ligado, a saída só é enviada no fim e o redirecionamento funciona.
+ob_start();
+
 date_default_timezone_set('America/Sao_Paulo');
 
 require_once __DIR__ . '/banco.php';
@@ -33,6 +38,9 @@ $paginas_disponiveis = [
     'materiais'             => ['arquivo' => 'material/index',      'auth' => true,  'admin' => false],
     'materiais/novo'        => ['arquivo' => 'material/create',     'auth' => true,  'admin' => false],
     'materiais/editar'      => ['arquivo' => 'material/edit',       'auth' => true,  'admin' => false],
+    // Perfis Admin/Gerente: a checagem fina fica em components/permissoes.php,
+    // chamada dentro da própria view.
+    'materiais/relacoes'    => ['arquivo' => 'material/relacoes',    'auth' => true,  'admin' => false],
 
     'clientes'              => ['arquivo' => 'cliente/index',       'auth' => true,  'admin' => false],
     'clientes/novo'         => ['arquivo' => 'cliente/create',      'auth' => true,  'admin' => true],
@@ -42,6 +50,9 @@ $paginas_disponiveis = [
     'fornecedores/novo'     => ['arquivo' => 'fornecedor/create',   'auth' => true,  'admin' => true],
     'fornecedores/editar'   => ['arquivo' => 'fornecedor/edit',     'auth' => true,  'admin' => true],
 
+    'estoque'               => ['arquivo' => 'estoque/index',       'auth' => true,  'admin' => false],
+    'estoque/extrato'       => ['arquivo' => 'estoque/extrato',     'auth' => true,  'admin' => false],
+
     'compras'               => ['arquivo' => 'compra/index',        'auth' => true,  'admin' => false],
     'compras/listar'        => ['arquivo' => 'compra/listar',       'auth' => true,  'admin' => false],
     'compras/detalhe'       => ['arquivo' => 'compra/detalhe',      'auth' => true,  'admin' => false],
@@ -50,6 +61,10 @@ $paginas_disponiveis = [
 
     'vendas'                => ['arquivo' => 'venda/index',         'auth' => true,  'admin' => false],
     'vendas/listar'         => ['arquivo' => 'venda/listar',        'auth' => true,  'admin' => false],
+    'vendas/detalhe'        => ['arquivo' => 'venda/detalhe',       'auth' => true,  'admin' => false],
+    'vendas/importar'       => ['arquivo' => 'venda/importar',      'auth' => true,  'admin' => false],
+    'vendas/importacoes'    => ['arquivo' => 'venda/importacoes',   'auth' => true,  'admin' => false],
+    'vendas/relatorio'      => ['arquivo' => 'venda/relatorio',     'auth' => true,  'admin' => false],
 
     'usuarios'              => ['arquivo' => 'user/admin',          'auth' => true,  'admin' => true],
     'usuarios/novo'         => ['arquivo' => 'user/register',       'auth' => true,  'admin' => true],

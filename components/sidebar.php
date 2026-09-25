@@ -1,4 +1,8 @@
 <?php
+// usuarioPode() decide quais itens aparecem. Esconder o link é só conveniência:
+// quem digitar a URL continua barrado pela checagem dentro da própria view.
+require_once __DIR__ . '/permissoes.php';
+
 // Página atual (definida pelo roteador index2.php); em páginas fora do
 // roteador (login, alterar_senha) fica vazia e nenhum item fica "ativo".
 $paginaAtual = $pagina ?? '';
@@ -26,9 +30,11 @@ $logado = !empty($_SESSION['logado']);
 $dados_usuario = $dados_usuario ?? ['nome' => '', 'permissao' => '', 'usuario' => ''];
 $foto_usuario = 'padrao.png';
 
-if (!empty($_SESSION['usuario'])) {
-    $stmt = $pdo->prepare("SELECT * FROM tb_usuario WHERE usuario = :usuario");
-    $stmt->bindParam(':usuario', $_SESSION['usuario']);
+// Identifica o usuário logado pela chave primária. Antes a busca era pela coluna
+// `usuario`, que deixou de ser credencial quando o login passou a ser por e-mail.
+if (!empty($_SESSION['id_usuario'])) {
+    $stmt = $pdo->prepare("SELECT * FROM tb_usuario WHERE id_usuario = :id");
+    $stmt->bindParam(':id', $_SESSION['id_usuario'], PDO::PARAM_INT);
     $stmt->execute();
     $dados_usuario = $stmt->fetch(PDO::FETCH_ASSOC) ?: $dados_usuario;
 
@@ -79,10 +85,24 @@ $eh_admin = ($dados_usuario['permissao'] ?? '') === 'Admin';
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="<?= $url_base ?>/vendas" class="nav-link rounded-3<?= nav_active_prefixo('vendas', $paginaAtual) ?>">
+                    <a href="<?= $url_base ?>/vendas" class="nav-link rounded-3<?= nav_active_prefixo('vendas', $paginaAtual, ['vendas/relatorio', 'vendas/importar', 'vendas/importacoes']) ?>">
                         <i class="bi bi-cart-check" aria-hidden="true"></i> Vendas
                     </a>
                 </li>
+                <?php if (usuarioPode('venda.importar')): ?>
+                    <li class="nav-item">
+                        <a href="<?= $url_base ?>/vendas/importar" class="nav-link rounded-3<?= nav_active_prefixo('vendas/importa', $paginaAtual) ?>">
+                            <i class="bi bi-file-earmark-spreadsheet" aria-hidden="true"></i> Importar Vendas
+                        </a>
+                    </li>
+                <?php endif; ?>
+                <?php if (usuarioPode('estoque.visualizar')): ?>
+                    <li class="nav-item">
+                        <a href="<?= $url_base ?>/estoque" class="nav-link rounded-3<?= nav_active_prefixo('estoque', $paginaAtual) ?>">
+                            <i class="bi bi-boxes" aria-hidden="true"></i> Estoque
+                        </a>
+                    </li>
+                <?php endif; ?>
 
                 <li class="sidebar-grupo">Cadastros</li>
                 <li class="nav-item">
@@ -96,15 +116,27 @@ $eh_admin = ($dados_usuario['permissao'] ?? '') === 'Admin';
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="<?= $url_base ?>/materiais" class="nav-link rounded-3<?= nav_active_prefixo('materiais', $paginaAtual) ?>">
+                    <a href="<?= $url_base ?>/materiais" class="nav-link rounded-3<?= nav_active_prefixo('materiais', $paginaAtual, ['materiais/relacoes']) ?>">
                         <i class="bi bi-box-seam" aria-hidden="true"></i> Materiais
                     </a>
                 </li>
+                <?php if (usuarioPode('material.relacao')): ?>
+                    <li class="nav-item">
+                        <a href="<?= $url_base ?>/materiais/relacoes" class="nav-link rounded-3<?= nav_active('materiais/relacoes', $paginaAtual) ?>">
+                            <i class="bi bi-diagram-3" aria-hidden="true"></i> Relacionamentos
+                        </a>
+                    </li>
+                <?php endif; ?>
 
                 <li class="sidebar-grupo">Relatórios</li>
                 <li class="nav-item">
                     <a href="<?= $url_base ?>/compras/relatorio" class="nav-link rounded-3<?= nav_active('compras/relatorio', $paginaAtual) ?>">
                         <i class="bi bi-bar-chart-line" aria-hidden="true"></i> Relatório de Compras
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="<?= $url_base ?>/vendas/relatorio" class="nav-link rounded-3<?= nav_active('vendas/relatorio', $paginaAtual) ?>">
+                        <i class="bi bi-bar-chart-line" aria-hidden="true"></i> Relatório de Vendas
                     </a>
                 </li>
 

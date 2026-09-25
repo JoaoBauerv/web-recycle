@@ -3,3 +3,10 @@
 .claude
 /balanca-agent
 /sql
+/images
+/docs
+
+# Comprovantes enviados pelos parceiros são documentos de terceiros: o .htaccess
+# que bloqueia a pasta é versionado, os arquivos nunca.
+/uploads/comprovantes_venda/*
+!/uploads/comprovantes_venda/.htaccess
