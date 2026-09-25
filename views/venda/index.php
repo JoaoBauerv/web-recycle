@@ -4,6 +4,8 @@ if (empty($router_managed)) {
     exit;
 }
 
+require_once __DIR__ . '/../../components/permissoes.php';
+
 date_default_timezone_set('America/Sao_Paulo');
 
 if (!isset($_SESSION['venda_itens'])) {
@@ -138,9 +140,16 @@ $pronto_para_finalizar = $fornecedor_selecionado && $total_itens > 0;
             </h2>
             <p class="text-muted mb-0">Você vende ao fornecedor e recebe por isso</p>
         </div>
-        <a href="<?= $url_base ?>/vendas/listar" class="btn btn-outline-secondary">
-            <i class="bi bi-clock-history me-1"></i> Vendas realizadas
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <?php if (usuarioPode('venda.importar')): ?>
+                <a href="<?= $url_base ?>/vendas/importar" class="btn btn-outline-primary">
+                    <i class="bi bi-file-earmark-spreadsheet me-1"></i> Importar planilha
+                </a>
+            <?php endif; ?>
+            <a href="<?= $url_base ?>/vendas/listar" class="btn btn-outline-secondary">
+                <i class="bi bi-clock-history me-1"></i> Vendas realizadas
+            </a>
+        </div>
     </div>
 
     <?php require_once __DIR__ . '/../../components/alert.php'; ?>
@@ -274,12 +283,16 @@ $pronto_para_finalizar = $fornecedor_selecionado && $total_itens > 0;
                                     <input type="text" class="form-control" id="quantidade_liquida" placeholder="0,00 kg" readonly>
                                 </div>
                                 <div class="col-6 col-md-3">
-                                    <label for="preco_un" class="form-label">Preço de venda</label>
+                                    <label for="preco_un" class="form-label">Preço negociado</label>
                                     <div class="input-group">
                                         <span class="input-group-text">R$</span>
                                         <input type="number" step="0.01" min="0.01" class="form-control"
-                                               name="preco_un" id="preco_un" placeholder="0,00" required>
+                                               name="preco_un" id="preco_un" placeholder="0,00" required
+                                               aria-describedby="preco-ultimo">
                                     </div>
+                                    <small class="form-text text-muted" id="preco-ultimo">
+                                        Cada venda tem seu preço.
+                                    </small>
                                 </div>
                             </div>
 
@@ -441,6 +454,7 @@ $(function () {
     const subtotal = document.getElementById('subtotal');
     const unidadeLabel = document.getElementById('quantidade-unidade');
     const estoqueInfo = document.getElementById('estoque-info');
+    const precoUnInfo = document.getElementById('preco-ultimo');
 
     function formatarReal(valor) {
         return 'R$ ' + valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -468,14 +482,24 @@ $(function () {
             quantidade.max = estoque;
             estoqueInfo.textContent = 'Disponível em estoque: ' +
                 estoque.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + unidade;
-            // preco_venda ainda não está cadastrado na maioria dos materiais, então só pré-preenche quando existe.
-            if (preco && !precoUn.value) {
-                precoUn.value = parseFloat(preco).toFixed(2);
+
+            // data-preco é o último preço praticado neste material, não uma
+            // tabela: entra só como ponto de partida e o usuário sobrescreve.
+            if (preco) {
+                const valor = parseFloat(preco);
+                precoUnInfo.textContent = 'Última venda: R$ ' +
+                    valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                if (!precoUn.value) {
+                    precoUn.value = valor.toFixed(2);
+                }
+            } else {
+                precoUnInfo.textContent = 'Este material ainda não foi vendido.';
             }
             quantidade.focus();
         } else {
             quantidade.removeAttribute('max');
             estoqueInfo.textContent = 'Só aparecem materiais que existem no estoque.';
+            precoUnInfo.textContent = 'Cada venda tem seu preço.';
         }
         atualizarSubtotal();
     });
