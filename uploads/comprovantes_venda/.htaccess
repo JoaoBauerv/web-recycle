@@ -1,0 +1,3 @@
+# Arquivos de comprovante não são servidos direto pela URL.
+# O acesso passa por functions/venda/comprovante_arquivo.php, que exige login.
+Require all denied
