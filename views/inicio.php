@@ -22,6 +22,15 @@ if ($logado) {
     $stmt->execute([':inicio' => $inicio_mes, ':fim' => $fim_mes]);
     $vendas_mes = $stmt->fetch(PDO::FETCH_ASSOC);
 
+    // Alerta de estoque baixo: só aparece para quem tem acesso ao módulo, e só
+    // considera materiais com mínimo configurado.
+    require_once __DIR__ . '/../components/permissoes.php';
+    require_once __DIR__ . '/../functions/estoque/estoque_lib.php';
+
+    $estoque_baixo = usuarioPode('estoque.visualizar')
+        ? estoqueAbaixoDoMinimo($pdo, 6)
+        : [];
+
     $estoque_total    = (float) $pdo->query("SELECT COALESCE(SUM(qt_estoque), 0) FROM tb_material WHERE status = 1")->fetchColumn();
     $total_clientes   = (int) $pdo->query("SELECT COUNT(*) FROM clientes WHERE status = 1")->fetchColumn();
     $total_materiais  = (int) $pdo->query("SELECT COUNT(*) FROM tb_material WHERE status = 1")->fetchColumn();
@@ -117,6 +126,38 @@ function inicioMoeda(float $valor): string
                 </div>
             </div>
         </div>
+
+        <!-- Estoque baixo -->
+        <?php if (!empty($estoque_baixo)): ?>
+            <div class="card border-0 shadow-sm mb-4" style="border-left: 4px solid #d97706 !important;">
+                <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <h3 class="h6 fw-semibold mb-0">
+                        <i class="bi bi-exclamation-triangle me-2" style="color:#d97706;" aria-hidden="true"></i>
+                        Estoque baixo
+                    </h3>
+                    <a href="<?= $url_base ?>/estoque" class="btn btn-sm btn-outline-secondary">
+                        Ver estoque completo
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <?php foreach ($estoque_baixo as $b): ?>
+                            <div class="col-md-6 col-xl-4">
+                                <a href="<?= $url_base ?>/estoque/extrato?id=<?= (int) $b['id_material'] ?>"
+                                   class="d-flex justify-content-between align-items-center border rounded-3 p-2 text-decoration-none text-body gap-2">
+                                    <span class="text-truncate"><?= htmlspecialchars($b['nm_material']) ?></span>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis flex-shrink-0">
+                                        <?= number_format((float) $b['saldo'], 2, ',', '.') ?>
+                                        / <?= number_format((float) $b['estoque_minimo'], 2, ',', '.') ?>
+                                        <?= htmlspecialchars($b['unidade_medida']) ?>
+                                    </span>
+                                </a>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- Atalhos -->
         <div class="card border-0 shadow-sm">
