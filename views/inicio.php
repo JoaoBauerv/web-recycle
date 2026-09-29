@@ -31,6 +31,24 @@ if ($logado) {
         ? estoqueAbaixoDoMinimo($pdo, 6)
         : [];
 
+    // Resumo financeiro do mês, só para quem tem acesso ao módulo.
+    $financeiro = null;
+    if (usuarioPode('financeiro.contas')) {
+        require_once __DIR__ . '/../functions/financeiro/financeiro_lib.php';
+
+        $stmt = $pdo->prepare("SELECT
+              COALESCE(SUM(pa.valor) FILTER (WHERE pa.status='pendente' AND pa.data_vencimento < CURRENT_DATE), 0) AS vencidas,
+              COALESCE(SUM(pa.valor) FILTER (WHERE pa.status='pendente'
+                       AND pa.data_vencimento BETWEEN CURRENT_DATE AND CURRENT_DATE + 7), 0) AS proximos7,
+              COALESCE(SUM(pa.valor) FILTER (WHERE pa.data_vencimento >= :inicio
+                       AND pa.data_vencimento < :fim AND pa.status <> 'cancelada'), 0) AS despesas_mes
+            FROM contas_pagar_parcelas pa
+            JOIN contas_pagar c ON c.id_conta = pa.id_conta
+            WHERE c.status = 'ativa'");
+        $stmt->execute([':inicio' => $inicio_mes, ':fim' => $fim_mes]);
+        $financeiro = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
     $estoque_total    = (float) $pdo->query("SELECT COALESCE(SUM(qt_estoque), 0) FROM tb_material WHERE status = 1")->fetchColumn();
     $total_clientes   = (int) $pdo->query("SELECT COUNT(*) FROM clientes WHERE status = 1")->fetchColumn();
     $total_materiais  = (int) $pdo->query("SELECT COUNT(*) FROM tb_material WHERE status = 1")->fetchColumn();
@@ -126,6 +144,42 @@ function inicioMoeda(float $valor): string
                 </div>
             </div>
         </div>
+
+        <!-- Financeiro do mês -->
+        <?php if ($financeiro && ((float) $financeiro['despesas_mes'] > 0 || (float) $financeiro['vencidas'] > 0)): ?>
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <h3 class="h6 fw-semibold mb-0">
+                        <i class="bi bi-cash-stack me-2" aria-hidden="true"></i>Financeiro
+                    </h3>
+                    <a href="<?= $url_base ?>/financeiro/contas" class="btn btn-sm btn-outline-secondary">Contas a pagar</a>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="border rounded-3 p-3 h-100 <?= (float) $financeiro['vencidas'] > 0 ? 'border-danger' : '' ?>">
+                                <small class="text-muted d-block">Vencidas</small>
+                                <strong class="fs-5 <?= (float) $financeiro['vencidas'] > 0 ? 'text-danger' : '' ?>">
+                                    <?= financeiroMoeda((float) $financeiro['vencidas']) ?>
+                                </strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded-3 p-3 h-100">
+                                <small class="text-muted d-block">Próximos 7 dias</small>
+                                <strong class="fs-5"><?= financeiroMoeda((float) $financeiro['proximos7']) ?></strong>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="border rounded-3 p-3 h-100">
+                                <small class="text-muted d-block">Despesas do mês</small>
+                                <strong class="fs-5"><?= financeiroMoeda((float) $financeiro['despesas_mes']) ?></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <!-- Estoque baixo -->
         <?php if (!empty($estoque_baixo)): ?>

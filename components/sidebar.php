@@ -128,6 +128,31 @@ $eh_admin = ($dados_usuario['permissao'] ?? '') === 'Admin';
                     </li>
                 <?php endif; ?>
 
+                <?php if (usuarioPode('financeiro.margem') || usuarioPode('financeiro.contas')): ?>
+                    <li class="sidebar-grupo">Financeiro</li>
+                    <?php if (usuarioPode('financeiro.margem')): ?>
+                        <li class="nav-item">
+                            <a href="<?= $url_base ?>/financeiro/margem" class="nav-link rounded-3<?= nav_active_prefixo('financeiro/margem', $paginaAtual) ?>">
+                                <i class="bi bi-graph-up-arrow" aria-hidden="true"></i> Margem
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                    <?php if (usuarioPode('financeiro.contas')): ?>
+                        <li class="nav-item">
+                            <a href="<?= $url_base ?>/financeiro/contas" class="nav-link rounded-3<?= nav_active_prefixo('financeiro/contas', $paginaAtual, ['financeiro/categorias']) ?>">
+                                <i class="bi bi-cash-stack" aria-hidden="true"></i> Contas a Pagar
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                    <?php if (usuarioPode('financeiro.relatorios')): ?>
+                        <li class="nav-item">
+                            <a href="<?= $url_base ?>/financeiro/relatorio" class="nav-link rounded-3<?= nav_active('financeiro/relatorio', $paginaAtual) ?>">
+                                <i class="bi bi-clipboard-data" aria-hidden="true"></i> Relatório Financeiro
+                            </a>
+                        </li>
+                    <?php endif; ?>
+                <?php endif; ?>
+
                 <li class="sidebar-grupo">Relatórios</li>
                 <li class="nav-item">
                     <a href="<?= $url_base ?>/compras/relatorio" class="nav-link rounded-3<?= nav_active('compras/relatorio', $paginaAtual) ?>">

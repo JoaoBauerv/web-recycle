@@ -38,8 +38,8 @@ $paginas_disponiveis = [
     'materiais'             => ['arquivo' => 'material/index',      'auth' => true,  'admin' => false],
     'materiais/novo'        => ['arquivo' => 'material/create',     'auth' => true,  'admin' => false],
     'materiais/editar'      => ['arquivo' => 'material/edit',       'auth' => true,  'admin' => false],
-    // Perfis Admin/Gerente: a checagem fina fica em components/permissoes.php,
-    // chamada dentro da própria view.
+    // A checagem de permissão fica em components/permissoes.php, chamada
+    // dentro da própria view.
     'materiais/relacoes'    => ['arquivo' => 'material/relacoes',    'auth' => true,  'admin' => false],
 
     'clientes'              => ['arquivo' => 'cliente/index',       'auth' => true,  'admin' => false],
@@ -65,6 +65,13 @@ $paginas_disponiveis = [
     'vendas/importar'       => ['arquivo' => 'venda/importar',      'auth' => true,  'admin' => false],
     'vendas/importacoes'    => ['arquivo' => 'venda/importacoes',   'auth' => true,  'admin' => false],
     'vendas/relatorio'      => ['arquivo' => 'venda/relatorio',     'auth' => true,  'admin' => false],
+
+    // Financeiro: restrito a Admin, conferido em components/permissoes.php
+    'financeiro/margem'         => ['arquivo' => 'financeiro/margem',         'auth' => true, 'admin' => false],
+    'financeiro/margem-detalhe' => ['arquivo' => 'financeiro/margem_detalhe', 'auth' => true, 'admin' => false],
+    'financeiro/contas'         => ['arquivo' => 'financeiro/contas',         'auth' => true, 'admin' => false],
+    'financeiro/categorias'     => ['arquivo' => 'financeiro/categorias',     'auth' => true, 'admin' => false],
+    'financeiro/relatorio'      => ['arquivo' => 'financeiro/relatorio',      'auth' => true, 'admin' => false],
 
     'usuarios'              => ['arquivo' => 'user/admin',          'auth' => true,  'admin' => true],
     'usuarios/novo'         => ['arquivo' => 'user/register',       'auth' => true,  'admin' => true],
@@ -143,7 +150,14 @@ $router_managed = true;
             left: 0;
             top: 0;
             height: 100vh;
-            overflow-y: auto;
+            /* dvh desconta a barra do navegador no celular; sem isso o rodapé
+               da sidebar fica atrás dela. O 100vh acima é o recuo para
+               navegadores sem suporte. */
+            height: 100dvh;
+            /* Quem rola é a lista de itens (.sidebar-nav), não a sidebar toda:
+               assim a marca em cima e o menu do usuário embaixo ficam sempre
+               visíveis. Ver as regras de flex em css/theme.css. */
+            overflow: hidden;
             padding: 1rem;
         }
 
