@@ -248,17 +248,14 @@ $success = $_SESSION['msg_sucesso'] ?? '';
                                         <small class="text-muted d-block">Acesso total, incluindo usuários</small>
                                     </label>
                                 </div>
-                                <div class="form-check mb-2">
-                                    <input type="radio" class="form-check-input" name="permissao"
-                                           id="permissaoGerente" value="Gerente"
-                                           <?= ($usuario['permissao'] === 'Gerente') ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="permissaoGerente">Gerente</label>
-                                </div>
                                 <div class="form-check">
                                     <input type="radio" class="form-check-input" name="permissao"
                                            id="permissaoUsuario" value="Usuario"
                                            <?= ($usuario['permissao'] === 'Usuario') ? 'checked' : '' ?>>
-                                    <label class="form-check-label" for="permissaoUsuario">Usuário</label>
+                                    <label class="form-check-label" for="permissaoUsuario">
+                                        Usuário
+                                        <small class="text-muted d-block">Opera compras, vendas e consulta estoque</small>
+                                    </label>
                                 </div>
                             </div>
                         </div>

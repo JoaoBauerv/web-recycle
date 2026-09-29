@@ -78,7 +78,7 @@ function validarDadosUsuario($dados) {
 
     // Permissão
     $permissao = $dados['permissao'] ?? '';
-    if (!in_array($permissao, ['Admin', 'Usuario', 'Gerente'])) {
+    if (!in_array($permissao, ['Admin', 'Usuario'], true)) {
         $errors['permissao'] = 'Permissão inválida';
     } else {
         $dadosLimpos['permissao'] = $permissao;
