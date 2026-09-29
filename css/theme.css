@@ -94,6 +94,51 @@ a { cursor: pointer; }
   padding-top: 0.25rem;
 }
 
+/* A sidebar é uma coluna flex com três partes: marca, lista e menu do usuário.
+   Só a lista rola — as outras duas ficam ancoradas. */
+.sidebar-brand {
+  flex-shrink: 0;
+}
+
+.sidebar-nav {
+  flex: 1 1 auto;
+  /* O .nav do Bootstrap vem com flex-wrap: wrap. Numa coluna de altura
+     limitada isso joga os itens que não cabem para uma SEGUNDA COLUNA à
+     direita, em vez de rolar. Enquanto a sidebar inteira rolava a lista não
+     tinha altura limitada e o problema não aparecia. */
+  flex-wrap: nowrap;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Sem min-height:0 o item flex não encolhe abaixo do conteúdo e o overflow
+     nunca chega a acontecer: a lista empurraria o menu do usuário para fora. */
+  min-height: 0;
+  /* Espaço para a barra de rolagem não encostar no texto. */
+  padding-right: 0.25rem;
+  margin-right: -0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.28);
+  border-radius: 3px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Com nowrap, o padrão de um item flex é encolher quando falta espaço — os
+   links ficariam espremidos em vez de a lista rolar. Travar o encolhimento faz
+   o conteúdo transbordar, que é o que o overflow-y precisa para rolar. */
+.sidebar-nav > li {
+  flex-shrink: 0;
+}
+
 .sidebar-nav .nav-item + .nav-item {
   margin-top: 0.15rem;
 }
@@ -160,6 +205,7 @@ a { cursor: pointer; }
     left: 0;
     top: 0;
     height: 100vh;
+    height: 100dvh;   /* desconta a barra do navegador no celular */
     z-index: 1050;
     transform: translateX(-100%);
     box-shadow: var(--shadow-lg);
@@ -180,6 +226,8 @@ a { cursor: pointer; }
 /* ---------------------------------------------------------------------- */
 
 .sidebar-usuario {
+  /* Ancorado no rodapé: não encolhe nem rola junto com a lista de itens. */
+  flex-shrink: 0;
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
