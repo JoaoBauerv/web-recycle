@@ -3,6 +3,8 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
+require_once __DIR__ . '/../../components/csrf.php';
+
 unset($_SESSION['msg_erro']);
 unset($_SESSION['msg_sucesso']);
 
@@ -197,9 +199,16 @@ $total_admins   = (int) $pdo->query("SELECT COUNT(*) FROM tb_usuario WHERE statu
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <a href="#" id="confirmarResetarSenha" class="btn btn-primary">
-                    <i class="bi bi-key me-1" aria-hidden="true"></i> Resetar senha
-                </a>
+                <!-- POST, e não link: resetar senha altera dados, e por GET a ação
+                     viajaria na URL sem token, exposta a CSRF e a pré-carregamento
+                     do navegador. -->
+                <form method="POST" action="<?= $url_base ?>/functions/user/resetarsenha.php" class="d-inline">
+                    <?= csrfCampo() ?>
+                    <input type="hidden" name="id" id="idResetarSenha" value="">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-key me-1" aria-hidden="true"></i> Resetar senha
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -223,7 +232,7 @@ $(function () {
     $(document).on('click', '.btn-resetar-senha', function () {
         var id = $(this).data('id');
         $('#nomeResetarSenha').text($(this).data('nome'));
-        $('#confirmarResetarSenha').attr('href', '<?= $url_base ?>/functions/user/resetarsenha.php?id=' + id);
+        $('#idResetarSenha').val(id);
         modal.show();
     });
 });

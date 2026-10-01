@@ -1,14 +1,18 @@
 <?php
-session_start();
-require_once(__DIR__ . '/../../banco.php');
+require_once(__DIR__ . '/../../components/middleware.php');
+require_once(__DIR__ . '/../../components/permissoes.php');
 require_once(__DIR__ . '/../funcoes.php');
+
+exigirPermissao('material.gerenciar', $url_base);
+csrfExigir($url_base . '/materiais');
 
 unset($_SESSION['msg_erro']);
 unset($_SESSION['msg_sucesso']);
 
-$nome = ucwords(strtolower($_REQUEST['nome']));
+// 'excluir' não manda nome; sem o ?? '' o PHP 8 emite aviso de chave indefinida.
+$nome = ucwords(strtolower($_REQUEST['nome'] ?? ''));
 
-switch($_REQUEST['acao']){
+switch($_REQUEST['acao'] ?? ''){
 
     case 'cadastrar':
 

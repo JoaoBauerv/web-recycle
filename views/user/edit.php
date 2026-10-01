@@ -3,6 +3,7 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
+require_once __DIR__ . '/../../components/csrf.php';
 ?>
     
     <style>
@@ -174,7 +175,11 @@ $success = $_SESSION['msg_sucesso'] ?? '';
             <!-- Formulário -->
             <form method="POST" action="<?=$url_base?>/functions/user/editar.php" enctype="multipart/form-data" id="editUserForm" novalidate>
                 <input type="hidden" name="id_usuario" value="<?= htmlspecialchars($usuario['id_usuario']) ?>">
-                <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? bin2hex(random_bytes(32)) ?>">
+                <!-- csrfCampo() grava o token na sessão antes de imprimi-lo. O
+                     campo anterior caía em bin2hex(random_bytes(32)) quando a
+                     sessão não tinha token: gerava um valor que nunca era
+                     guardado, então a conferência no servidor nunca casaria. -->
+                <?= csrfCampo() ?>
 
                 <div class="row g-4">
                     <!-- Coluna Lateral - Foto e Configurações -->

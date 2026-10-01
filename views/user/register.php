@@ -5,6 +5,7 @@ if (empty($router_managed)) {
 }
 
 require __DIR__ . '/../../functions/funcoes.php';
+require_once __DIR__ . '/../../components/csrf.php';
 
 function post_data($field) {
     $_POST[$field] ??= '';
@@ -24,6 +25,10 @@ $senha = '';
 $data = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // O formulário é validado aqui e só depois os dados seguem pela sessão para
+    // functions/user/registrar.php, então é aqui que o token tem de ser conferido.
+    csrfExigir($url_base . '/usuarios/novo');
+
     $nome = post_data('nome');
     $sobrenome = post_data('sobrenome');
     $email = post_data('email');
@@ -251,6 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </script>
 
             <input type="hidden" name="admin" id="admin" value="<?= $dados_usuario['id_usuario'] ?? '' ?>">
+            <?= csrfCampo() ?>
             
             <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary">Cadastrar</button>

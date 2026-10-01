@@ -3,6 +3,7 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
+require_once __DIR__ . '/../../components/csrf.php';
 
 $sql = "SELECT * FROM tb_material WHERE id_material = :id";
 $stmt = $pdo->prepare($sql);
@@ -38,6 +39,7 @@ $material = $stmt->fetch(PDO::FETCH_ASSOC);
             </div>
 
             <input type="hidden" value="editar" name="acao">
+            <?= csrfCampo() ?>
             <input type="hidden" value="<?=$_REQUEST['id']?>" name ="id">
 
             <div class="mb-3">

@@ -1,8 +1,23 @@
 <?php
 require (__DIR__ . '/../banco.php');
+require_once (__DIR__ . '/csrf.php');
 session_start();
 
 if (empty($_SESSION['logado'])) {
+    // Endpoints consumidos por AJAX definem MIDDLEWARE_RESPOSTA_JSON antes de
+    // incluir este arquivo: redirecionar devolveria o HTML do login dentro de
+    // uma resposta que o JavaScript tenta ler como JSON, e o erro que aparece
+    // na tela não teria nada a ver com a causa real (sessão expirada).
+    if (defined('MIDDLEWARE_RESPOSTA_JSON')) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'status' => false,
+            'msg'    => 'Sessão expirada. Faça login novamente.',
+        ]);
+        exit();
+    }
+
     header('Location: '.$url_base.'/views/user/login.php');
     exit();
 }

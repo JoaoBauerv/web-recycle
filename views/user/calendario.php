@@ -3,6 +3,7 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
+require_once __DIR__ . '/../../components/csrf.php';
 ?>
 
 <link href="<?=$url_base?>/css/calendario.css" rel="stylesheet">
@@ -61,6 +62,7 @@ if (empty($router_managed)) {
                 <span id="msgCadEvento"></span>
                 
                 <form method="post" id="formCadEvento">
+                    <?= csrfCampo() ?>
                     <div class="row mb-3">
                         <label for="cad_title" class="col-sm-2 col-form-label">Título</label>
                         <div class="col-sm-10">

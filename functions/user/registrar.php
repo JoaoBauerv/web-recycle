@@ -1,19 +1,25 @@
 <?php
-session_start();
-require_once(__DIR__ . '/../../banco.php');
+require_once(__DIR__ . '/../../components/middleware.php');
+require_once(__DIR__ . '/../../components/permissoes.php');
 require_once(__DIR__ . '/../funcoes.php');
 
-
-
+exigirPermissao('usuario.gerenciar', $url_base);
 
 // A tela de cadastro entrega os dados pela sessão (a senha não pode trafegar na
-// URL). O fallback em $_REQUEST mantém funcionando qualquer chamada direta.
+// URL) e já validou o token CSRF antes de redirecionar para cá. Nada é lido de
+// $_REQUEST: o fallback que existia aqui deixava qualquer requisição escolher o
+// próprio valor de 'permissao' e se cadastrar como Admin.
 $entrada = $_SESSION['novo_usuario'] ?? [];
 unset($_SESSION['novo_usuario']);
 
+if (!$entrada) {
+    header("Location: $url_base/usuarios/novo?msgErro=" . urlencode('Sessão expirada. Preencha o cadastro novamente.'));
+    exit;
+}
+
 function dadoCadastro(array $entrada, string $campo, string $padrao = '')
 {
-    return $entrada[$campo] ?? $_REQUEST[$campo] ?? $padrao;
+    return $entrada[$campo] ?? $padrao;
 }
 
 $nomeCompleto = ucwords(strtolower(dadoCadastro($entrada, 'nome_completo')));
@@ -22,8 +28,13 @@ $email = dadoCadastro($entrada, 'email');
 $senha = dadoCadastro($entrada, 'senha');
 $foto = dadoCadastro($entrada, 'foto_nome');
 $data = dadoCadastro($entrada, 'data');
-$admin = dadoCadastro($entrada, 'admin');
-$permissao = dadoCadastro($entrada, 'permissao', 'Usuario');
+
+// Quem cria é sempre o Admin logado, conferido acima.
+$admin = $_SESSION['id_usuario'];
+
+// Perfil não é escolhido no cadastro: todo usuário nasce como 'Usuario' e a
+// promoção para Admin passa pela tela de edição, que é auditada à parte.
+$permissao = 'Usuario';
 $precisa_alterar_senha = 1;
 
 
@@ -81,17 +92,9 @@ try {
             
         // }
         
-        if (empty($admin)) {
-            // Cadastro por usuário comum
-            header("Location: ../../views/user/login.php?msgSucesso=Cadastro realizado com sucesso! Realize o login agora!");
-        } else {
-            // Cadastro feito por admin logado
- 
+        registraMovimentacao($admin, $id_cadastrado['id_usuario'], 'Usuario criado por admin: ' . $admin, 'Cadastro Usuario', $pdo);
 
-            registraMovimentacao($admin, $id_cadastrado['id_usuario'], 'Usuario criado por admin: ' . $admin, 'Cadastro Usuario', $pdo);
-
-            header("Location: $url_base/usuarios?msgSucesso=Cadastro realizado com sucesso!");
-        }
+        header("Location: $url_base/usuarios?msgSucesso=Cadastro realizado com sucesso!");
     } else {
         header("Location: $url_base/usuarios/novo?msgErro=Erro ao executar o cadastro.");
     }

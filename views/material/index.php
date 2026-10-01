@@ -3,6 +3,12 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
+require_once __DIR__ . '/../../components/csrf.php';
+require_once __DIR__ . '/../../components/permissoes.php';
+
+// Consultar a lista é liberado; os botões de manutenção só aparecem para quem
+// o endpoint vai deixar executar a ação, senão o usuário clica e leva erro.
+$pode_gerenciar = usuarioPode('material.gerenciar');
 
 $sql = "SELECT * FROM tb_material WHERE status = 1 ORDER BY nm_material ASC";
 $stmt = $pdo->query($sql);
@@ -37,19 +43,32 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <td data-order="<?= $p['preco_especial'] ?>">R$ <?= number_format($p['preco_especial'], 2, ',', '.') ?></td>
                             <td><?= $p['qt_estoque'] ?></td>
                             <td>
-                                <div class="btn-group" role="group">
-                                    <a href="<?=$url_base?>/materiais/editar?id=<?=$p['id_material']?>" 
-                                       class="btn btn-warning btn-sm" 
+                                <?php if ($pode_gerenciar): ?>
+                                <!-- d-flex em vez de btn-group: o excluir virou <form>,
+                                     e o btn-group só alinha botões irmãos diretos. -->
+                                <div class="d-flex gap-1">
+                                    <a href="<?=$url_base?>/materiais/editar?id=<?=$p['id_material']?>"
+                                       class="btn btn-warning btn-sm"
                                        title="Editar Material">
                                         <i class="fas fa-edit"></i> Editar
                                     </a>
-                                    <a href="<?=$url_base?>/functions/material/registrar.php?id=<?=$p['id_material']?>&acao=excluir" 
-                                       onclick="return confirm('Tem certeza que deseja excluir este material?')" 
-                                       class="btn btn-danger btn-sm"
-                                       title="Excluir Material">
-                                        <i class="fas fa-trash"></i> Excluir
-                                    </a>
+                                    <!-- POST, e não link: excluir altera dados, e por GET
+                                         a ação anda sem token e pode ser disparada por
+                                         pré-carregamento do navegador. -->
+                                    <form method="POST" action="<?=$url_base?>/functions/material/registrar.php"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Tem certeza que deseja excluir este material?')">
+                                        <?= csrfCampo() ?>
+                                        <input type="hidden" name="acao" value="excluir">
+                                        <input type="hidden" name="id" value="<?=$p['id_material']?>">
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Excluir Material">
+                                            <i class="fas fa-trash"></i> Excluir
+                                        </button>
+                                    </form>
                                 </div>
+                                <?php else: ?>
+                                    <span class="text-muted small">—</span>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -61,10 +80,14 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <?php endif; ?>
 
         <div class="d-flex justify-content-between mt-3">
-            <a href="<?=$url_base?>/materiais/novo" class="btn btn-success">
-                <i class="fas fa-plus"></i> Novo Material
-            </a>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#imprimirModal"> 
+            <?php if ($pode_gerenciar): ?>
+                <a href="<?=$url_base?>/materiais/novo" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Novo Material
+                </a>
+            <?php else: ?>
+                <span></span>
+            <?php endif; ?>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#imprimirModal">
                 <i class="bi bi-envelope-paper"></i> Imprimir tabela de preços
             </button>
         </div>
@@ -81,6 +104,7 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
       </div>
       <div class="modal-body">
         <form action="<?=$url_base?>/views/material/pdf.php" method="POST" target="_blank">
+            <?= csrfCampo() ?>
             <label>Selecione o tipo de preço:</label>
                 <div>
                     <input type="radio" id="normal" name="preco" value="normal" checked />

@@ -3,6 +3,7 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
+require_once __DIR__ . '/../../components/csrf.php';
 ?>
 
 <div class="container mt-5">
@@ -32,6 +33,7 @@ if (empty($router_managed)) {
             </div>
 
             <input type="hidden" value="cadastrar" name="acao">
+            <?= csrfCampo() ?>
 
             <div class="mb-3">
                 <label class="form-label">Preço Normal</label>

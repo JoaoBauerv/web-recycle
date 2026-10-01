@@ -35,10 +35,16 @@ const ESTOQUE_TIPOS_MANUAIS = [
 function estoqueRotuloOrigem(string $origem_tipo): array
 {
     return [
-        'pesagem'       => ['rotulo' => 'Compra',        'icone' => 'bi-cart-plus',  'rota' => 'compras/detalhe'],
-        'venda'         => ['rotulo' => 'Venda',         'icone' => 'bi-cart-check', 'rota' => 'vendas/detalhe'],
-        'ajuste_manual' => ['rotulo' => 'Ajuste manual', 'icone' => 'bi-pencil',     'rota' => null],
-        'processamento' => ['rotulo' => 'Processamento', 'icone' => 'bi-gear',       'rota' => null],
+        'pesagem'        => ['rotulo' => 'Compra',          'icone' => 'bi-cart-plus',    'rota' => 'compras/detalhe'],
+        'venda'          => ['rotulo' => 'Venda',           'icone' => 'bi-cart-check',   'rota' => 'vendas/detalhe'],
+        'ajuste_manual'  => ['rotulo' => 'Ajuste manual',   'icone' => 'bi-pencil',       'rota' => null],
+        'processamento'  => ['rotulo' => 'Processamento',   'icone' => 'bi-gear',          'rota' => null],
+
+        // Gerados pelo cancelamento do documento. origem_id aponta para ele, por
+        // isso a rota é a mesma do lançamento original: o link leva ao documento
+        // cancelado, onde o motivo está registrado.
+        'estorno_compra' => ['rotulo' => 'Estorno compra', 'icone' => 'bi-arrow-counterclockwise', 'rota' => 'compras/detalhe'],
+        'estorno_venda'  => ['rotulo' => 'Estorno venda',  'icone' => 'bi-arrow-counterclockwise', 'rota' => 'vendas/detalhe'],
     ][$origem_tipo] ?? ['rotulo' => $origem_tipo, 'icone' => 'bi-circle', 'rota' => null];
 }
 
@@ -210,9 +216,22 @@ function estoqueAbaixoDoMinimo(PDO $pdo, int $limite = 0): array
               AND COALESCE(qt_estoque, 0) <= estoque_minimo
             ORDER BY COALESCE(qt_estoque, 0) / NULLIF(estoque_minimo, 0) NULLS FIRST, nm_material";
 
+    $parametros = [];
+
     if ($limite > 0) {
-        $sql .= ' LIMIT ' . $limite;
+        $sql .= ' LIMIT :limite';
+        $parametros[':limite'] = $limite;
     }
 
-    return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare($sql);
+
+    // LIMIT no Postgres não aceita o parâmetro como texto; sem PARAM_INT o PDO
+    // manda '5' entre aspas e a consulta falha.
+    foreach ($parametros as $chave => $valor) {
+        $stmt->bindValue($chave, $valor, PDO::PARAM_INT);
+    }
+
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }

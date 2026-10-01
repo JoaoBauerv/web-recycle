@@ -35,9 +35,11 @@ if (isset($_SESSION['precisa_alterar_senha']) && $_SESSION['precisa_alterar_senh
 $paginas_disponiveis = [
     'inicio'                => ['arquivo' => 'inicio',              'auth' => false, 'admin' => false],
 
+    // Consultar a lista de materiais e preços é liberado; cadastrar e editar
+    // exige Admin, conferido de novo em material.gerenciar no endpoint.
     'materiais'             => ['arquivo' => 'material/index',      'auth' => true,  'admin' => false],
-    'materiais/novo'        => ['arquivo' => 'material/create',     'auth' => true,  'admin' => false],
-    'materiais/editar'      => ['arquivo' => 'material/edit',       'auth' => true,  'admin' => false],
+    'materiais/novo'        => ['arquivo' => 'material/create',     'auth' => true,  'admin' => true],
+    'materiais/editar'      => ['arquivo' => 'material/edit',       'auth' => true,  'admin' => true],
     // A checagem de permissão fica em components/permissoes.php, chamada
     // dentro da própria view.
     'materiais/relacoes'    => ['arquivo' => 'material/relacoes',    'auth' => true,  'admin' => false],

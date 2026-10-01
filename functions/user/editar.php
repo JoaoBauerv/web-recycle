@@ -1,8 +1,15 @@
 <?php
-session_start();
 require_once (__DIR__ . '/../../components/middleware.php');
+require_once (__DIR__ . '/../../components/permissoes.php');
 require_once(__DIR__ . '/../../banco.php');
 require_once(__DIR__ . '/../funcoes.php');
+
+// Este endpoint grava tb_usuario.permissao. Só exigir login não basta: a rota
+// usuarios/editar pede Admin, mas o arquivo recebe POST direto, e sem esta
+// checagem qualquer usuário comum se promovia a Admin mandando permissao=Admin
+// com o próprio id_usuario — o que anularia todo o controle de acesso.
+exigirPermissao('usuario.gerenciar', $url_base);
+csrfExigir($url_base . '/usuarios');
 
 unset($_SESSION['msg_erro']);
 unset($_SESSION['msg_sucesso']);

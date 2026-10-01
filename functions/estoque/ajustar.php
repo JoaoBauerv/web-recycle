@@ -229,7 +229,9 @@ switch ($_REQUEST['acao'] ?? '') {
         $pdo->prepare("UPDATE tb_material SET estoque_minimo = :minimo WHERE id_material = :id AND status = 1")
             ->execute([':minimo' => $minimo, ':id' => $id_material]);
 
-        $nome = $pdo->query("SELECT nm_material FROM tb_material WHERE id_material = $id_material")->fetchColumn();
+        $busca_nome = $pdo->prepare("SELECT nm_material FROM tb_material WHERE id_material = :id");
+        $busca_nome->execute([':id' => $id_material]);
+        $nome = $busca_nome->fetchColumn();
 
         estoqueVoltar($tela, 'Sucesso', $minimo === null
             ? "Alerta de estoque mínimo desligado para {$nome}."

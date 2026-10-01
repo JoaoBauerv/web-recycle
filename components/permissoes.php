@@ -17,6 +17,21 @@ const PERMISSOES_POR_ACAO = [
     'venda.importar'       => ['Admin'],
     'material.relacao'     => ['Admin'],
 
+    // Cancelar documento estorna estoque e tira valores das somas do período.
+    // É correção de erro, não operação do dia a dia: fica só com o Admin.
+    'compra.cancelar'      => ['Admin'],
+    'venda.cancelar'       => ['Admin'],
+
+    // O preço de compra do material é a base de toda pesagem e do cálculo de
+    // margem, então cadastrar, editar e inativar material fica com o Admin.
+    // Consultar a lista continua liberado para todo mundo.
+    'material.gerenciar'   => ['Admin'],
+
+    // Criar usuário e resetar senha de terceiro são ações sobre o controle de
+    // acesso em si: quem pode fazer isso pode abrir o sistema para qualquer um.
+    'usuario.gerenciar'      => ['Admin'],
+    'usuario.resetar_senha'  => ['Admin'],
+
     // Ver o estoque é consulta; mexer nele à mão altera saldo sem documento
     // por trás, então fica com quem responde pelo inventário.
     'estoque.visualizar'   => ['Admin', 'Usuario'],

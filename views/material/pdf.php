@@ -1,9 +1,12 @@
 <?php
+require_once (__DIR__ . '/../../components/middleware.php');
 require '../../vendor/autoload.php';
 require '../../banco.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
+
+csrfExigir($url_base . '/materiais');
 
 // Configurações
 $options = new Options();
@@ -11,14 +14,22 @@ $options->set('isHtml5ParserEnabled', true);
 $options->set('isRemoteEnabled', true); 
 $dompdf = new Dompdf($options);
 
-if($_REQUEST['tipo']=='todos'){
-    $pesquisa_tipo = '';
-}else{
-    $pesquisa_tipo = "AND tipo = '".$_REQUEST['tipo']."'";
+// O tipo escolhido no formulário entra como parâmetro, nunca concatenado no SQL:
+// antes, um POST com tipo=' OR '1'='1 reescrevia a consulta inteira.
+$tipo_escolhido = $_REQUEST['tipo'] ?? 'todos';
+
+$sql = "SELECT * FROM tb_material WHERE status = 1";
+$parametros = [];
+
+if ($tipo_escolhido !== 'todos') {
+    $sql .= " AND tipo = :tipo";
+    $parametros[':tipo'] = $tipo_escolhido;
 }
 
-$sql = "SELECT * FROM tb_material WHERE status = 1 ".$pesquisa_tipo." ORDER BY tipo ASC, nm_material ASC";
-$stmt = $pdo->query($sql);
+$sql .= " ORDER BY tipo ASC, nm_material ASC";
+
+$stmt = $pdo->prepare($sql);
+$stmt->execute($parametros);
 $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Agrupar materiais por tipo
@@ -41,7 +52,7 @@ foreach ($materiaisPorTipo as $tipo => $itens) {
     
     // Adicionar itens desse tipo
     foreach ($itens as $p) {
-        if($_REQUEST['preco'] === 'normal'){
+        if(($_REQUEST['preco'] ?? 'normal') === 'normal'){
             $preco = $p['preco_compra'];
             $fornecedor = '';
         }else{
