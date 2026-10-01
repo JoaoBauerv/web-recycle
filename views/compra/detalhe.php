@@ -11,8 +11,14 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 
 $id_pesagem = (int) $_GET['id'];
 
-// Buscar dados da pesagem
-$stmt = $pdo->prepare("SELECT * FROM tb_pesagem WHERE id_pesagem = ?");
+require_once __DIR__ . '/../../components/permissoes.php';
+require_once __DIR__ . '/../../components/cancelamento.php';
+
+// Buscar dados da pesagem, com o nome de quem cancelou quando for o caso
+$stmt = $pdo->prepare("SELECT p.*, uc.nome AS cancelou_nome
+                       FROM tb_pesagem p
+                       LEFT JOIN tb_usuario uc ON uc.id_usuario = p.id_usuario_cancelou
+                       WHERE p.id_pesagem = ?");
 $stmt->execute([$id_pesagem]);
 $pesagem = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -44,6 +50,8 @@ $total_peso_bruto = array_sum(array_map(
 ));
 
 $cliente_nome = $cliente ? $cliente['nome'] : 'Desconhecido';
+
+$compra_cancelada = ($pesagem['status'] ?? 'ativa') === 'cancelada';
 ?>
 
 <div class="container-fluid py-4">
@@ -71,12 +79,33 @@ $cliente_nome = $cliente ? $cliente['nome'] : 'Desconhecido';
                         <i class="bi bi-receipt me-1"></i>
                         Ver Comprovante
                     </a>
+                    <?php
+                    // Botão só para quem pode, e só enquanto a compra está ativa:
+                    // cancelar duas vezes estornaria o estoque em dobro (o endpoint
+                    // também recusa, com FOR UPDATE no documento).
+                    if (!$compra_cancelada && usuarioPode('compra.cancelar')) {
+                        cancelamentoBotao(
+                            'Compra',
+                            $url_base . '/functions/compra/cancelar.php',
+                            'id_pesagem',
+                            $id_pesagem,
+                            'O material desta compra sai do estoque, porque ele nunca entrou de verdade. '
+                            . 'Se já tiver sido revendido, o cancelamento é recusado para não deixar saldo negativo.'
+                        );
+                    }
+                    ?>
                     <a href="<?=$url_base?>/compras/listar" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left me-1"></i>
                         Voltar
                     </a>
                 </div>
             </div>
+
+            <?php require_once __DIR__ . '/../../components/alert.php'; ?>
+
+            <?php if ($compra_cancelada) {
+                cancelamentoAviso('Compra', $pesagem, $pesagem['cancelou_nome'] ?? null);
+            } ?>
 
             <!-- Cards de resumo -->
             <div class="row g-3 mb-4">

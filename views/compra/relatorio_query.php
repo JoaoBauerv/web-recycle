@@ -49,6 +49,7 @@ $sql = "SELECT pm.id_pesagem, pm.id_material, pm.peso_material, pm.preco_un,
         JOIN clientes c ON c.id_cliente = p.id_cliente
         LEFT JOIN tb_material m ON m.id_material = pm.id_material
         WHERE p.total_valor > 0
+          AND p.status <> 'cancelada'
           AND DATE(p.data_pesagem) BETWEEN :data_inicio AND :data_fim";
 
 $params = [':data_inicio' => $data_inicio, ':data_fim' => $data_fim];

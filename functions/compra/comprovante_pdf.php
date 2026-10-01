@@ -107,6 +107,12 @@ function gerarComprovantePdf(PDO $pdo, int $id_pesagem): ?string
         table th { background:#f2f2f2; }
         .total { font-weight:bold; background:#f9f9f9; }
         .logo { height: 60px; }
+        /* Selo de cancelamento: o comprovante de um documento cancelado continua
+           podendo ser aberto e impresso, então precisa dizer isso na cara. */
+        .cancelada { border:2px solid #b02a37; color:#b02a37; padding:10px;
+                     margin-bottom:14px; border-radius:6px; text-align:center; }
+        .cancelada strong { font-size:16px; letter-spacing:2px; display:block; }
+        .cancelada small { font-size:11px; color:#842029; }
     </style>
 </head>
 <body>
@@ -116,6 +122,17 @@ function gerarComprovantePdf(PDO $pdo, int $id_pesagem): ?string
     <h2>Comprovante de Venda</h2>
     <small><?= htmlspecialchars($_ENV['APP_END'] ?? '') ?> | Horário: 08h - 18h</small>
 </div>
+
+<?php if (($pesagem['status'] ?? 'ativa') === 'cancelada'): ?>
+<div class="cancelada">
+    <strong>CANCELADA</strong>
+    <small>
+        Documento cancelado em
+        <?= !empty($pesagem['cancelada_em']) ? date('d/m/Y \à\s H:i', strtotime($pesagem['cancelada_em'])) : 'data não registrada' ?>.
+        Motivo: <?= htmlspecialchars((string) ($pesagem['motivo_cancelamento'] ?? '')) ?>
+    </small>
+</div>
+<?php endif; ?>
 
 <div class="card">
     <h4>Cliente</h4>

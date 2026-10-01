@@ -10,9 +10,13 @@ if (!$id_venda) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT v.*, u.nome AS usuario_nome
+require_once __DIR__ . '/../../components/permissoes.php';
+require_once __DIR__ . '/../../components/cancelamento.php';
+
+$stmt = $pdo->prepare("SELECT v.*, u.nome AS usuario_nome, uc.nome AS cancelou_nome
                        FROM vendas v
                        LEFT JOIN tb_usuario u ON u.id_usuario = v.id_usuario
+                       LEFT JOIN tb_usuario uc ON uc.id_usuario = v.id_usuario_cancelou
                        WHERE v.id_venda = ?");
 $stmt->execute([$id_venda]);
 $venda = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -44,6 +48,8 @@ $total_peso_bruto = array_sum(array_map(
 ));
 
 $fornecedor_nome = $fornecedor['nome_razao_social'] ?? 'Desconhecido';
+
+$venda_cancelada = ($venda['status'] ?? '') === 'cancelada';
 ?>
 
 <div class="container-fluid py-4" style="max-width: 1400px;">
@@ -76,6 +82,18 @@ $fornecedor_nome = $fornecedor['nome_razao_social'] ?? 'Desconhecido';
                     <?php endif; ?>
                 </div>
                 <div class="d-flex gap-2">
+                    <?php
+                    if (!$venda_cancelada && usuarioPode('venda.cancelar')) {
+                        cancelamentoBotao(
+                            'Venda',
+                            $url_base . '/functions/venda/cancelar.php',
+                            'id_venda',
+                            $id_venda,
+                            'O material desta venda volta para o estoque e o último preço praticado '
+                            . 'do material é recalculado desconsiderando esta venda.'
+                        );
+                    }
+                    ?>
                     <a href="<?= $url_base ?>/vendas/listar" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>
                         Voltar
@@ -84,6 +102,10 @@ $fornecedor_nome = $fornecedor['nome_razao_social'] ?? 'Desconhecido';
             </div>
 
             <?php require_once __DIR__ . '/../../components/alert.php'; ?>
+
+            <?php if ($venda_cancelada) {
+                cancelamentoAviso('Venda', $venda, $venda['cancelou_nome'] ?? null);
+            } ?>
 
             <!-- Cards de resumo -->
             <div class="row g-3 mb-4">

@@ -10,15 +10,19 @@ if ($logado) {
     $inicio_mes = date('Y-m-01');
     $fim_mes    = date('Y-m-d', strtotime($inicio_mes . ' +1 month'));
 
+    // Documento cancelado continua existindo, mas não entra em soma nenhuma: o
+    // mesmo filtro vale aqui, no relatório de compras e vendas e na margem.
     $stmt = $pdo->prepare("SELECT COUNT(*) AS qtd, COALESCE(SUM(total_valor), 0) AS valor, COALESCE(SUM(total_peso), 0) AS peso
                            FROM tb_pesagem
-                           WHERE total_valor > 0 AND data_pesagem >= :inicio AND data_pesagem < :fim");
+                           WHERE total_valor > 0 AND status <> 'cancelada'
+                             AND data_pesagem >= :inicio AND data_pesagem < :fim");
     $stmt->execute([':inicio' => $inicio_mes, ':fim' => $fim_mes]);
     $compras_mes = $stmt->fetch(PDO::FETCH_ASSOC);
 
     $stmt = $pdo->prepare("SELECT COUNT(*) AS qtd, COALESCE(SUM(total_valor), 0) AS valor
                            FROM vendas
-                           WHERE data_venda >= :inicio AND data_venda < :fim");
+                           WHERE status <> 'cancelada'
+                             AND data_venda >= :inicio AND data_venda < :fim");
     $stmt->execute([':inicio' => $inicio_mes, ':fim' => $fim_mes]);
     $vendas_mes = $stmt->fetch(PDO::FETCH_ASSOC);
 

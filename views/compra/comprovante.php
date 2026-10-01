@@ -13,7 +13,12 @@ if (!$id_pesagem) {
 // Toda a informação do comprovante vem do banco a partir do ID da compra —
 // nunca da sessão/formulário — para garantir que o documento reflita
 // exatamente o que foi efetivamente salvo.
-$stmt = $pdo->prepare("SELECT * FROM tb_pesagem WHERE id_pesagem = ?");
+require_once __DIR__ . '/../../components/cancelamento.php';
+
+$stmt = $pdo->prepare("SELECT p.*, uc.nome AS cancelou_nome
+                       FROM tb_pesagem p
+                       LEFT JOIN tb_usuario uc ON uc.id_usuario = p.id_usuario_cancelou
+                       WHERE p.id_pesagem = ?");
 $stmt->execute([$id_pesagem]);
 $pesagem = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -97,6 +102,10 @@ $cliente_endereco = comprovanteEndereco($cliente);
                         </ol>
                     </nav>
                 </div>
+
+                <?php if (($pesagem['status'] ?? 'ativa') === 'cancelada') {
+                    cancelamentoAviso('Compra', $pesagem, $pesagem['cancelou_nome'] ?? null);
+                } ?>
 
                 <div class="card border-0 shadow-sm mb-3">
                     <div class="card-body d-flex flex-wrap align-items-center gap-3">
@@ -199,6 +208,20 @@ $cliente_endereco = comprovanteEndereco($cliente);
                         &nbsp;•&nbsp;
                         <?= date('d/m/Y H:i', strtotime($pesagem['data_pesagem'])) ?>
                     </div>
+
+                    <?php if (($pesagem['status'] ?? 'ativa') === 'cancelada'): ?>
+                        <!-- Dentro de #comprovante, e não só no aviso de tela: o
+                             comprovante impresso de um documento cancelado tem de
+                             sair com o selo, senão circula como se valesse. -->
+                        <div class="recibo-cancelada mt-2">
+                            <strong>CANCELADA</strong>
+                            <div class="small">
+                                <?= !empty($pesagem['cancelada_em']) ? date('d/m/Y \à\s H:i', strtotime($pesagem['cancelada_em'])) : 'data não registrada' ?>
+                                &nbsp;•&nbsp;
+                                <?= htmlspecialchars((string) ($pesagem['motivo_cancelamento'] ?? '')) ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <hr>
@@ -302,6 +325,21 @@ $cliente_endereco = comprovanteEndereco($cliente);
     padding: 2rem;
     margin: 0 auto;
     max-width: 720px;
+}
+
+/* Cores fixas e não tokens do tema: este bloco também é impresso, e na
+   impressão o tema não se aplica. */
+.recibo-cancelada {
+    border: 2px solid #b02a37;
+    color: #b02a37;
+    border-radius: 6px;
+    padding: .5rem;
+}
+
+.recibo-cancelada strong {
+    letter-spacing: .15em;
+    font-size: 1.05rem;
+    display: block;
 }
 
 .recibo-logo {

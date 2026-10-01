@@ -19,6 +19,10 @@
  *
  * Material sem nenhuma venda volta a NULL: sem histórico, não há o que sugerir.
  *
+ * Vendas canceladas não contam: o preço de uma venda que foi desfeita não serve
+ * de referência. Cancelar a última venda de um material faz o preço voltar para
+ * o da penúltima, ou para NULL se ela era a única.
+ *
  * @param int[] $ids_material Materiais a recalcular.
  */
 function vendaAtualizarUltimoPreco(PDO $pdo, array $ids_material): void
@@ -41,16 +45,25 @@ function vendaAtualizarUltimoPreco(PDO $pdo, array $ids_material): void
             FROM vendas_itens vi
             JOIN vendas v ON v.id_venda = vi.id_venda
             WHERE vi.id_material IN ($lista)
+              AND v.status <> 'cancelada'
             ORDER BY vi.id_material, v.data_venda DESC, v.id_venda DESC, vi.id_venda_item DESC
         ) u
         WHERE m.id_material = u.id_material
     ");
 
+    // Mesmo filtro de cancelada aqui: um material cuja única venda foi cancelada
+    // precisa voltar a NULL, senão ficaria com o preço daquela venda para sempre.
     $pdo->exec("
         UPDATE tb_material
         SET preco_venda = NULL
         WHERE id_material IN ($lista)
-          AND NOT EXISTS (SELECT 1 FROM vendas_itens WHERE id_material = tb_material.id_material)
+          AND NOT EXISTS (
+              SELECT 1
+              FROM vendas_itens vi
+              JOIN vendas v ON v.id_venda = vi.id_venda
+              WHERE vi.id_material = tb_material.id_material
+                AND v.status <> 'cancelada'
+          )
     ");
 }
 

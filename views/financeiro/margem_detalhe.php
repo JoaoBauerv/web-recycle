@@ -36,6 +36,7 @@ $compras = $pdo->prepare("SELECT p.id_pesagem, p.data_pesagem, c.nome AS cliente
                           JOIN tb_pesagem p ON p.id_pesagem = pm.id_pesagem
                           LEFT JOIN clientes c ON c.id_cliente = p.id_cliente
                           WHERE pm.id_material = :id AND p.data_pesagem BETWEEN :inicio AND :fim
+                            AND p.status <> 'cancelada'
                           ORDER BY p.data_pesagem DESC");
 $compras->execute($p);
 $compras = $compras->fetchAll(PDO::FETCH_ASSOC);
@@ -46,6 +47,7 @@ $vendas = $pdo->prepare("SELECT v.id_venda, v.data_venda, f.nome_razao_social AS
                          JOIN vendas v ON v.id_venda = vi.id_venda
                          LEFT JOIN fornecedores f ON f.id_fornecedor = v.id_fornecedor
                          WHERE vi.id_material = :id AND v.data_venda BETWEEN :inicio AND :fim
+                           AND v.status <> 'cancelada'
                          ORDER BY v.data_venda DESC");
 $vendas->execute($p);
 $vendas = $vendas->fetchAll(PDO::FETCH_ASSOC);

@@ -63,9 +63,15 @@ $total_vendas = count($vendas);
                         <?php foreach ($vendas as $v):
                             $nome = $v['nome_razao_social'] ?: 'Fornecedor removido';
                             $local = trim(($v['cidade'] ?? '') . '/' . ($v['estado'] ?? ''), '/');
+                            $cancelada = ($v['status'] ?? '') === 'cancelada';
                         ?>
-                            <tr>
-                                <td class="ps-4 fw-semibold">#<?= (int) $v['id_venda'] ?></td>
+                            <tr<?= $cancelada ? ' class="text-muted"' : '' ?>>
+                                <td class="ps-4 fw-semibold">
+                                    #<?= (int) $v['id_venda'] ?>
+                                    <?php if ($cancelada): ?>
+                                        <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle ms-1">Cancelada</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td>
                                     <?= htmlspecialchars($nome) ?>
                                     <?php if ($local): ?>
@@ -79,7 +85,10 @@ $total_vendas = count($vendas);
                                 <td class="text-end" data-order="<?= (float) $v['total_peso'] ?>">
                                     <?= number_format((float) $v['total_peso'], 2, ',', '.') ?> kg
                                 </td>
-                                <td class="text-end fw-semibold" style="color: var(--color-accent);"
+                                <!-- Valor riscado quando cancelada: deixa claro na própria
+                                     linha que aquele número não entra nas somas. -->
+                                <td class="text-end fw-semibold<?= $cancelada ? ' text-decoration-line-through' : '' ?>"
+                                    style="<?= $cancelada ? '' : 'color: var(--color-accent);' ?>"
                                     data-order="<?= (float) $v['total_valor'] ?>">
                                     R$ <?= number_format((float) $v['total_valor'], 2, ',', '.') ?>
                                 </td>

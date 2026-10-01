@@ -50,7 +50,8 @@ $sql = "SELECT vi.id_venda, vi.id_material, vi.quantidade, vi.preco_un, vi.valor
         JOIN vendas v ON v.id_venda = vi.id_venda
         JOIN fornecedores f ON f.id_fornecedor = v.id_fornecedor
         LEFT JOIN tb_material m ON m.id_material = vi.id_material
-        WHERE DATE(v.data_venda) BETWEEN :data_inicio AND :data_fim";
+        WHERE v.status <> 'cancelada'
+          AND DATE(v.data_venda) BETWEEN :data_inicio AND :data_fim";
 
 $params = [':data_inicio' => $data_inicio, ':data_fim' => $data_fim];
 

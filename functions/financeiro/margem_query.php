@@ -153,6 +153,7 @@ function margemAnalise(PDO $pdo, array $filtros): array
             FROM tb_pesagem_material pm
             JOIN tb_pesagem p ON p.id_pesagem = pm.id_pesagem
             WHERE p.data_pesagem BETWEEN :inicio AND :fim
+              AND p.status <> 'cancelada'
             GROUP BY pm.id_material
         ) c ON c.id_material = m.id_material
 
@@ -163,6 +164,7 @@ function margemAnalise(PDO $pdo, array $filtros): array
             FROM vendas_itens vi
             JOIN vendas v2 ON v2.id_venda = vi.id_venda
             WHERE v2.data_venda BETWEEN :inicio AND :fim
+              AND v2.status <> 'cancelada'
             GROUP BY vi.id_material
         ) v ON v.id_material = m.id_material
 
@@ -174,6 +176,7 @@ function margemAnalise(PDO $pdo, array $filtros): array
             FROM tb_pesagem_material pm
             JOIN tb_pesagem p ON p.id_pesagem = pm.id_pesagem
             WHERE p.data_pesagem <= :fim
+              AND p.status <> 'cancelada'
             GROUP BY pm.id_material
         ) hist ON hist.id_material = m.id_material
 
