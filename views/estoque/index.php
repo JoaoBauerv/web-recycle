@@ -436,10 +436,21 @@ $(function () {
         tabela.draw();
     });
 
-    $('#ajuste-material, #inv-material').select2({
+    // Cada select tem de apontar para o SEU modal. O seletor duplo com .first()
+    // que havia aqui devolvia sempre o #modalAjuste, que vem primeiro no DOM,
+    // então o dropdown do #inv-material era anexado a um modal escondido
+    // (display:none) enquanto o de Inventário estava aberto — abria invisível e
+    // o select parecia morto.
+    $('#ajuste-material').select2({
         width: '100%',
         language: 'pt-BR',
-        dropdownParent: $('#modalAjuste, #modalInventario').first()
+        dropdownParent: $('#modalAjuste')
+    });
+
+    $('#inv-material').select2({
+        width: '100%',
+        language: 'pt-BR',
+        dropdownParent: $('#modalInventario')
     });
 
     function saldoSelecionado(select) {

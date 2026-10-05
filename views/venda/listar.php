@@ -10,7 +10,12 @@ $vendas = $pdo->query("SELECT v.id_venda, v.total_peso, v.total_valor, v.status,
                        FROM vendas v
                        LEFT JOIN fornecedores f ON f.id_fornecedor = v.id_fornecedor
                        LEFT JOIN tb_usuario u ON u.id_usuario = v.id_usuario
-                       ORDER BY v.data_venda DESC")->fetchAll(PDO::FETCH_ASSOC);
+                       -- Venda manual grava data_venda com hora (now()), mas venda
+                       -- importada recebe só a data da planilha, logo 00:00: todas as
+                       -- importadas de um mesmo dia empatam aqui. Sem o id como
+                       -- desempate o Postgres devolve a ordem que quiser, e ela muda
+                       -- de um carregamento para o outro.
+                       ORDER BY v.data_venda DESC, v.id_venda DESC")->fetchAll(PDO::FETCH_ASSOC);
 
 $total_vendas = count($vendas);
 ?>
@@ -66,7 +71,10 @@ $total_vendas = count($vendas);
                             $cancelada = ($v['status'] ?? '') === 'cancelada';
                         ?>
                             <tr<?= $cancelada ? ' class="text-muted"' : '' ?>>
-                                <td class="ps-4 fw-semibold">
+                                <!-- data-order com o id puro: sem ele o DataTables ordena
+                                     esta coluna como texto, onde "#9" vem depois de "#10"
+                                     e o badge "Cancelada" ainda entra na comparação. -->
+                                <td class="ps-4 fw-semibold" data-order="<?= (int) $v['id_venda'] ?>">
                                     #<?= (int) $v['id_venda'] ?>
                                     <?php if ($cancelada): ?>
                                         <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle ms-1">Cancelada</span>
@@ -130,7 +138,10 @@ $(function () {
         "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json" },
         "pageLength": 10,
         "lengthMenu": [10, 25, 50, 100],
-        "order": [[2, "desc"]],
+        // A ordem do SQL não sobrevive ao DataTables: ele reordena pela coluna 2
+        // (Data) assim que monta a tabela. O desempate pelo nº da venda precisa
+        // estar aqui também, senão as vendas de um mesmo dia voltam a sair soltas.
+        "order": [[2, "desc"], [0, "desc"]],
         "responsive": true,
         "dom": "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
                "<'row'<'col-sm-12'tr>>" +

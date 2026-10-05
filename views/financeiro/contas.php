@@ -127,7 +127,9 @@ $usuarios   = $pdo->query("SELECT id_usuario, nome FROM tb_usuario WHERE status 
                         <span class="indicador-icone"><i class="bi <?= $c[2] ?>" aria-hidden="true"></i></span>
                         <div class="min-w-0">
                             <span class="indicador-rotulo"><?= $c[0] ?></span>
-                            <span class="indicador-valor" <?= $c[3] ? 'style="color:' . $c[3] . ';"' : '' ?>
+                            <?php // Um style só: com dois atributos o navegador usa o primeiro
+                                  // e descartava o font-size nos cards que têm cor. ?>
+                            <span class="indicador-valor"
                                   style="font-size:1.1rem;<?= $c[3] ? 'color:' . $c[3] . ';' : '' ?>">
                                 <?= financeiroMoeda($c[1]) ?>
                             </span>
@@ -607,8 +609,20 @@ $(function () {
         });
     }
 
-    $('#id_categoria, #id_centro, #situacao, #forma, #cat_form, #centro_form, #func_form')
-        .select2({ width: '100%', language: 'pt-BR', dropdownParent: $('#modalDespesa').length ? $('#modalDespesa') : undefined });
+    // Os selects dos filtros estão na página, os da despesa estão dentro do
+    // modal: cada grupo precisa de um dropdownParent diferente, por isso são
+    // duas chamadas. Na única chamada que havia aqui, os filtros também
+    // recebiam dropdownParent: $('#modalDespesa') — o dropdown era anexado
+    // dentro de um .modal fade, que é display:none, então abria escondido e o
+    // filtro parecia morto. Só acontecia para quem tem
+    // financeiro.conta_gerenciar, porque é quem recebe o modal na página.
+    $('#situacao, #id_categoria, #id_centro, #forma')
+        .select2({ width: '100%', language: 'pt-BR' });
+
+    // Aqui o dropdownParent é necessário: o modal é modal-dialog-scrollable e
+    // sem ele o dropdown fica cortado pelo scroll do corpo do modal.
+    $('#cat_form, #centro_form, #func_form')
+        .select2({ width: '100%', language: 'pt-BR', dropdownParent: $('#modalDespesa') });
 
     // Categoria do tipo "funcionario" revela o vínculo com o usuário.
     $('#cat_form').on('change', function () {

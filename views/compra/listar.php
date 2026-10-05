@@ -13,7 +13,10 @@ $compras = $pdo->query("SELECT p.id_pesagem, p.total_peso, p.total_valor, p.data
                         FROM tb_pesagem p
                         LEFT JOIN clientes c ON c.id_cliente = p.id_cliente
                         WHERE p.total_valor > 0
-                        ORDER BY p.data_pesagem DESC")->fetchAll(PDO::FETCH_ASSOC);
+                        -- O id desempata a mesma data: sem ele o Postgres devolve a
+                        -- ordem que quiser quando data_pesagem é idêntica, e ela muda
+                        -- de um carregamento para o outro.
+                        ORDER BY p.data_pesagem DESC, p.id_pesagem DESC")->fetchAll(PDO::FETCH_ASSOC);
 
 $total_compras = count($compras);
 ?>
@@ -69,7 +72,10 @@ $total_compras = count($compras);
                             $cancelada = ($c['status'] ?? 'ativa') === 'cancelada';
                         ?>
                             <tr<?= $cancelada ? ' class="text-muted"' : '' ?>>
-                                <td class="ps-4 fw-semibold">
+                                <!-- data-order com o id puro: sem ele o DataTables ordena
+                                     esta coluna como texto, onde "#9" vem depois de "#10"
+                                     e o badge "Cancelada" ainda entra na comparação. -->
+                                <td class="ps-4 fw-semibold" data-order="<?= (int) $c['id_pesagem'] ?>">
                                     #<?= (int) $c['id_pesagem'] ?>
                                     <?php if ($cancelada): ?>
                                         <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle ms-1">Cancelada</span>
@@ -133,7 +139,10 @@ $(function () {
         "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json" },
         "pageLength": 10,
         "lengthMenu": [10, 25, 50, 100],
-        "order": [[2, "desc"]],
+        // A ordem do SQL não sobrevive ao DataTables: ele reordena pela coluna 2
+        // (Data) assim que monta a tabela. O desempate pelo nº da compra precisa
+        // estar aqui também, senão as compras de um mesmo dia voltam a sair soltas.
+        "order": [[2, "desc"], [0, "desc"]],
         "responsive": true,
         "dom": "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
                "<'row'<'col-sm-12'tr>>" +
