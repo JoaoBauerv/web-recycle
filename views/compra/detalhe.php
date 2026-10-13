@@ -79,6 +79,17 @@ $compra_cancelada = ($pesagem['status'] ?? 'ativa') === 'cancelada';
                         <i class="bi bi-receipt me-1"></i>
                         Ver Comprovante
                     </a>
+                    <?php if (!$compra_cancelada): ?>
+                        <!-- Exporta no formato da importação de venda, para o parceiro que
+                             nos vendeu lançar a operação no sistema dele sem redigitar.
+                             Fora para compra cancelada: o material não mudou de mãos. -->
+                        <a href="<?= $url_base ?>/functions/compra/exportar_planilha.php?id=<?= $id_pesagem ?>"
+                           class="btn btn-outline-secondary"
+                           title="Baixar planilha para o parceiro importar como venda">
+                            <i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i>
+                            Exportar planilha
+                        </a>
+                    <?php endif; ?>
                     <?php
                     // Botão só para quem pode, e só enquanto a compra está ativa:
                     // cancelar duas vezes estornaria o estoque em dobro (o endpoint

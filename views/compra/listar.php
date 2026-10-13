@@ -102,6 +102,18 @@ $total_compras = count($compras);
                                        aria-label="Ver detalhes da compra #<?= (int) $c['id_pesagem'] ?>">
                                         <i class="bi bi-eye me-1" aria-hidden="true"></i> Detalhes
                                     </a>
+                                    <?php if (!$cancelada): ?>
+                                        <!-- Exporta a compra no formato da importação de venda, para
+                                             que o parceiro que nos vendeu lance a operação no sistema
+                                             dele sem redigitar. Compra cancelada não aparece: o
+                                             material não mudou de mãos, então não vira venda de ninguém. -->
+                                        <a href="<?= $url_base ?>/functions/compra/exportar_planilha.php?id=<?= (int) $c['id_pesagem'] ?>"
+                                           class="btn btn-sm btn-outline-secondary"
+                                           title="Baixar planilha para o parceiro importar como venda"
+                                           aria-label="Exportar a compra #<?= (int) $c['id_pesagem'] ?> como planilha de venda">
+                                            <i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i> Exportar
+                                        </a>
+                                    <?php endif; ?>
                                     <a href="<?= $url_base ?>/compras/comprovante?id=<?= (int) $c['id_pesagem'] ?>"
                                        class="btn btn-sm btn-outline-secondary"
                                        aria-label="Ver comprovante da compra #<?= (int) $c['id_pesagem'] ?>">
