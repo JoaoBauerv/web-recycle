@@ -4,6 +4,8 @@ if (empty($router_managed)) {
     exit;
 }
 
+require_once __DIR__ . '/../../components/balanca.php';
+
 date_default_timezone_set('America/Sao_Paulo');
 
 if (!isset($_SESSION['compra_itens'])) {
@@ -236,25 +238,12 @@ $pronto_para_finalizar = $cliente_selecionado && $total_itens > 0;
                                 <label class="form-check-label" for="preco_especial">Usar preço especial</label>
                             </div>
 
-                            <?php if (!empty($_ENV['BALANCA_API_URL'])): ?>
-                            <!-- Leitura da balança (agente local em Python). Se o agente estiver
-                                 fora do ar, o painel some e o peso continua sendo digitado à mão. -->
-                            <div id="painel-balanca" class="border rounded p-2 mb-2 bg-light d-none">
-                                <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <span id="balanca-sinal" class="d-inline-block rounded-circle"
-                                              style="width:10px;height:10px;background:#dc3545;"></span>
-                                        <small class="text-muted" id="balanca-status">Procurando balança...</small>
-                                    </div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <strong id="balanca-peso" class="fs-5">--,-- kg</strong>
-                                        <button type="button" id="btn-capturar-peso" class="btn btn-sm btn-outline-primary" disabled>
-                                            <i class="bi bi-download me-1"></i> Capturar Peso
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                            <?php endif; ?>
+                            <?php
+                            // Painel de leitura da balança. Todo o comportamento vive em
+                            // components/balanca.php; aqui só se diz qual campo recebe o
+                            // peso capturado. Sem agente configurado, nada é renderizado.
+                            balancaPainel('peso', 'tela de compra');
+                            ?>
 
                             <div class="row g-2">
                                 <div class="col-6 col-md-3">
@@ -498,94 +487,3 @@ $(function () {
 });
 </script>
 
-<?php if (!empty($_ENV['BALANCA_API_URL'])): ?>
-<script>
-/**
- * Integração com o agente de balança (projeto balanca-agent, em Python).
- *
- * Tudo aqui é aditivo: se o agente não estiver rodando, o painel some e a tela
- * continua funcionando exatamente como antes, com o peso digitado à mão.
- * A captura só preenche o campo "Peso bruto" e dispara o evento 'input', que o
- * cálculo já existente (peso líquido / subtotal) escuta.
- */
-(function () {
-    const API = <?= json_encode(rtrim($_ENV['BALANCA_API_URL'], '/')) ?>;
-
-    const painel  = document.getElementById('painel-balanca');
-    const campoPeso = document.getElementById('peso');
-    if (!painel || !campoPeso) return;
-
-    const sinal   = document.getElementById('balanca-sinal');
-    const txt     = document.getElementById('balanca-status');
-    const visor   = document.getElementById('balanca-peso');
-    const botao   = document.getElementById('btn-capturar-peso');
-
-    let ultima = null;
-
-    function formatar(valor, unidade) {
-        if (valor === null || valor === undefined) return '--,-- ' + (unidade || 'kg');
-        return valor.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-            + ' ' + (unidade || 'kg');
-    }
-
-    function offline(motivo) {
-        ultima = null;
-        painel.classList.add('d-none');
-        botao.disabled = true;
-        if (motivo) txt.textContent = motivo;
-    }
-
-    async function consultar() {
-        let dados;
-        try {
-            const resposta = await fetch(API + '/peso', { cache: 'no-store' });
-            dados = await resposta.json();
-        } catch (e) {
-            offline();               // agente fora do ar: volta ao fluxo manual
-            return;
-        }
-
-        painel.classList.remove('d-none');
-
-        if (!dados.sucesso) {
-            ultima = null;
-            sinal.style.background = '#dc3545';
-            txt.textContent = dados.erro || 'Balança não conectada';
-            visor.textContent = '--,-- kg';
-            botao.disabled = true;
-            return;
-        }
-
-        ultima = dados;
-        visor.textContent = formatar(dados.peso, dados.unidade);
-        botao.disabled = false;
-
-        if (dados.estavel) {
-            sinal.style.background = '#198754';
-            txt.textContent = 'Balança conectada — peso estável';
-        } else {
-            sinal.style.background = '#ffc107';
-            txt.textContent = 'Balança conectada — estabilizando...';
-        }
-    }
-
-    botao.addEventListener('click', function () {
-        if (!ultima || ultima.peso === null) return;
-
-        campoPeso.value = Number(ultima.peso).toFixed(2);
-        // Avisa o cálculo já existente (peso líquido, subtotal).
-        campoPeso.dispatchEvent(new Event('input', { bubbles: true }));
-
-        // Só para o agente registrar a captura no log dele; falha aqui é irrelevante.
-        fetch(API + '/captura', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ peso: ultima.peso, origem: 'tela de compra' })
-        }).catch(function () {});
-    });
-
-    consultar();
-    setInterval(consultar, 1000);
-})();
-</script>
-<?php endif; ?>

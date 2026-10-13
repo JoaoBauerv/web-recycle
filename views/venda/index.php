@@ -5,6 +5,7 @@ if (empty($router_managed)) {
 }
 
 require_once __DIR__ . '/../../components/permissoes.php';
+require_once __DIR__ . '/../../components/balanca.php';
 
 date_default_timezone_set('America/Sao_Paulo');
 
@@ -258,6 +259,13 @@ $pronto_para_finalizar = $fornecedor_selecionado && $total_itens > 0;
                                     Só aparecem materiais que existem no estoque.
                                 </small>
                             </div>
+
+                            <?php
+                            // Painel de leitura da balança. Mesmo componente da tela de
+                            // compra; aqui o peso capturado vai para "quantidade", que é
+                            // como a quantidade bruta se chama neste formulário.
+                            balancaPainel('quantidade', 'tela de venda');
+                            ?>
 
                             <div class="row g-2">
                                 <div class="col-6 col-md-3">
