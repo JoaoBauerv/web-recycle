@@ -72,12 +72,6 @@ $eh_admin = ($dados_usuario['permissao'] ?? '') === 'Admin';
             </li>
 
             <?php if ($logado): ?>
-                <li class="nav-item">
-                    <a href="<?= $url_base ?>/calendario" class="nav-link rounded-3<?= nav_active('calendario', $paginaAtual) ?>">
-                        <i class="bi bi-calendar3" aria-hidden="true"></i> Calendário
-                    </a>
-                </li>
-
                 <li class="sidebar-grupo">Operação</li>
                 <li class="nav-item">
                     <a href="<?= $url_base ?>/compras" class="nav-link rounded-3<?= nav_active_prefixo('compras', $paginaAtual, ['compras/relatorio']) ?>">

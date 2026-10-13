@@ -80,7 +80,16 @@ $paginas_disponiveis = [
     'usuarios/editar'       => ['arquivo' => 'user/edit',           'auth' => true,  'admin' => true],
 
     'perfil'                => ['arquivo' => 'user/perfil',         'auth' => true,  'admin' => false],
-    'calendario'            => ['arquivo' => 'user/calendario',     'auth' => true,  'admin' => false],
+
+    // O calendário saiu do escopo entregue. tb_evento e as telas existem, mas
+    // criar e listar evento solto não resolve problema nenhum do negócio: o
+    // valor está em integrar agenda com coleta, compra, venda e vencimento de
+    // conta, e isso é trabalho futuro (ver docs/roadmap-funcionalidades.md).
+    // Sem rota, views/user/calendario.php fica inalcançável: ela exige
+    // $router_managed e redireciona quem chega direto. Já functions/calendario/
+    // continua sendo servido pelo Apache como arquivo real (o .htaccess não
+    // reescreve o que existe em disco) — os dois endpoints seguem de pé atrás
+    // de sessão e token CSRF, mas gravariam em tb_evento se chamados.
 ];
 
 $pagina = $_GET['pagina'] ?? 'inicio';
