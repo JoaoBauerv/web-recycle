@@ -2,9 +2,18 @@
 /vendor
 .claude
 /balanca-agent
-/sql
 /images
 /docs
+
+# O schema é versionado: a baseline, as migrations datadas e o seed de
+# instalação são o que permite recriar o banco em outra máquina. Ficam de fora
+# os dumps e as massas de demonstração, que são volumosas e descartáveis.
+/sql/backup/
+/sql/seed_dados_demo.php
+/sql/seed_operacao.php
+/sql/seed_operacao.json
+/sql/seed_teste.php
+/sql/seed_teste.json
 
 # Comprovantes enviados pelos parceiros são documentos de terceiros: o .htaccess
 # que bloqueia a pasta é versionado, os arquivos nunca.
