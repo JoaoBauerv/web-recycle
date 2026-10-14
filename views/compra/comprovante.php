@@ -27,7 +27,11 @@ if (!$pesagem) {
     exit;
 }
 
-$stmt_cliente = $pdo->prepare("SELECT * FROM clientes WHERE id_cliente = ?");
+require_once __DIR__ . '/../../components/endereco.php';
+
+$stmt_cliente = $pdo->prepare("SELECT c.*, " . enderecoSelect('e') . "
+                               FROM clientes c " . enderecoJoin('c', 'e') . "
+                               WHERE c.id_cliente = ?");
 $stmt_cliente->execute([$pesagem['id_cliente']]);
 $cliente = $stmt_cliente->fetch(PDO::FETCH_ASSOC);
 
@@ -36,7 +40,7 @@ $stmt_itens = $pdo->prepare("
     FROM pesagem_material a
     LEFT JOIN material b ON a.id_material = b.id_material
     WHERE a.id_pesagem = ?
-    ORDER BY a.id
+    ORDER BY a.id_pesagem_material
 ");
 $stmt_itens->execute([$id_pesagem]);
 $itens = $stmt_itens->fetchAll(PDO::FETCH_ASSOC);
@@ -44,35 +48,9 @@ $itens = $stmt_itens->fetchAll(PDO::FETCH_ASSOC);
 $cliente_nome = $cliente['nome'] ?? 'Cliente não encontrado';
 $eh_novo = !empty($_GET['novo']);
 
-function comprovanteEndereco(?array $c): string
-{
-    if (!$c) {
-        return '';
-    }
-    $partes = [];
-
-    $rua = trim(($c['logradouro'] ?? '') . (!empty($c['numero']) ? ', ' . $c['numero'] : ''));
-    if ($rua !== '') {
-        $partes[] = $rua;
-    }
-    if (!empty($c['complemento'])) {
-        $partes[] = $c['complemento'];
-    }
-    if (!empty($c['bairro'])) {
-        $partes[] = $c['bairro'];
-    }
-    $cidadeUf = trim(($c['cidade'] ?? '') . (!empty($c['estado']) ? '/' . $c['estado'] : ''));
-    if ($cidadeUf !== '') {
-        $partes[] = $cidadeUf;
-    }
-    if (!empty($c['cep'])) {
-        $partes[] = 'CEP ' . $c['cep'];
-    }
-
-    return implode(' - ', $partes);
-}
-
-$cliente_endereco = comprovanteEndereco($cliente);
+// A formatação em uma linha mora no componente de endereço: o PDF do
+// comprovante usa a mesma função, então os dois documentos saem iguais.
+$cliente_endereco = enderecoLinha($cliente);
 ?>
 <div class="container-fluid py-4">
     <div class="row justify-content-center">

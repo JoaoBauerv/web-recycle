@@ -78,24 +78,19 @@ require_once __DIR__ . '/../../components/csrf.php';
 
 <?php 
 
-// Consulta os dados do usuário
-$sqlUsuario = "SELECT * FROM usuario WHERE id_usuario = ?";
+require_once __DIR__ . '/../../components/endereco.php';
+
+// Usuário e endereço na mesma consulta: 'endereco' é uma tabela única,
+// referenciada por usuario.id_endereco. O CPF/CNPJ é coluna do usuário — a
+// tabela 'documento' foi removida em 14/10/2026.
+$sqlUsuario = "SELECT u.*, " . enderecoSelect('e') . "
+               FROM usuario u " . enderecoJoin('u', 'e') . "
+               WHERE u.id_usuario = ?";
 $stmtUsuario = $pdo->prepare($sqlUsuario);
 $stmtUsuario->execute([$_REQUEST['id']]);
 $usuario = $stmtUsuario->fetch(PDO::FETCH_ASSOC);
 
-
-// Consulta endereço
-$sqlEndereco = "SELECT * FROM endereco WHERE id_usuario = ?";
-$stmtEndereco = $pdo->prepare($sqlEndereco);
-$stmtEndereco->execute([$_REQUEST['id']]);
-$endereco = $stmtEndereco->fetch(PDO::FETCH_ASSOC);
-
-// Consulta documentos
-$sqlDocumento = "SELECT * FROM documento WHERE id_usuario = ?";
-$stmtDocumento = $pdo->prepare($sqlDocumento);
-$stmtDocumento->execute([$_REQUEST['id']]);
-$documento = $stmtDocumento->fetch(PDO::FETCH_ASSOC);
+$endereco = $usuario ?: [];
 
 
 
@@ -463,50 +458,50 @@ $success = $_SESSION['msg_sucesso'] ?? '';
                                                            id="cidade">
                                                 </div>
                                                 
+                                                <div class="col-md-2">
+                                                    <label class="form-label" for="estado">UF</label>
+                                                    <input type="text"
+                                                           class="form-control"
+                                                           name="estado"
+                                                           maxlength="2"
+                                                           value="<?= htmlspecialchars($endereco['estado'] ?? '') ?>"
+                                                           id="estado">
+                                                </div>
+
                                                 <div class="col-md-12">
                                                     <label class="form-label">Ponto de Referência</label>
-                                                    <textarea class="form-control" 
-                                                              name="referencia" 
+                                                    <textarea class="form-control"
+                                                              name="referencia"
                                                               rows="2"><?= htmlspecialchars($endereco['referencia'] ?? '') ?></textarea>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
 
-                                    <!-- Documentos -->
+                                    <!-- Documento -->
                                     <div class="tab-pane fade" id="documentos">
                                         <div>
-                                            <h4 class="h6 fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:.05em;">Documentos pessoais</h4>
-                                            
+                                            <h4 class="h6 fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:.05em;">Documento</h4>
+
                                             <div class="row g-3">
                                                 <div class="col-md-4">
-                                                    <label class="form-label">CPF</label>
-                                                    <input type="text" 
-                                                           class="form-control" 
-                                                           name="cpf" 
-                                                           value="<?= htmlspecialchars($documento['cpf'] ?? '') ?>"
-                                                           placeholder="000.000.000-00"
-                                                           data-mask="000.000.000-00"
-                                                           id="cpf">
-                                                    <div class="form-text" id="cpfValidation"></div>
-                                                </div>
-                                                
-                                                <div class="col-md-4">
-                                                    <label class="form-label">RG</label>
-                                                    <input type="text" 
-                                                           class="form-control" 
-                                                           name="rg" 
-                                                           value="<?= htmlspecialchars($documento['rg'] ?? '') ?>">
-                                                </div>
-                                                
-                                                <div class="col-md-4">
-                                                    <label class="form-label">CNH</label>
-                                                    <input type="text" 
-                                                           class="form-control" 
-                                                           name="cnh" 
-                                                           value="<?= htmlspecialchars($documento['cnh'] ?? '') ?>">
+                                                    <label class="form-label" for="cpf_cnpj">CPF/CNPJ</label>
+                                                    <input type="text"
+                                                           class="form-control"
+                                                           name="cpf_cnpj"
+                                                           value="<?= htmlspecialchars($usuario['cpf_cnpj'] ?? '') ?>"
+                                                           placeholder="Somente números"
+                                                           id="cpf_cnpj">
+                                                    <div class="form-text" id="cpfValidation">
+                                                        Aceita CPF (11 dígitos) ou CNPJ (14 dígitos).
+                                                    </div>
                                                 </div>
                                             </div>
+
+                                            <p class="text-muted small mt-3 mb-0">
+                                                RG e CNH deixaram de ser cadastrados: não eram usados em nenhuma
+                                                operação do sistema.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -608,9 +603,10 @@ function buscarCEP() {
         .then(response => response.json())
         .then(data => {
             if (!data.erro) {
-                document.getElementById('logradouro').value = data.logradouro;
-                document.getElementById('bairro').value = data.bairro;
-                document.getElementById('cidade').value = data.localidade;
+                document.getElementById('logradouro').value = data.logradouro || '';
+                document.getElementById('bairro').value = data.bairro || '';
+                document.getElementById('cidade').value = data.localidade || '';
+                document.getElementById('estado').value = data.uf || '';
             } else {
                 alert('CEP não encontrado!');
             }
@@ -623,11 +619,11 @@ function buscarCEP() {
 // Validação de CPF
 function validarCPF(cpf) {
     cpf = cpf.replace(/[^\d]/g, '');
-    
+
     if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) {
         return false;
     }
-    
+
     let sum = 0;
     for (let i = 0; i < 9; i++) {
         sum += parseInt(cpf.charAt(i)) * (10 - i);
@@ -635,7 +631,7 @@ function validarCPF(cpf) {
     let remainder = 11 - (sum % 11);
     if (remainder === 10 || remainder === 11) remainder = 0;
     if (remainder !== parseInt(cpf.charAt(9))) return false;
-    
+
     sum = 0;
     for (let i = 0; i < 10; i++) {
         sum += parseInt(cpf.charAt(i)) * (11 - i);
@@ -643,24 +639,57 @@ function validarCPF(cpf) {
     remainder = 11 - (sum % 11);
     if (remainder === 10 || remainder === 11) remainder = 0;
     if (remainder !== parseInt(cpf.charAt(10))) return false;
-    
+
     return true;
 }
 
-// Validação do CPF em tempo real
-document.getElementById('cpf').addEventListener('blur', function() {
-    const cpf = this.value;
+// Validação de CNPJ. Os dois dígitos verificadores usam pesos de 2 a 9, cíclicos.
+function validarCNPJ(cnpj) {
+    cnpj = cnpj.replace(/[^\d]/g, '');
+
+    if (cnpj.length !== 14 || /^(\d)\1+$/.test(cnpj)) {
+        return false;
+    }
+
+    for (const posicao of [12, 13]) {
+        let soma = 0;
+        let peso = posicao - 7;
+        for (let i = 0; i < posicao; i++) {
+            soma += parseInt(cnpj.charAt(i)) * peso;
+            peso = (peso - 1) < 2 ? 9 : peso - 1;
+        }
+        const digito = (soma % 11) < 2 ? 0 : 11 - (soma % 11);
+        if (digito !== parseInt(cnpj.charAt(posicao))) return false;
+    }
+
+    return true;
+}
+
+// O campo aceita os dois: o comprimento decide qual validação roda.
+function validarCpfCnpj(valor) {
+    const digitos = valor.replace(/[^\d]/g, '');
+    if (digitos.length === 11) return validarCPF(digitos);
+    if (digitos.length === 14) return validarCNPJ(digitos);
+    return false;
+}
+
+// Validação do documento em tempo real
+document.getElementById('cpf_cnpj').addEventListener('blur', function() {
+    const valor = this.value;
     const validationDiv = document.getElementById('cpfValidation');
-    
-    if (cpf && !validarCPF(cpf)) {
-        validationDiv.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i>CPF inválido';
+    const digitos = valor.replace(/[^\d]/g, '');
+
+    if (valor && !validarCpfCnpj(valor)) {
+        validationDiv.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i>'
+            + (digitos.length === 14 ? 'CNPJ inválido' : 'CPF inválido');
         this.classList.add('field-error');
-    } else if (cpf) {
-        validationDiv.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>CPF válido';
+    } else if (valor) {
+        validationDiv.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i>'
+            + (digitos.length === 14 ? 'CNPJ válido' : 'CPF válido');
         this.classList.remove('field-error');
         this.classList.add('field-success');
     } else {
-        validationDiv.innerHTML = '';
+        validationDiv.innerHTML = 'Aceita CPF (11 dígitos) ou CNPJ (14 dígitos).';
         this.classList.remove('field-error', 'field-success');
     }
 });
@@ -698,10 +727,10 @@ document.getElementById('editUserForm').addEventListener('submit', function(e) {
         }
     }
     
-    // Validar CPF se preenchido
-    const cpf = document.querySelector('input[name="cpf"]').value;
-    if (cpf && !validarCPF(cpf)) {
-        errors.push('CPF deve ser válido');
+    // Validar documento se preenchido
+    const documento = document.querySelector('input[name="cpf_cnpj"]').value;
+    if (documento && !validarCpfCnpj(documento)) {
+        errors.push('CPF/CNPJ deve ser válido');
         isValid = false;
     }
     

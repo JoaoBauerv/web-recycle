@@ -7,17 +7,18 @@ if (empty($router_managed)) {
 $id_usuario = (int) ($dados_usuario['id_usuario'] ?? 0);
 
 // Consultas parametrizadas (antes os ids eram concatenados direto no SQL).
-$stmt = $pdo->prepare("SELECT * FROM usuario WHERE id_usuario = :id");
+require_once __DIR__ . '/../../components/endereco.php';
+
+// O endereço vem no mesmo SELECT: uma linha de 'endereco' apontada por
+// usuario.id_endereco. O CPF/CNPJ é coluna do próprio usuário desde que a
+// tabela 'documento' foi removida.
+$stmt = $pdo->prepare("SELECT u.*, " . enderecoSelect('e') . "
+                       FROM usuario u " . enderecoJoin('u', 'e') . "
+                       WHERE u.id_usuario = :id");
 $stmt->execute([':id' => $id_usuario]);
 $usuario = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
-$stmt = $pdo->prepare("SELECT * FROM endereco WHERE id_usuario = :id");
-$stmt->execute([':id' => $id_usuario]);
-$endereco = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
-
-$stmt = $pdo->prepare("SELECT * FROM documento WHERE id_usuario = :id");
-$stmt->execute([':id' => $id_usuario]);
-$documento = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+$endereco = enderecoVazio($usuario) ? [] : $usuario;
 
 // Idade só existe se a data de nascimento estiver preenchida.
 $idade = null;
@@ -168,9 +169,13 @@ $aba_ativa = ($_GET['aba'] ?? 'dados') === 'seguranca' ? 'seguranca' : 'dados';
                                         <dt class="small text-muted fw-normal">Bairro</dt>
                                         <dd class="mb-0 fw-medium"><?= perfilValor($endereco['bairro'] ?? '') ?></dd>
                                     </div>
-                                    <div class="col-sm-4">
+                                    <div class="col-sm-3">
                                         <dt class="small text-muted fw-normal">Cidade</dt>
                                         <dd class="mb-0 fw-medium"><?= perfilValor($endereco['cidade'] ?? '') ?></dd>
+                                    </div>
+                                    <div class="col-sm-1">
+                                        <dt class="small text-muted fw-normal">UF</dt>
+                                        <dd class="mb-0 fw-medium"><?= perfilValor($endereco['estado'] ?? '') ?></dd>
                                     </div>
                                     <div class="col-sm-4">
                                         <dt class="small text-muted fw-normal">Complemento</dt>
@@ -179,25 +184,13 @@ $aba_ativa = ($_GET['aba'] ?? 'dados') === 'seguranca' ? 'seguranca' : 'dados';
                                 </dl>
                             <?php endif; ?>
 
-                            <h4 class="h6 fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:.05em;">Documentos</h4>
-                            <?php if (empty($documento)): ?>
-                                <p class="text-muted small mb-0">Nenhum documento cadastrado.</p>
-                            <?php else: ?>
-                                <dl class="row g-3 mb-0">
-                                    <div class="col-sm-4">
-                                        <dt class="small text-muted fw-normal">CPF</dt>
-                                        <dd class="mb-0 fw-medium"><?= perfilValor($documento['cpf'] ?? '') ?></dd>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <dt class="small text-muted fw-normal">RG</dt>
-                                        <dd class="mb-0 fw-medium"><?= perfilValor($documento['rg'] ?? '') ?></dd>
-                                    </div>
-                                    <div class="col-sm-4">
-                                        <dt class="small text-muted fw-normal">CNH</dt>
-                                        <dd class="mb-0 fw-medium"><?= perfilValor($documento['cnh'] ?? '') ?></dd>
-                                    </div>
-                                </dl>
-                            <?php endif; ?>
+                            <h4 class="h6 fw-semibold text-uppercase text-muted mb-3" style="letter-spacing:.05em;">Documento</h4>
+                            <dl class="row g-3 mb-0">
+                                <div class="col-sm-4">
+                                    <dt class="small text-muted fw-normal">CPF/CNPJ</dt>
+                                    <dd class="mb-0 fw-medium"><?= perfilValor($usuario['cpf_cnpj'] ?? '') ?></dd>
+                                </div>
+                            </dl>
 
                             <div class="alert alert-light border mt-4 mb-0 small d-flex gap-2" role="note">
                                 <i class="bi bi-info-circle mt-1" aria-hidden="true"></i>

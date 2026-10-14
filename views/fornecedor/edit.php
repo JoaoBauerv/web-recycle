@@ -3,7 +3,13 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
-$sql = "SELECT * FROM fornecedores WHERE id_fornecedor = :id";
+require_once __DIR__ . '/../../components/endereco.php';
+
+// O endereço vem junto: 'endereco' é tabela única, referenciada por
+// fornecedores.id_endereco.
+$sql = "SELECT f.*, " . enderecoSelect('e') . "
+        FROM fornecedores f " . enderecoJoin('f', 'e') . "
+        WHERE f.id_fornecedor = :id";
 $stmt = $pdo->prepare($sql);
 $stmt->bindValue(':id', (int) $_REQUEST['id'], PDO::PARAM_INT);
 $stmt->execute();
@@ -32,7 +38,7 @@ if (!$fornecedor) {
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">CNPJ/CPF</label>
-                    <input type="text" name="cnpj_cpf" class="form-control" value="<?= htmlspecialchars($fornecedor['cnpj_cpf'] ?? '') ?>">
+                    <input type="text" name="cpf_cnpj" class="form-control" value="<?= htmlspecialchars($fornecedor['cpf_cnpj'] ?? '') ?>">
                 </div>
             </div>
 

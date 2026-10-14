@@ -9,12 +9,19 @@ Pré-requisitos: PostgreSQL 14 ou superior, e um banco vazio já criado.
 ```bash
 createdb reciclagem
 
-# 1. estrutura
+# 1. estrutura (ponto zero)
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0000_baseline_schema.sql
 
-# 2. dados de referência e usuário administrador
+# 2. migrations posteriores à baseline, em ordem cronológica
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_padronizar_nomenclatura.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_endereco_unico_e_documento.sql
+
+# 3. dados de referência e usuário administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 ```
+
+A ordem importa: o seed usa os nomes de tabela e coluna já padronizados, então
+ele é o **último** passo.
 
 Depois, copie `.env.example` para `.env` e preencha `DB_HOST`, `DB_PORT`,
 `DB_NAME`, `DB_USER`, `DB_PASS` e `URL_BASE`.
@@ -34,17 +41,26 @@ troca. Troque antes de usar.
 
 | Arquivo | Papel |
 |---|---|
-| `0000_baseline_schema.sql` | Estrutura completa: 20 tabelas, 52 constraints, 23 índices. É o ponto zero — até 14/10/2026 as tabelas centrais não tinham DDL versionado |
+| `0000_baseline_schema.sql` | Estrutura completa no estado de 14/10/2026: 20 tabelas, 52 constraints, 23 índices. É o ponto zero — até essa data as tabelas centrais não tinham DDL versionado |
+| `2026-10-14_padronizar_nomenclatura.sql` | Tira o prefixo `tb_` das tabelas e padroniza as PKs como `id_<entidade>` |
+| `2026-10-14_endereco_unico_e_documento.sql` | Unifica o endereço numa tabela só, remove `documento` (o CPF/CNPJ vira coluna da entidade) e `public.produtos` |
 | `0001_seed_inicial.sql` | Dados de referência: 33 materiais, 16 categorias de despesa, 7 centros de custo e o usuário administrador |
-| `2026-*.sql` | Migrations datadas, em ordem cronológica |
+| `2026-*.sql` (demais) | Migrations datadas anteriores, em ordem cronológica |
 
 **As migrations anteriores a 14/10/2026 já estão refletidas na baseline.** Ficam
 no repositório como histórico. São idempotentes (`IF EXISTS` / `IF NOT EXISTS`),
 então reaplicá-las não quebra nada — mas numa instalação do zero elas são
 desnecessárias.
 
-Migrations criadas **depois** dessa data precisam ser aplicadas em ordem, após a
-baseline.
+As duas migrations **de** 14/10/2026 em diante **são necessárias**: a baseline
+reflete o estado anterior a elas. O passo 2 da instalação acima aplica as duas;
+migrations novas entram no fim dessa lista.
+
+As migrations de 14/10/2026 **não** são idempotentes — uma segunda passada falha,
+porque tentaria renomear tabela que já tem o nome novo. Isso é de propósito:
+numa migração de estrutura, falhar alto é melhor que seguir em silêncio sobre um
+banco em estado inesperado. A segunda delas roda inteira em uma transação e
+aborta tudo se encontrar divergência na conferência dos dados.
 
 ## O que o seed inicial não traz
 

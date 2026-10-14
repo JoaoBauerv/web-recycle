@@ -87,45 +87,53 @@ function validarDadosUsuario($dados) {
     return ['dados' => $dadosLimpos, 'errors' => $errors];
 }
 
-function validarDadosEndereco($dados) {
-    $dadosLimpos = [];
-    
-    // CEP
-    $cep = preg_replace('/[^0-9]/', '', $dados['cep'] ?? '');
-    if (strlen($cep) === 8) {
-        $dadosLimpos['cep'] = $cep;
-    } else {
-        $dadosLimpos['cep'] = '';
+// A sanitização de endereço mora em components/endereco.php, junto do SQL que
+// grava na tabela: usuário, cliente e fornecedor compartilham a mesma tabela
+// 'endereco' e portanto o mesmo tratamento de entrada.
+
+/**
+ * Normaliza um CPF ou CNPJ para gravação.
+ *
+ * Guarda só os dígitos. Devolve string vazia quando o que veio não é um CPF
+ * nem um CNPJ válido — o campo é opcional nos três cadastros, e é melhor ficar
+ * vazio do que guardar um documento que não existe.
+ *
+ * Substituiu validarDadosDocumento(), que também tratava rg e cnh: a tabela
+ * 'documento' foi removida em 14/10/2026 e nenhum dos dois era usado.
+ */
+function validarCpfCnpj($valor) {
+    $digitos = preg_replace('/[^0-9]/', '', (string) $valor);
+
+    if (strlen($digitos) === 11) {
+        return validarCPF($digitos) ? $digitos : '';
     }
-    
-    $dadosLimpos['logradouro'] = htmlspecialchars(trim($dados['logradouro'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $dadosLimpos['numero'] = htmlspecialchars(trim($dados['numero'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $dadosLimpos['complemento'] = htmlspecialchars(trim($dados['complemento'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $dadosLimpos['cidade'] = htmlspecialchars(trim($dados['cidade'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $dadosLimpos['bairro'] = htmlspecialchars(trim($dados['bairro'] ?? ''), ENT_QUOTES, 'UTF-8');
-    $dadosLimpos['referencia'] = htmlspecialchars(trim($dados['referencia'] ?? ''), ENT_QUOTES, 'UTF-8');
-    
-    return $dadosLimpos;
+    if (strlen($digitos) === 14) {
+        return validarCNPJ($digitos) ? $digitos : '';
+    }
+
+    return '';
 }
 
-function validarDadosDocumento($dados) {
-    $dadosLimpos = [];
-    
-    // CPF
-    $cpf = preg_replace('/[^0-9]/', '', $dados['cpf'] ?? '');
-    if (strlen($cpf) === 11 && validarCPF($cpf)) {
-        $dadosLimpos['cpf'] = $cpf;
-    } else {
-        $dadosLimpos['cpf'] = '';
+function validarCNPJ($cnpj) {
+    if (strlen($cnpj) != 14 || preg_match('/(\d)\1{13}/', $cnpj)) {
+        return false;
     }
-    
-    // RG
-    $dadosLimpos['rg'] = preg_replace('/[^0-9X]/', '', strtoupper($dados['rg'] ?? ''));
-    
-    // CNH
-    $dadosLimpos['cnh'] = preg_replace('/[^0-9]/', '', $dados['cnh'] ?? '');
-    
-    return $dadosLimpos;
+
+    // Os dois dígitos verificadores usam pesos que vão de 2 a 9, ciclicamente.
+    foreach ([12, 13] as $posicao) {
+        $soma = 0;
+        $peso = $posicao - 7;
+        for ($i = 0; $i < $posicao; $i++) {
+            $soma += $cnpj[$i] * $peso;
+            $peso = ($peso - 1) < 2 ? 9 : $peso - 1;
+        }
+        $digito = $soma % 11 < 2 ? 0 : 11 - ($soma % 11);
+        if ($cnpj[$posicao] != $digito) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function validarCPF($cpf) {

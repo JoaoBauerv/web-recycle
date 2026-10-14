@@ -5,6 +5,7 @@ if (empty($router_managed)) {
 }
 
 require_once __DIR__ . '/../../components/balanca.php';
+require_once __DIR__ . '/../../components/endereco.php';
 
 date_default_timezone_set('America/Sao_Paulo');
 
@@ -87,10 +88,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$clientes = $pdo->query("SELECT id_cliente, nome, cidade, estado, preco_especial
-                         FROM clientes
-                         WHERE status = 1
-                         ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
+// cidade/estado vêm da tabela 'endereco' desde a unificação dos endereços.
+$clientes = $pdo->query("SELECT c.id_cliente, c.nome, e.cidade, e.estado, c.preco_especial
+                         FROM clientes c " . enderecoJoin('c', 'e') . "
+                         WHERE c.status = 1
+                         ORDER BY c.nome")->fetchAll(PDO::FETCH_ASSOC);
 
 $materiais = $pdo->query("SELECT id_material, nm_material, tipo, unidade_medida, preco_compra, preco_especial
                           FROM material
@@ -99,7 +101,9 @@ $materiais = $pdo->query("SELECT id_material, nm_material, tipo, unidade_medida,
 
 $cliente_selecionado = null;
 if (!empty($_SESSION['compra_cliente'])) {
-    $stmt = $pdo->prepare("SELECT * FROM clientes WHERE id_cliente = :id AND status = 1");
+    $stmt = $pdo->prepare("SELECT c.*, " . enderecoSelect('e') . "
+                           FROM clientes c " . enderecoJoin('c', 'e') . "
+                           WHERE c.id_cliente = :id AND c.status = 1");
     $stmt->execute([':id' => $_SESSION['compra_cliente']]);
     $cliente_selecionado = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }

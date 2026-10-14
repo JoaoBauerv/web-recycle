@@ -73,17 +73,12 @@ try {
         $stmt->execute();
         $id_cadastrado = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $sql = "INSERT INTO documento (id_usuario) VALUES (:id_cadastrado)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(':id_cadastrado', $id_cadastrado['id_usuario'], PDO::PARAM_STR);
-        $stmt->execute();
+        // Antes criavam-se aqui uma linha vazia em 'endereco' e outra em
+        // 'documento' para todo usuário novo. 'documento' não existe mais, e o
+        // endereço só ganha linha quando alguém de fato preenche o formulário —
+        // é a tela de edição que chama enderecoSalvar() e devolve o
+        // usuario.id_endereco.
 
-        
-        $sql = "INSERT INTO endereco (id_usuario) VALUES (:id_cadastrado)";
-        $stmt = $pdo->prepare($sql);
-        $stmt->bindValue(':id_cadastrado', $id_cadastrado['id_usuario'], PDO::PARAM_STR);
-        $stmt->execute();
-        
         // if($id_cadastrado['id_usuario'] === 1){
         //     $sql = "UPDATE usuario SET permissao = 'Admin' WHERE id_usuario = :id_cadastrado";
         //     $stmt = $pdo->prepare($sql);

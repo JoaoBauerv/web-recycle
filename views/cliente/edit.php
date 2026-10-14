@@ -3,7 +3,14 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
-$sql = "SELECT * FROM clientes WHERE id_cliente = :id";
+require_once __DIR__ . '/../../components/endereco.php';
+
+// O endereço vem junto: 'endereco' é tabela única, referenciada por
+// clientes.id_endereco. As chaves do resultado são as mesmas que o formulário
+// já usava quando as colunas eram do próprio cliente.
+$sql = "SELECT c.*, " . enderecoSelect('e') . "
+        FROM clientes c " . enderecoJoin('c', 'e') . "
+        WHERE c.id_cliente = :id";
 $stmt = $pdo->prepare($sql);
 $stmt->bindValue(':id', (int) $_REQUEST['id'], PDO::PARAM_INT);
 $stmt->execute();

@@ -6,6 +6,7 @@ if (empty($router_managed)) {
 
 require_once __DIR__ . '/../../components/permissoes.php';
 require_once __DIR__ . '/../../components/balanca.php';
+require_once __DIR__ . '/../../components/endereco.php';
 
 date_default_timezone_set('America/Sao_Paulo');
 
@@ -106,10 +107,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$fornecedores = $pdo->query("SELECT id_fornecedor, nome_razao_social, cidade, estado
-                             FROM fornecedores
-                             WHERE status = 1
-                             ORDER BY nome_razao_social")->fetchAll(PDO::FETCH_ASSOC);
+// cidade/estado vêm da tabela 'endereco' desde a unificação dos endereços.
+$fornecedores = $pdo->query("SELECT f.id_fornecedor, f.nome_razao_social, e.cidade, e.estado
+                             FROM fornecedores f " . enderecoJoin('f', 'e') . "
+                             WHERE f.status = 1
+                             ORDER BY f.nome_razao_social")->fetchAll(PDO::FETCH_ASSOC);
 
 $materiais = $pdo->query("SELECT id_material, nm_material, tipo, unidade_medida, preco_venda, COALESCE(qt_estoque, 0) AS qt_estoque
                           FROM material
@@ -118,7 +120,9 @@ $materiais = $pdo->query("SELECT id_material, nm_material, tipo, unidade_medida,
 
 $fornecedor_selecionado = null;
 if (!empty($_SESSION['venda_fornecedor'])) {
-    $stmt = $pdo->prepare("SELECT * FROM fornecedores WHERE id_fornecedor = :id AND status = 1");
+    $stmt = $pdo->prepare("SELECT f.*, " . enderecoSelect('e') . "
+                           FROM fornecedores f " . enderecoJoin('f', 'e') . "
+                           WHERE f.id_fornecedor = :id AND f.status = 1");
     $stmt->execute([':id' => $_SESSION['venda_fornecedor']]);
     $fornecedor_selecionado = $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
 }

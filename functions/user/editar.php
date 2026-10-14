@@ -3,6 +3,7 @@ require_once (__DIR__ . '/../../components/middleware.php');
 require_once (__DIR__ . '/../../components/permissoes.php');
 require_once(__DIR__ . '/../../banco.php');
 require_once(__DIR__ . '/../funcoes.php');
+require_once(__DIR__ . '/../../components/endereco.php');
 
 // Este endpoint grava usuario.permissao. Só exigir login não basta: a rota
 // usuarios/editar pede Admin, mas o arquivo recebe POST direto, e sem esta
@@ -42,26 +43,33 @@ try {
         throw new Exception('Este email já está sendo usado por outro usuário.');
     }
     
-    // Validar outros dados
-    $dadosEndereco = validarDadosEndereco($_POST);
-    $dadosDocumento = validarDadosDocumento($_POST);
-    
     // Iniciar transação
     $pdo->beginTransaction();
-    
+
     // Buscar foto atual para possível remoção
     $sqlFotoAtual = "SELECT foto FROM usuario WHERE id_usuario = :id";
     $stmtFotoAtual = $pdo->prepare($sqlFotoAtual);
     $stmtFotoAtual->execute([':id' => $id]);
     $fotoAtual = $stmtFotoAtual->fetchColumn();
-    
+
+    // Endereço e CPF/CNPJ passaram a ser do próprio usuário: o endereço é uma
+    // linha em 'endereco' apontada por usuario.id_endereco, e o documento é uma
+    // coluna. A tabela 'documento' (cpf, rg, cnh) não existe mais.
+    $stmtEnderecoAtual = $pdo->prepare("SELECT id_endereco FROM usuario WHERE id_usuario = :id");
+    $stmtEnderecoAtual->execute([':id' => $id]);
+    $idEnderecoAtual = $stmtEnderecoAtual->fetchColumn();
+
+    $idEndereco = enderecoSalvar($pdo, $idEnderecoAtual ? (int) $idEnderecoAtual : null, $_POST);
+
     // Atualizar dados pessoais
-    $sqlUsuario = "UPDATE usuario SET 
-        nome = :nome, 
-        email = :email, 
-        data_nascimento = :data_nascimento, 
+    $sqlUsuario = "UPDATE usuario SET
+        nome = :nome,
+        email = :email,
+        data_nascimento = :data_nascimento,
         telefone = :telefone,
         celular = :celular,
+        cpf_cnpj = :cpf_cnpj,
+        id_endereco = :id_endereco,
         status = :status,
         permissao = :permissao
         WHERE id_usuario = :id";
@@ -72,71 +80,13 @@ try {
         ':data_nascimento' => $validacaoUsuario['dados']['data_nascimento'],
         ':telefone' => $validacaoUsuario['dados']['telefone'],
         ':celular' => $validacaoUsuario['dados']['celular'],
+        ':cpf_cnpj' => validarCpfCnpj($_POST['cpf_cnpj'] ?? '') ?: null,
+        ':id_endereco' => $idEndereco,
         ':status' => $validacaoUsuario['dados']['status'],
         ':permissao' => $validacaoUsuario['dados']['permissao'],
         ':id' => $id
     ]);
-    
-    // Verificar se endereço existe, senão criar
-    $sqlVerificaEndereco = "SELECT COUNT(*) FROM endereco WHERE id_usuario = :id";
-    $stmtVerificaEndereco = $pdo->prepare($sqlVerificaEndereco);
-    $stmtVerificaEndereco->execute([':id' => $id]);
-    
-    if ($stmtVerificaEndereco->fetchColumn() > 0) {
-        // Atualizar endereço existente
-        $sqlEndereco = "UPDATE endereco SET 
-            cep = :cep, 
-            logradouro = :logradouro, 
-            numero = :numero, 
-            complemento = :complemento, 
-            cidade = :cidade, 
-            bairro = :bairro,
-            referencia = :referencia
-            WHERE id_usuario = :id";
-    } else {
-        // Inserir novo endereço
-        $sqlEndereco = "INSERT INTO endereco 
-            (id_usuario, cep, logradouro, numero, complemento, cidade, bairro, referencia) 
-            VALUES (:id, :cep, :logradouro, :numero, :complemento, :cidade, :bairro, :referencia)";
-    }
-    
-    $stmtEndereco = $pdo->prepare($sqlEndereco);
-    $stmtEndereco->execute([
-        ':cep' => $dadosEndereco['cep'],
-        ':logradouro' => $dadosEndereco['logradouro'],
-        ':numero' => $dadosEndereco['numero'],
-        ':complemento' => $dadosEndereco['complemento'],
-        ':cidade' => $dadosEndereco['cidade'],
-        ':bairro' => $dadosEndereco['bairro'],
-        ':referencia' => $dadosEndereco['referencia'],
-        ':id' => $id
-    ]);
-    
-    // Mesma lógica para documentos
-    $sqlVerificaDocumento = "SELECT COUNT(*) FROM documento WHERE id_usuario = :id";
-    $stmtVerificaDocumento = $pdo->prepare($sqlVerificaDocumento);
-    $stmtVerificaDocumento->execute([':id' => $id]);
-    
-    if ($stmtVerificaDocumento->fetchColumn() > 0) {
-        $sqlDocumento = "UPDATE documento SET 
-            cpf = :cpf, 
-            rg = :rg, 
-            cnh = :cnh 
-            WHERE id_usuario = :id";
-    } else {
-        $sqlDocumento = "INSERT INTO documento 
-            (id_usuario, cpf, rg, cnh) 
-            VALUES (:id, :cpf, :rg, :cnh)";
-    }
-    
-    $stmtDocumento = $pdo->prepare($sqlDocumento);
-    $stmtDocumento->execute([
-        ':cpf' => $dadosDocumento['cpf'],
-        ':rg' => $dadosDocumento['rg'],
-        ':cnh' => $dadosDocumento['cnh'],
-        ':id' => $id
-    ]);
-    
+
     // Processar upload de foto se enviada
     $novaFoto = null;
 

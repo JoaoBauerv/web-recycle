@@ -3,7 +3,12 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
-$sql = "SELECT * FROM clientes WHERE status = 1 ORDER BY nome ASC";
+require_once __DIR__ . '/../../components/endereco.php';
+
+// A listagem mostra cidade/UF, que hoje moram na tabela 'endereco'.
+$sql = "SELECT c.*, " . enderecoSelect('e') . "
+        FROM clientes c " . enderecoJoin('c', 'e') . "
+        WHERE c.status = 1 ORDER BY c.nome ASC";
 $stmt = $pdo->query($sql);
 $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>

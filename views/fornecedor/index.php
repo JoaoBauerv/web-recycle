@@ -3,7 +3,12 @@ if (empty($router_managed)) {
     header('Location: ../../index2.php');
     exit;
 }
-$sql = "SELECT * FROM fornecedores WHERE status = 1 ORDER BY nome_razao_social ASC";
+require_once __DIR__ . '/../../components/endereco.php';
+
+// A listagem mostra cidade/UF, que hoje moram na tabela 'endereco'.
+$sql = "SELECT f.*, " . enderecoSelect('e') . "
+        FROM fornecedores f " . enderecoJoin('f', 'e') . "
+        WHERE f.status = 1 ORDER BY f.nome_razao_social ASC";
 $stmt = $pdo->query($sql);
 $fornecedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -33,7 +38,7 @@ $fornecedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <?php foreach ($fornecedores as $f): ?>
                         <tr>
                             <td><?= htmlspecialchars($f['nome_razao_social']) ?></td>
-                            <td><?= htmlspecialchars($f['cnpj_cpf'] ?? '-') ?></td>
+                            <td><?= htmlspecialchars($f['cpf_cnpj'] ?? '-') ?></td>
                             <td><?= htmlspecialchars($f['telefone'] ?: '-') ?></td>
                             <td><?= htmlspecialchars(trim(($f['cidade'] ?? '') . '/' . ($f['estado'] ?? ''))) ?></td>
                             <td><?= htmlspecialchars($f['email'] ?: '-') ?></td>

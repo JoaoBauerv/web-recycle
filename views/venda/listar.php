@@ -4,11 +4,14 @@ if (empty($router_managed)) {
     exit;
 }
 
+require_once __DIR__ . '/../../components/endereco.php';
+
 $vendas = $pdo->query("SELECT v.id_venda, v.total_peso, v.total_valor, v.status, v.data_venda, v.observacoes,
-                              f.nome_razao_social, f.cidade, f.estado,
+                              f.nome_razao_social, e.cidade, e.estado,
                               u.nome AS nome_usuario
                        FROM vendas v
                        LEFT JOIN fornecedores f ON f.id_fornecedor = v.id_fornecedor
+                       " . enderecoJoin('f', 'e') . "
                        LEFT JOIN usuario u ON u.id_usuario = v.id_usuario
                        -- Venda manual grava data_venda com hora (now()), mas venda
                        -- importada recebe só a data da planilha, logo 00:00: todas as

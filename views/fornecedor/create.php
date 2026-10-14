@@ -21,7 +21,7 @@ if (empty($router_managed)) {
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">CNPJ/CPF</label>
-                    <input type="text" name="cnpj_cpf" class="form-control" placeholder="Somente números">
+                    <input type="text" name="cpf_cnpj" class="form-control" placeholder="Somente números">
                 </div>
             </div>
 

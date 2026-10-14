@@ -1,6 +1,7 @@
 <?php
 require_once(__DIR__ . '/../../components/middleware.php');
 require_once(__DIR__ . '/../funcoes.php');
+require_once(__DIR__ . '/../../components/endereco.php');
 
 unset($_SESSION['msg_erro']);
 unset($_SESSION['msg_sucesso']);
@@ -17,30 +18,25 @@ switch ($_REQUEST['acao']) {
                 exit;
             }
 
-            $endereco = validarDadosEndereco($_REQUEST);
-            $documento = validarDadosDocumento($_REQUEST);
             $preco_especial = isset($_REQUEST['preco_especial']) && $_REQUEST['preco_especial'] === 'on';
 
+            // O endereço é gravado em 'endereco' e o cliente guarda só a FK.
+            $id_endereco = enderecoSalvar($pdo, null, $_REQUEST);
+
             $sql = "INSERT INTO clientes
-                        (nome, cpf_cnpj, telefone, celular, email, cep, logradouro, numero, complemento, bairro, cidade, estado, preco_especial, status, data_cadastro)
+                        (nome, cpf_cnpj, telefone, celular, email, id_endereco, preco_especial, status, data_cadastro)
                     VALUES
-                        (:nome, :cpf_cnpj, :telefone, :celular, :email, :cep, :logradouro, :numero, :complemento, :bairro, :cidade, :estado, :preco_especial, 1, NOW())
+                        (:nome, :cpf_cnpj, :telefone, :celular, :email, :id_endereco, :preco_especial, 1, NOW())
                     RETURNING id_cliente";
             $stmt = $pdo->prepare($sql);
 
             $dados = array(
                 ':nome' => $nome,
-                ':cpf_cnpj' => !empty($documento['cpf']) ? $documento['cpf'] : ($_REQUEST['cpf_cnpj'] ?? null),
+                ':cpf_cnpj' => validarCpfCnpj($_REQUEST['cpf_cnpj'] ?? '') ?: null,
                 ':telefone' => preg_replace('/[^0-9]/', '', $_REQUEST['telefone'] ?? ''),
                 ':celular' => preg_replace('/[^0-9]/', '', $_REQUEST['celular'] ?? ''),
                 ':email' => trim($_REQUEST['email'] ?? ''),
-                ':cep' => $endereco['cep'],
-                ':logradouro' => $endereco['logradouro'],
-                ':numero' => $endereco['numero'],
-                ':complemento' => $endereco['complemento'],
-                ':bairro' => $endereco['bairro'],
-                ':cidade' => $endereco['cidade'],
-                ':estado' => strtoupper(trim($_REQUEST['estado'] ?? '')),
+                ':id_endereco' => $id_endereco,
                 ':preco_especial' => $preco_especial ? 't' : 'f'
             );
 
@@ -74,9 +70,18 @@ switch ($_REQUEST['acao']) {
             $id = (int) $_REQUEST['id'];
             $nome = ucwords(strtolower(trim($_REQUEST['nome'])));
 
-            $endereco = validarDadosEndereco($_REQUEST);
-            $documento = validarDadosDocumento($_REQUEST);
             $preco_especial = isset($_REQUEST['preco_especial']) && $_REQUEST['preco_especial'] === 'on';
+
+            // Reaproveita a linha de endereço que o cliente já apontava, se houver.
+            $atual = $pdo->prepare("SELECT id_endereco FROM clientes WHERE id_cliente = :id");
+            $atual->execute([':id' => $id]);
+            $id_endereco_atual = $atual->fetchColumn();
+
+            $id_endereco = enderecoSalvar(
+                $pdo,
+                $id_endereco_atual ? (int) $id_endereco_atual : null,
+                $_REQUEST
+            );
 
             $sql = "UPDATE clientes SET
                         nome = :nome,
@@ -84,30 +89,18 @@ switch ($_REQUEST['acao']) {
                         telefone = :telefone,
                         celular = :celular,
                         email = :email,
-                        cep = :cep,
-                        logradouro = :logradouro,
-                        numero = :numero,
-                        complemento = :complemento,
-                        bairro = :bairro,
-                        cidade = :cidade,
-                        estado = :estado,
+                        id_endereco = :id_endereco,
                         preco_especial = :preco_especial
                     WHERE id_cliente = :id";
             $stmt = $pdo->prepare($sql);
 
             $dados = array(
                 ':nome' => $nome,
-                ':cpf_cnpj' => !empty($documento['cpf']) ? $documento['cpf'] : ($_REQUEST['cpf_cnpj'] ?? null),
+                ':cpf_cnpj' => validarCpfCnpj($_REQUEST['cpf_cnpj'] ?? '') ?: null,
                 ':telefone' => preg_replace('/[^0-9]/', '', $_REQUEST['telefone'] ?? ''),
                 ':celular' => preg_replace('/[^0-9]/', '', $_REQUEST['celular'] ?? ''),
                 ':email' => trim($_REQUEST['email'] ?? ''),
-                ':cep' => $endereco['cep'],
-                ':logradouro' => $endereco['logradouro'],
-                ':numero' => $endereco['numero'],
-                ':complemento' => $endereco['complemento'],
-                ':bairro' => $endereco['bairro'],
-                ':cidade' => $endereco['cidade'],
-                ':estado' => strtoupper(trim($_REQUEST['estado'] ?? '')),
+                ':id_endereco' => $id_endereco,
                 ':preco_especial' => $preco_especial ? 't' : 'f',
                 ':id' => $id
             );

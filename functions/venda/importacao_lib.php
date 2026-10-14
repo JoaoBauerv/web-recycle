@@ -281,7 +281,7 @@ function importacaoResolverFornecedor(PDO $pdo, string $texto): ?array
                            FROM fornecedores
                            WHERE status = 1
                              AND (LOWER(nome_razao_social) = LOWER(:nome)
-                                  OR (:digitos <> '' AND regexp_replace(COALESCE(cnpj_cpf, ''), '\D', '', 'g') = :digitos))
+                                  OR (:digitos <> '' AND regexp_replace(COALESCE(cpf_cnpj, ''), '\D', '', 'g') = :digitos))
                            LIMIT 2");
     $stmt->execute([':nome' => $texto, ':digitos' => $digitos]);
     $achados = $stmt->fetchAll(PDO::FETCH_ASSOC);
