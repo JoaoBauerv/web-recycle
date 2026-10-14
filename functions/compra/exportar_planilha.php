@@ -37,7 +37,7 @@ if (!$id_pesagem) {
 }
 
 $stmt = $pdo->prepare("SELECT p.id_pesagem, p.data_pesagem, p.status, c.nome AS cliente_nome
-                       FROM tb_pesagem p
+                       FROM pesagem p
                        LEFT JOIN clientes c ON c.id_cliente = p.id_cliente
                        WHERE p.id_pesagem = :id");
 $stmt->execute([':id' => $id_pesagem]);
@@ -55,8 +55,8 @@ if (($compra['status'] ?? 'ativa') === 'cancelada') {
 
 $itens = $pdo->prepare("SELECT m.nm_material, m.codigo,
                                pm.peso_bruto, pm.tara, pm.preco_un
-                        FROM tb_pesagem_material pm
-                        JOIN tb_material m ON m.id_material = pm.id_material
+                        FROM pesagem_material pm
+                        JOIN material m ON m.id_material = pm.id_material
                         WHERE pm.id_pesagem = :id
                         ORDER BY m.nm_material");
 $itens->execute([':id' => $id_pesagem]);

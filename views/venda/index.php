@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $preco_un      = (float) str_replace(',', '.', $_POST['preco_un']);
 
         $stmt = $pdo->prepare("SELECT nm_material, tipo, unidade_medida, COALESCE(qt_estoque, 0) AS qt_estoque
-                               FROM tb_material
+                               FROM material
                                WHERE id_material = :id AND status = 1");
         $stmt->execute([':id' => $id_material]);
         $material = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -112,7 +112,7 @@ $fornecedores = $pdo->query("SELECT id_fornecedor, nome_razao_social, cidade, es
                              ORDER BY nome_razao_social")->fetchAll(PDO::FETCH_ASSOC);
 
 $materiais = $pdo->query("SELECT id_material, nm_material, tipo, unidade_medida, preco_venda, COALESCE(qt_estoque, 0) AS qt_estoque
-                          FROM tb_material
+                          FROM material
                           WHERE status = 1 AND COALESCE(qt_estoque, 0) > 0
                           ORDER BY nm_material")->fetchAll(PDO::FETCH_ASSOC);
 

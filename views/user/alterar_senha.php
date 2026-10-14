@@ -21,7 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirma_senha = $_POST['confirma_senha'] ?? '';
 
     // Buscar senha atual do banco
-    $stmt = $pdo->prepare("SELECT * FROM tb_usuario WHERE id_usuario = :id");
+    $stmt = $pdo->prepare("SELECT * FROM usuario WHERE id_usuario = :id");
     $stmt->bindParam(':id', $_SESSION['id_usuario']);
     $stmt->execute();
     $dados = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Se não há erros, atualizar a senha
     if (empty($errors)) {
         try {
-            $stmt = $pdo->prepare("UPDATE tb_usuario SET senha = :senha, precisa_alterar_senha = 0 WHERE id_usuario = :id");
+            $stmt = $pdo->prepare("UPDATE usuario SET senha = :senha, precisa_alterar_senha = 0 WHERE id_usuario = :id");
             $stmt->bindValue(':senha', password_hash($nova_senha, PASSWORD_DEFAULT));
             $stmt->bindValue(':id', $_SESSION['id_usuario']);
 

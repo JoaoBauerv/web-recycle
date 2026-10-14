@@ -105,7 +105,7 @@ function importacaoCarregarCatalogo(PDO $pdo, ?int $id_modelo): array
 
     $sql = "SELECT id_material, nm_material, codigo, tipo, unidade_medida,
                    COALESCE(qt_estoque, 0) AS qt_estoque
-            FROM tb_material
+            FROM material
             WHERE status = 1
             ORDER BY nm_material";
 

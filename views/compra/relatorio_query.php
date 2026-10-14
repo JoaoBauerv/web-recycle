@@ -32,8 +32,8 @@ $filtro_tipo    = trim($_REQUEST['tipo_material'] ?? '');
 
 // -------- Dados para os selects de filtro --------
 $clientes = $pdo->query("SELECT id_cliente, nome FROM clientes WHERE status = 1 ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
-$materiais = $pdo->query("SELECT id_material, nm_material, tipo FROM tb_material WHERE status = 1 ORDER BY nm_material")->fetchAll(PDO::FETCH_ASSOC);
-$tipos_material = $pdo->query("SELECT DISTINCT tipo FROM tb_material WHERE status = 1 AND tipo IS NOT NULL AND tipo <> '' ORDER BY tipo")->fetchAll(PDO::FETCH_COLUMN);
+$materiais = $pdo->query("SELECT id_material, nm_material, tipo FROM material WHERE status = 1 ORDER BY nm_material")->fetchAll(PDO::FETCH_ASSOC);
+$tipos_material = $pdo->query("SELECT DISTINCT tipo FROM material WHERE status = 1 AND tipo IS NOT NULL AND tipo <> '' ORDER BY tipo")->fetchAll(PDO::FETCH_COLUMN);
 
 // -------- Consulta em nível de item (1 linha por material pesado) --------
 // DATE(p.data_pesagem) BETWEEN :data_inicio AND :data_fim cobre o dia inteiro da
@@ -44,10 +44,10 @@ $sql = "SELECT pm.id_pesagem, pm.id_material, pm.peso_material, pm.preco_un,
                COALESCE(m.nm_material, 'Material removido') AS nm_material,
                m.tipo AS material_tipo,
                COALESCE(m.unidade_medida, 'kg') AS unidade_medida
-        FROM tb_pesagem_material pm
-        JOIN tb_pesagem p ON p.id_pesagem = pm.id_pesagem
+        FROM pesagem_material pm
+        JOIN pesagem p ON p.id_pesagem = pm.id_pesagem
         JOIN clientes c ON c.id_cliente = p.id_cliente
-        LEFT JOIN tb_material m ON m.id_material = pm.id_material
+        LEFT JOIN material m ON m.id_material = pm.id_material
         WHERE p.total_valor > 0
           AND p.status <> 'cancelada'
           AND DATE(p.data_pesagem) BETWEEN :data_inicio AND :data_fim";

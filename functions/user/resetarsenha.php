@@ -192,7 +192,7 @@ function enviarEmailSMTP($email, $nome, $usuario, $novaSenha) {
 }
 
 // Buscar informações do usuário logado
-$stmt = $pdo->prepare("SELECT * FROM tb_usuario WHERE id_usuario = :id");
+$stmt = $pdo->prepare("SELECT * FROM usuario WHERE id_usuario = :id");
 $stmt->bindParam(':id', $_SESSION['id_usuario']);
 $stmt->execute();
 $dados_usuario = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -200,7 +200,7 @@ $dados_usuario = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!empty($_REQUEST['id'])) {
     try {
         // Buscar dados do usuário que terá a senha resetada
-        $sql = "SELECT id_usuario, usuario, nome, email, data_nascimento FROM tb_usuario WHERE id_usuario = :id";
+        $sql = "SELECT id_usuario, usuario, nome, email, data_nascimento FROM usuario WHERE id_usuario = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':id', $_REQUEST['id'], PDO::PARAM_INT);
         $stmt->execute();
@@ -221,7 +221,7 @@ if (!empty($_REQUEST['id'])) {
         // ficar trancado fora do sistema.
         $pdo->beginTransaction();
 
-        $sql = "UPDATE tb_usuario SET senha = :senha, precisa_alterar_senha = 1 WHERE id_usuario = :id";
+        $sql = "UPDATE usuario SET senha = :senha, precisa_alterar_senha = 1 WHERE id_usuario = :id";
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':id', $_REQUEST['id'], PDO::PARAM_INT);
         $stmt->bindValue(':senha', password_hash($novaSenha, PASSWORD_DEFAULT));

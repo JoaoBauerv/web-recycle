@@ -33,7 +33,7 @@ $foto_usuario = 'padrao.png';
 // Identifica o usuário logado pela chave primária. Antes a busca era pela coluna
 // `usuario`, que deixou de ser credencial quando o login passou a ser por e-mail.
 if (!empty($_SESSION['id_usuario'])) {
-    $stmt = $pdo->prepare("SELECT * FROM tb_usuario WHERE id_usuario = :id");
+    $stmt = $pdo->prepare("SELECT * FROM usuario WHERE id_usuario = :id");
     $stmt->bindParam(':id', $_SESSION['id_usuario'], PDO::PARAM_INT);
     $stmt->execute();
     $dados_usuario = $stmt->fetch(PDO::FETCH_ASSOC) ?: $dados_usuario;

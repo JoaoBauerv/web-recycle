@@ -40,7 +40,7 @@ switch ($acao) {
             relacaoVoltar($tela, 'Erro', 'Informe o nome externo, o código externo, ou os dois.');
         }
 
-        $existe = $pdo->prepare("SELECT 1 FROM tb_material WHERE id_material = ? AND status = 1");
+        $existe = $pdo->prepare("SELECT 1 FROM material WHERE id_material = ? AND status = 1");
         $existe->execute([$id_material]);
         if (!$existe->fetchColumn()) {
             relacaoVoltar($tela, 'Erro', 'Material inválido ou inativo.');
@@ -135,7 +135,7 @@ switch ($acao) {
         }
 
         try {
-            $pdo->prepare("UPDATE tb_material SET codigo = :codigo WHERE id_material = :id")
+            $pdo->prepare("UPDATE material SET codigo = :codigo WHERE id_material = :id")
                 ->execute([':codigo' => $codigo !== '' ? $codigo : null, ':id' => $id_material]);
         } catch (PDOException $e) {
             relacaoVoltar($tela, 'Erro', 'Esse código já pertence a outro material.');

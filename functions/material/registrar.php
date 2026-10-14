@@ -17,7 +17,7 @@ switch($_REQUEST['acao'] ?? ''){
     case 'cadastrar':
 
         try {
-            $sql = "INSERT INTO tb_material (nm_material, tipo, qt_estoque, preco_compra, preco_especial) 
+            $sql = "INSERT INTO material (nm_material, tipo, qt_estoque, preco_compra, preco_especial) 
                     VALUES (:nome, :categoria, 0, :preco, :preco_especial)";
             $stmt = $pdo->prepare($sql);
 
@@ -58,7 +58,7 @@ switch($_REQUEST['acao'] ?? ''){
     case 'editar':
 
             try {
-            $sql = "UPDATE tb_material SET nm_material = :nome , tipo = :categoria, preco_compra = :preco, preco_especial = :preco_especial WHERE
+            $sql = "UPDATE material SET nm_material = :nome , tipo = :categoria, preco_compra = :preco, preco_especial = :preco_especial WHERE
                     id_material = :id";
             $stmt = $pdo->prepare($sql);
 
@@ -101,7 +101,7 @@ switch($_REQUEST['acao'] ?? ''){
     case 'excluir':
         
         try {
-            $sql = "UPDATE tb_material SET status = 0
+            $sql = "UPDATE material SET status = 0
                     WHERE id_material = :id";
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':id', (int) $_REQUEST['id'], PDO::PARAM_INT);

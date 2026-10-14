@@ -15,7 +15,7 @@ $materiais = $analise['materiais'];
 $t = $analise['totais'];
 
 $tipos = margemTiposMaterial($pdo);
-$lista_materiais = $pdo->query("SELECT id_material, nm_material FROM tb_material
+$lista_materiais = $pdo->query("SELECT id_material, nm_material FROM material
                                 WHERE status = 1 ORDER BY nm_material")->fetchAll(PDO::FETCH_ASSOC);
 
 // Query string dos filtros, para os botões de exportação respeitarem a tela.

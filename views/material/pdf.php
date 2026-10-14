@@ -18,7 +18,7 @@ $dompdf = new Dompdf($options);
 // antes, um POST com tipo=' OR '1'='1 reescrevia a consulta inteira.
 $tipo_escolhido = $_REQUEST['tipo'] ?? 'todos';
 
-$sql = "SELECT * FROM tb_material WHERE status = 1";
+$sql = "SELECT * FROM material WHERE status = 1";
 $parametros = [];
 
 if ($tipo_escolhido !== 'todos') {

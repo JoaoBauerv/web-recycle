@@ -5,7 +5,7 @@ if (empty($router_managed)) {
 }
 require_once __DIR__ . '/../../components/csrf.php';
 
-$sql = "SELECT * FROM tb_material WHERE id_material = :id";
+$sql = "SELECT * FROM material WHERE id_material = :id";
 $stmt = $pdo->prepare($sql);
 $stmt->bindValue(':id', (int) $_REQUEST['id'], PDO::PARAM_INT);
 $stmt->execute();

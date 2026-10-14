@@ -32,8 +32,8 @@ $p = [':id' => $id_material, ':inicio' => $filtros['inicio'] . ' 00:00:00', ':fi
 $compras = $pdo->prepare("SELECT p.id_pesagem, p.data_pesagem, c.nome AS cliente,
                                  pm.peso_material, pm.peso_bruto, pm.tara, pm.preco_un,
                                  pm.peso_material * pm.preco_un AS total
-                          FROM tb_pesagem_material pm
-                          JOIN tb_pesagem p ON p.id_pesagem = pm.id_pesagem
+                          FROM pesagem_material pm
+                          JOIN pesagem p ON p.id_pesagem = pm.id_pesagem
                           LEFT JOIN clientes c ON c.id_cliente = p.id_cliente
                           WHERE pm.id_material = :id AND p.data_pesagem BETWEEN :inicio AND :fim
                             AND p.status <> 'cancelada'

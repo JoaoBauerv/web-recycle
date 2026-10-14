@@ -16,8 +16,8 @@ require_once __DIR__ . '/../../components/cancelamento.php';
 
 // Buscar dados da pesagem, com o nome de quem cancelou quando for o caso
 $stmt = $pdo->prepare("SELECT p.*, uc.nome AS cancelou_nome
-                       FROM tb_pesagem p
-                       LEFT JOIN tb_usuario uc ON uc.id_usuario = p.id_usuario_cancelou
+                       FROM pesagem p
+                       LEFT JOIN usuario uc ON uc.id_usuario = p.id_usuario_cancelou
                        WHERE p.id_pesagem = ?");
 $stmt->execute([$id_pesagem]);
 $pesagem = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -35,8 +35,8 @@ $cliente = $stmt_cliente->fetch(PDO::FETCH_ASSOC);
 // Buscar itens da pesagem
 $stmt_itens = $pdo->prepare("
     SELECT a.* , b.nm_material
-    FROM tb_pesagem_material A
-    LEFT JOIN tb_material B ON a.id_material = b.id_material
+    FROM pesagem_material A
+    LEFT JOIN material B ON a.id_material = b.id_material
     WHERE A.id_pesagem = ?
     ORDER BY A.id_material
 ");

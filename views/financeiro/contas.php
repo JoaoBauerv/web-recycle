@@ -65,8 +65,8 @@ $sql = "SELECT pa.*, c.descricao, c.favorecido, c.id_conta, c.status AS status_c
         JOIN contas_pagar c        ON c.id_conta = pa.id_conta
         JOIN despesa_categoria cat ON cat.id_categoria = c.id_categoria
         LEFT JOIN centro_custo cc  ON cc.id_centro = c.id_centro
-        LEFT JOIN tb_usuario u     ON u.id_usuario = c.id_usuario_func
-        LEFT JOIN tb_usuario up    ON up.id_usuario = pa.id_usuario_pagamento
+        LEFT JOIN usuario u     ON u.id_usuario = c.id_usuario_func
+        LEFT JOIN usuario up    ON up.id_usuario = pa.id_usuario_pagamento
         WHERE " . implode(' AND ', $where) . "
         ORDER BY pa.data_vencimento, c.descricao, pa.numero_parcela";
 
@@ -78,7 +78,7 @@ $total_filtrado = array_sum(array_map(fn($p) => (float) $p['valor'], $parcelas))
 
 $categorias = $pdo->query("SELECT id_categoria, nome, tipo FROM despesa_categoria WHERE status = 1 ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
 $centros    = $pdo->query("SELECT id_centro, nome FROM centro_custo WHERE status = 1 ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
-$usuarios   = $pdo->query("SELECT id_usuario, nome FROM tb_usuario WHERE status = 1 ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
+$usuarios   = $pdo->query("SELECT id_usuario, nome FROM usuario WHERE status = 1 ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <div class="container-fluid py-4" style="max-width: 1500px;">

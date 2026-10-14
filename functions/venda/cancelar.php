@@ -5,7 +5,7 @@
  * Cancelar venda SOMA estoque, então nunca é recusado por saldo — é o espelho
  * do cancelamento de compra, que subtrai e pode ser recusado.
  *
- * Depois do estorno, tb_material.preco_venda é recalculado ignorando vendas
+ * Depois do estorno, material.preco_venda é recalculado ignorando vendas
  * canceladas: aquela coluna guarda o último preço praticado, e o preço de uma
  * venda que não aconteceu não serve de referência para a próxima.
  *

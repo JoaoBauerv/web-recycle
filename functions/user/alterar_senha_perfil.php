@@ -21,7 +21,7 @@ $senha_atual   = $_POST['senha_atual'] ?? '';
 $nova_senha    = $_POST['nova_senha'] ?? '';
 $confirma      = $_POST['confirma_senha'] ?? '';
 
-$stmt = $pdo->prepare("SELECT senha FROM tb_usuario WHERE id_usuario = :id");
+$stmt = $pdo->prepare("SELECT senha FROM usuario WHERE id_usuario = :id");
 $stmt->execute([':id' => $_SESSION['id_usuario']]);
 $hash_atual = $stmt->fetchColumn();
 
@@ -51,7 +51,7 @@ if ($erro) {
 }
 
 try {
-    $stmt = $pdo->prepare("UPDATE tb_usuario SET senha = :senha, precisa_alterar_senha = 0 WHERE id_usuario = :id");
+    $stmt = $pdo->prepare("UPDATE usuario SET senha = :senha, precisa_alterar_senha = 0 WHERE id_usuario = :id");
     $stmt->execute([
         ':senha' => password_hash($nova_senha, PASSWORD_DEFAULT),
         ':id'    => $_SESSION['id_usuario'],

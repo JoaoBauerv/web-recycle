@@ -2,7 +2,7 @@
 /**
  * Permissões por ação do módulo de vendas.
  *
- * O sistema tem dois perfis em tb_usuario.permissao: Admin e Usuario.
+ * O sistema tem dois perfis em usuario.permissao: Admin e Usuario.
  * O roteador só sabia distinguir "é Admin ou não" no nível da rota; aqui a
  * permissão é por AÇÃO, o que permite liberar uma tela e restringir o que se
  * pode fazer dentro dela.

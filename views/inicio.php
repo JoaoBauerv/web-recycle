@@ -13,7 +13,7 @@ if ($logado) {
     // Documento cancelado continua existindo, mas não entra em soma nenhuma: o
     // mesmo filtro vale aqui, no relatório de compras e vendas e na margem.
     $stmt = $pdo->prepare("SELECT COUNT(*) AS qtd, COALESCE(SUM(total_valor), 0) AS valor, COALESCE(SUM(total_peso), 0) AS peso
-                           FROM tb_pesagem
+                           FROM pesagem
                            WHERE total_valor > 0 AND status <> 'cancelada'
                              AND data_pesagem >= :inicio AND data_pesagem < :fim");
     $stmt->execute([':inicio' => $inicio_mes, ':fim' => $fim_mes]);
@@ -53,9 +53,9 @@ if ($logado) {
         $financeiro = $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
-    $estoque_total    = (float) $pdo->query("SELECT COALESCE(SUM(qt_estoque), 0) FROM tb_material WHERE status = 1")->fetchColumn();
+    $estoque_total    = (float) $pdo->query("SELECT COALESCE(SUM(qt_estoque), 0) FROM material WHERE status = 1")->fetchColumn();
     $total_clientes   = (int) $pdo->query("SELECT COUNT(*) FROM clientes WHERE status = 1")->fetchColumn();
-    $total_materiais  = (int) $pdo->query("SELECT COUNT(*) FROM tb_material WHERE status = 1")->fetchColumn();
+    $total_materiais  = (int) $pdo->query("SELECT COUNT(*) FROM material WHERE status = 1")->fetchColumn();
 
     $mes_referencia = strtr(date('F/Y'), [
         'January' => 'Janeiro', 'February' => 'Fevereiro', 'March' => 'Março', 'April' => 'Abril',

@@ -11,7 +11,7 @@ function removerAcentos($string) {
 
 function registraMovimentacao($id_cadastrou, $id_cadastrado, $descricao, $tipo, $pdo){
 
-$sql = "INSERT INTO tb_registro_movimento (id_usuario_admin, id_usuario_modificado, descricao, tipo, data) VALUES (:id_cadastrou, :id_cadastrado, :descricao, :tipo, :data)";
+$sql = "INSERT INTO registro_movimento (id_usuario_admin, id_usuario_modificado, descricao, tipo, data) VALUES (:id_cadastrou, :id_cadastrado, :descricao, :tipo, :data)";
 $stmt = $pdo->prepare($sql);
 $stmt->bindValue(':id_cadastrou', $id_cadastrou, PDO::PARAM_STR);
 $stmt->bindValue(':id_cadastrado', $id_cadastrado, PDO::PARAM_STR);
@@ -214,7 +214,7 @@ function processarUploadFoto($arquivo, $usuario) {
 }
 
 function verificarUsuarioExiste($pdo, $id) {
-    $sql = "SELECT COUNT(*) FROM tb_usuario WHERE id_usuario = :id";
+    $sql = "SELECT COUNT(*) FROM usuario WHERE id_usuario = :id";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':id' => $id]);
     return $stmt->fetchColumn() > 0;
@@ -223,7 +223,7 @@ function verificarUsuarioExiste($pdo, $id) {
 function verificarEmailUnico($pdo, $email, $idUsuario) {
     // LOWER nos dois lados, igual ao login: sem isso seria possível cadastrar
     // "Joao@x.com" com "joao@x.com" já existente, e o login acharia dois registros.
-    $sql = "SELECT COUNT(*) FROM tb_usuario WHERE LOWER(email) = LOWER(:email) AND id_usuario != :id";
+    $sql = "SELECT COUNT(*) FROM usuario WHERE LOWER(email) = LOWER(:email) AND id_usuario != :id";
     $stmt = $pdo->prepare($sql);
     $stmt->execute([':email' => $email, ':id' => $idUsuario]);
     return $stmt->fetchColumn() == 0;

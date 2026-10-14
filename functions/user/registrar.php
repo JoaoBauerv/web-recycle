@@ -50,7 +50,7 @@ $precisa_alterar_senha = 1;
 
 // Grava no banco
 try {
-    $sql = "INSERT INTO tb_usuario (nome, email, senha, foto, usuario, data_nascimento, permissao, precisa_alterar_senha) 
+    $sql = "INSERT INTO usuario (nome, email, senha, foto, usuario, data_nascimento, permissao, precisa_alterar_senha) 
             VALUES (:nome, :email, :senha, :foto, :usuario, :data, :permissao, :precisa_alterar_senha)";
     $stmt = $pdo->prepare($sql);
 
@@ -68,24 +68,24 @@ try {
     // Verifica se foi enviado via POST (admin logado cadastrando outro)
 
     if ($stmt->execute($dados)) {
-        $sql = "SELECT * FROM tb_usuario ORDER BY id_usuario DESC LIMIT 1";
+        $sql = "SELECT * FROM usuario ORDER BY id_usuario DESC LIMIT 1";
         $stmt = $pdo->prepare($sql);
         $stmt->execute();
         $id_cadastrado = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $sql = "INSERT INTO tb_documento (id_usuario) VALUES (:id_cadastrado)";
+        $sql = "INSERT INTO documento (id_usuario) VALUES (:id_cadastrado)";
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':id_cadastrado', $id_cadastrado['id_usuario'], PDO::PARAM_STR);
         $stmt->execute();
 
         
-        $sql = "INSERT INTO tb_endereco (id_usuario) VALUES (:id_cadastrado)";
+        $sql = "INSERT INTO endereco (id_usuario) VALUES (:id_cadastrado)";
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':id_cadastrado', $id_cadastrado['id_usuario'], PDO::PARAM_STR);
         $stmt->execute();
         
         // if($id_cadastrado['id_usuario'] === 1){
-        //     $sql = "UPDATE tb_usuario SET permissao = 'Admin' WHERE id_usuario = :id_cadastrado";
+        //     $sql = "UPDATE usuario SET permissao = 'Admin' WHERE id_usuario = :id_cadastrado";
         //     $stmt = $pdo->prepare($sql);
         //     $stmt->bindValue(':id_cadastrado', $id_cadastrado['id_usuario'], PDO::PARAM_STR);
         //     $stmt->execute();

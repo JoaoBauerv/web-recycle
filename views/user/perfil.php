@@ -7,15 +7,15 @@ if (empty($router_managed)) {
 $id_usuario = (int) ($dados_usuario['id_usuario'] ?? 0);
 
 // Consultas parametrizadas (antes os ids eram concatenados direto no SQL).
-$stmt = $pdo->prepare("SELECT * FROM tb_usuario WHERE id_usuario = :id");
+$stmt = $pdo->prepare("SELECT * FROM usuario WHERE id_usuario = :id");
 $stmt->execute([':id' => $id_usuario]);
 $usuario = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
-$stmt = $pdo->prepare("SELECT * FROM tb_endereco WHERE id_usuario = :id");
+$stmt = $pdo->prepare("SELECT * FROM endereco WHERE id_usuario = :id");
 $stmt->execute([':id' => $id_usuario]);
 $endereco = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
-$stmt = $pdo->prepare("SELECT * FROM tb_documento WHERE id_usuario = :id");
+$stmt = $pdo->prepare("SELECT * FROM documento WHERE id_usuario = :id");
 $stmt->execute([':id' => $id_usuario]);
 $documento = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
 

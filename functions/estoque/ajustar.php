@@ -4,7 +4,7 @@
  *
  * Ajuste manual é o único caminho que altera saldo sem um documento por trás,
  * então tudo aqui passa por transação, exige motivo e fica registrado duas vezes:
- * em estoque_movimentacoes (a trilha do material) e em tb_registro_movimento
+ * em estoque_movimentacoes (a trilha do material) e em registro_movimento
  * (a trilha de quem fez).
  */
 require_once(__DIR__ . '/../../components/middleware.php');
@@ -139,7 +139,7 @@ switch ($_REQUEST['acao'] ?? '') {
             $pdo->beginTransaction();
 
             $atual = $pdo->prepare("SELECT nm_material, unidade_medida, COALESCE(qt_estoque,0) AS qt_estoque
-                                    FROM tb_material WHERE id_material = ? AND status = 1 FOR UPDATE");
+                                    FROM material WHERE id_material = ? AND status = 1 FOR UPDATE");
             $atual->execute([$id_material]);
             $material = $atual->fetch(PDO::FETCH_ASSOC);
 
@@ -226,10 +226,10 @@ switch ($_REQUEST['acao'] ?? '') {
             estoqueVoltar($tela, 'Erro', 'O estoque mínimo precisa ser um número igual ou maior que zero.');
         }
 
-        $pdo->prepare("UPDATE tb_material SET estoque_minimo = :minimo WHERE id_material = :id AND status = 1")
+        $pdo->prepare("UPDATE material SET estoque_minimo = :minimo WHERE id_material = :id AND status = 1")
             ->execute([':minimo' => $minimo, ':id' => $id_material]);
 
-        $busca_nome = $pdo->prepare("SELECT nm_material FROM tb_material WHERE id_material = :id");
+        $busca_nome = $pdo->prepare("SELECT nm_material FROM material WHERE id_material = :id");
         $busca_nome->execute([':id' => $id_material]);
         $nome = $busca_nome->fetchColumn();
 

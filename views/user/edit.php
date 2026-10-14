@@ -79,20 +79,20 @@ require_once __DIR__ . '/../../components/csrf.php';
 <?php 
 
 // Consulta os dados do usuário
-$sqlUsuario = "SELECT * FROM tb_usuario WHERE id_usuario = ?";
+$sqlUsuario = "SELECT * FROM usuario WHERE id_usuario = ?";
 $stmtUsuario = $pdo->prepare($sqlUsuario);
 $stmtUsuario->execute([$_REQUEST['id']]);
 $usuario = $stmtUsuario->fetch(PDO::FETCH_ASSOC);
 
 
 // Consulta endereço
-$sqlEndereco = "SELECT * FROM tb_endereco WHERE id_usuario = ?";
+$sqlEndereco = "SELECT * FROM endereco WHERE id_usuario = ?";
 $stmtEndereco = $pdo->prepare($sqlEndereco);
 $stmtEndereco->execute([$_REQUEST['id']]);
 $endereco = $stmtEndereco->fetch(PDO::FETCH_ASSOC);
 
 // Consulta documentos
-$sqlDocumento = "SELECT * FROM tb_documento WHERE id_usuario = ?";
+$sqlDocumento = "SELECT * FROM documento WHERE id_usuario = ?";
 $stmtDocumento = $pdo->prepare($sqlDocumento);
 $stmtDocumento->execute([$_REQUEST['id']]);
 $documento = $stmtDocumento->fetch(PDO::FETCH_ASSOC);

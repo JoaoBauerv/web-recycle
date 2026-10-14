@@ -1,6 +1,6 @@
 <?php
 /**
- * Cancela uma compra (tb_pesagem) e estorna o estoque que ela deu entrada.
+ * Cancela uma compra (pesagem) e estorna o estoque que ela deu entrada.
  *
  * Cancelar compra SUBTRAI estoque: o material nunca entrou de verdade. Se ele
  * já foi revendido ou baixado, o saldo ficaria negativo e a operação é recusada
@@ -58,7 +58,7 @@ try {
     // FOR UPDATE trava o documento: sem isso dois cancelamentos simultâneos do
     // mesmo documento estornariam o estoque duas vezes.
     $stmt = $pdo->prepare("SELECT id_pesagem, status, total_valor, total_peso, data_pesagem
-                           FROM tb_pesagem
+                           FROM pesagem
                            WHERE id_pesagem = :id
                            FOR UPDATE");
     $stmt->execute([':id' => $id_compra]);
@@ -74,7 +74,7 @@ try {
     // Agrupa por material, igual ao registro da compra: o mesmo material pode
     // ter sido pesado em várias linhas, e o estorno é pelo total.
     $stmt_itens = $pdo->prepare("SELECT id_material, SUM(peso_material) AS peso_total
-                                 FROM tb_pesagem_material
+                                 FROM pesagem_material
                                  WHERE id_pesagem = :id
                                  GROUP BY id_material");
     $stmt_itens->execute([':id' => $id_compra]);
@@ -101,7 +101,7 @@ try {
             $id_compra,
             (int) $_SESSION['id_usuario'],
             // observacoes é varchar(255) e o motivo pode ter até 500: corta aqui.
-            // O motivo completo fica em tb_pesagem.motivo_cancelamento, que é
+            // O motivo completo fica em pesagem.motivo_cancelamento, que é
             // para onde o origem_id desta linha aponta.
             mb_substr("Estorno do cancelamento da compra #{$id_compra}: {$motivo}", 0, 255)
         );
@@ -109,7 +109,7 @@ try {
         $estornados[] = $resultado['nm_material'];
     }
 
-    $pdo->prepare("UPDATE tb_pesagem
+    $pdo->prepare("UPDATE pesagem
                    SET status = 'cancelada',
                        cancelada_em = NOW(),
                        id_usuario_cancelou = :id_usuario,
@@ -122,7 +122,7 @@ try {
         ]);
 
     // descricao é varchar(100), então a mensagem é curta e NÃO repete o motivo:
-    // ele fica em tb_pesagem.motivo_cancelamento, junto com a data e o autor.
+    // ele fica em pesagem.motivo_cancelamento, junto com a data e o autor.
     registraMovimentacao(
         $_SESSION['id_usuario'],
         $_SESSION['id_usuario'],

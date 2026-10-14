@@ -9,7 +9,7 @@ $vendas = $pdo->query("SELECT v.id_venda, v.total_peso, v.total_valor, v.status,
                               u.nome AS nome_usuario
                        FROM vendas v
                        LEFT JOIN fornecedores f ON f.id_fornecedor = v.id_fornecedor
-                       LEFT JOIN tb_usuario u ON u.id_usuario = v.id_usuario
+                       LEFT JOIN usuario u ON u.id_usuario = v.id_usuario
                        -- Venda manual grava data_venda com hora (now()), mas venda
                        -- importada recebe só a data da planilha, logo 00:00: todas as
                        -- importadas de um mesmo dia empatam aqui. Sem o id como

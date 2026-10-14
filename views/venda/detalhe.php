@@ -15,8 +15,8 @@ require_once __DIR__ . '/../../components/cancelamento.php';
 
 $stmt = $pdo->prepare("SELECT v.*, u.nome AS usuario_nome, uc.nome AS cancelou_nome
                        FROM vendas v
-                       LEFT JOIN tb_usuario u ON u.id_usuario = v.id_usuario
-                       LEFT JOIN tb_usuario uc ON uc.id_usuario = v.id_usuario_cancelou
+                       LEFT JOIN usuario u ON u.id_usuario = v.id_usuario
+                       LEFT JOIN usuario uc ON uc.id_usuario = v.id_usuario_cancelou
                        WHERE v.id_venda = ?");
 $stmt->execute([$id_venda]);
 $venda = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -34,7 +34,7 @@ $stmt_itens = $pdo->prepare("
     SELECT vi.*, m.nm_material, m.tipo AS material_tipo,
            COALESCE(m.unidade_medida, 'kg') AS unidade_medida
     FROM vendas_itens vi
-    LEFT JOIN tb_material m ON m.id_material = vi.id_material
+    LEFT JOIN material m ON m.id_material = vi.id_material
     WHERE vi.id_venda = ?
     ORDER BY vi.id_venda_item
 ");

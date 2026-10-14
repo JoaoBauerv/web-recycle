@@ -25,7 +25,7 @@ switch ($_REQUEST['acao'] ?? '') {
             $total_peso  = array_sum(array_column($itens, 'peso'));
             $total_valor = array_sum(array_column($itens, 'valor_total'));
 
-            $stmt_compra = $pdo->prepare("INSERT INTO tb_pesagem (id_cliente, total_valor, total_peso, data_pesagem)
+            $stmt_compra = $pdo->prepare("INSERT INTO pesagem (id_cliente, total_valor, total_peso, data_pesagem)
                                           VALUES (:id_cliente, :total_valor, :total_peso, NOW())
                                           RETURNING id_pesagem");
             $stmt_compra->execute([
@@ -35,7 +35,7 @@ switch ($_REQUEST['acao'] ?? '') {
             ]);
             $id_compra = $stmt_compra->fetchColumn();
 
-            $stmt_item = $pdo->prepare("INSERT INTO tb_pesagem_material (id_pesagem, id_material, preco_un, peso_material, peso_bruto, tara, obs)
+            $stmt_item = $pdo->prepare("INSERT INTO pesagem_material (id_pesagem, id_material, preco_un, peso_material, peso_bruto, tara, obs)
                                         VALUES (:id_pesagem, :id_material, :preco_un, :peso_material, :peso_bruto, :tara, :obs)");
 
             foreach ($itens as $item) {
@@ -59,7 +59,7 @@ switch ($_REQUEST['acao'] ?? '') {
             }
 
             // Compra concluída gera entrada no estoque (espelho da saída gerada pela venda).
-            $stmt_entrada = $pdo->prepare("UPDATE tb_material
+            $stmt_entrada = $pdo->prepare("UPDATE material
                                            SET qt_estoque = COALESCE(qt_estoque, 0) + :peso
                                            WHERE id_material = :id_material
                                            RETURNING nm_material, qt_estoque");

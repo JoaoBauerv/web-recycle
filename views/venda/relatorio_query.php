@@ -32,8 +32,8 @@ $filtro_tipo       = trim($_REQUEST['tipo_material'] ?? '');
 
 // -------- Dados para os selects de filtro --------
 $fornecedores = $pdo->query("SELECT id_fornecedor, nome_razao_social FROM fornecedores WHERE status = 1 ORDER BY nome_razao_social")->fetchAll(PDO::FETCH_ASSOC);
-$materiais = $pdo->query("SELECT id_material, nm_material, tipo FROM tb_material WHERE status = 1 ORDER BY nm_material")->fetchAll(PDO::FETCH_ASSOC);
-$tipos_material = $pdo->query("SELECT DISTINCT tipo FROM tb_material WHERE status = 1 AND tipo IS NOT NULL AND tipo <> '' ORDER BY tipo")->fetchAll(PDO::FETCH_COLUMN);
+$materiais = $pdo->query("SELECT id_material, nm_material, tipo FROM material WHERE status = 1 ORDER BY nm_material")->fetchAll(PDO::FETCH_ASSOC);
+$tipos_material = $pdo->query("SELECT DISTINCT tipo FROM material WHERE status = 1 AND tipo IS NOT NULL AND tipo <> '' ORDER BY tipo")->fetchAll(PDO::FETCH_COLUMN);
 
 // -------- Consulta em nível de item (1 linha por material vendido) --------
 // DATE(v.data_venda) BETWEEN cobre o dia inteiro da data final mesmo quando
@@ -49,7 +49,7 @@ $sql = "SELECT vi.id_venda, vi.id_material, vi.quantidade, vi.preco_un, vi.valor
         FROM vendas_itens vi
         JOIN vendas v ON v.id_venda = vi.id_venda
         JOIN fornecedores f ON f.id_fornecedor = v.id_fornecedor
-        LEFT JOIN tb_material m ON m.id_material = vi.id_material
+        LEFT JOIN material m ON m.id_material = vi.id_material
         WHERE v.status <> 'cancelada'
           AND DATE(v.data_venda) BETWEEN :data_inicio AND :data_fim";
 

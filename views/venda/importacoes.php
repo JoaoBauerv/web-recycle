@@ -10,7 +10,7 @@ exigirPermissao('venda.importar', $url_base);
 $importacoes = $pdo->query("SELECT h.*, u.nome AS usuario_nome, m.nome AS modelo_nome,
                                    v.id_venda
                             FROM importacao_historico h
-                            LEFT JOIN tb_usuario u ON u.id_usuario = h.id_usuario
+                            LEFT JOIN usuario u ON u.id_usuario = h.id_usuario
                             LEFT JOIN importacao_modelo m ON m.id_modelo = h.id_modelo
                             LEFT JOIN vendas v ON v.id_importacao = h.id_importacao
                             ORDER BY h.data_importacao DESC

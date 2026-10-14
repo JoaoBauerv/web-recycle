@@ -10,7 +10,7 @@ require_once __DIR__ . '/../../components/permissoes.php';
 // o endpoint vai deixar executar a ação, senão o usuário clica e leva erro.
 $pode_gerenciar = usuarioPode('material.gerenciar');
 
-$sql = "SELECT * FROM tb_material WHERE status = 1 ORDER BY nm_material ASC";
+$sql = "SELECT * FROM material WHERE status = 1 ORDER BY nm_material ASC";
 $stmt = $pdo->query($sql);
 $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
@@ -120,7 +120,7 @@ $materiais = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <select class="form-select mt-2" name="tipo" id="tipo">
                         <option value="todos">Todos</option>
                         <?php
-                        $sql = "SELECT DISTINCT tipo FROM tb_material WHERE status = 1 ORDER BY tipo ASC";
+                        $sql = "SELECT DISTINCT tipo FROM material WHERE status = 1 ORDER BY tipo ASC";
                         $stmt = $pdo->query($sql);
                         $tipos = $stmt->fetchAll(PDO::FETCH_ASSOC);
                         foreach ($tipos as $t):

@@ -51,7 +51,7 @@ if ($estado) {
 
 $materiais_lista = $pdo->query("SELECT id_material, nm_material, codigo, unidade_medida,
                                        COALESCE(qt_estoque, 0) AS qt_estoque
-                                FROM tb_material WHERE status = 1
+                                FROM material WHERE status = 1
                                 ORDER BY nm_material")->fetchAll(PDO::FETCH_ASSOC);
 
 $badge_situacao = [

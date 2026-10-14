@@ -16,8 +16,8 @@ if (!$id_pesagem) {
 require_once __DIR__ . '/../../components/cancelamento.php';
 
 $stmt = $pdo->prepare("SELECT p.*, uc.nome AS cancelou_nome
-                       FROM tb_pesagem p
-                       LEFT JOIN tb_usuario uc ON uc.id_usuario = p.id_usuario_cancelou
+                       FROM pesagem p
+                       LEFT JOIN usuario uc ON uc.id_usuario = p.id_usuario_cancelou
                        WHERE p.id_pesagem = ?");
 $stmt->execute([$id_pesagem]);
 $pesagem = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -33,8 +33,8 @@ $cliente = $stmt_cliente->fetch(PDO::FETCH_ASSOC);
 
 $stmt_itens = $pdo->prepare("
     SELECT a.*, b.nm_material, b.unidade_medida, b.tipo AS material_tipo
-    FROM tb_pesagem_material a
-    LEFT JOIN tb_material b ON a.id_material = b.id_material
+    FROM pesagem_material a
+    LEFT JOIN material b ON a.id_material = b.id_material
     WHERE a.id_pesagem = ?
     ORDER BY a.id
 ");

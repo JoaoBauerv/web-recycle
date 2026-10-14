@@ -18,7 +18,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 $materiais = $pdo->query("SELECT nm_material, codigo, tipo, unidade_medida, preco_venda,
                                  COALESCE(qt_estoque, 0) AS qt_estoque
-                          FROM tb_material
+                          FROM material
                           WHERE status = 1 AND COALESCE(qt_estoque, 0) > 0
                           ORDER BY nm_material")->fetchAll(PDO::FETCH_ASSOC);
 

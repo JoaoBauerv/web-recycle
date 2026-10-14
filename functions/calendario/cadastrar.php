@@ -10,7 +10,7 @@ csrfExigirJson();
 
 $dados = filter_input_array(INPUT_POST, FILTER_DEFAULT);
 
-$stmt = $pdo->prepare("INSERT INTO tb_evento (title, start, \"end\") VALUES (:title, :start, :end)");
+$stmt = $pdo->prepare("INSERT INTO evento (title, start, \"end\") VALUES (:title, :start, :end)");
 $stmt->bindParam(':title', $dados['cad_title']);
 $stmt->bindParam(':start', $dados['cad_start']);
 $stmt->bindParam(':end', $dados['cad_end']);

@@ -74,7 +74,7 @@ $por_favorecido = $pdo->prepare("SELECT COALESCE(NULLIF(c.favorecido, ''), u.nom
          COALESCE(SUM(pa.valor), 0) AS total, COUNT(*) AS parcelas
     FROM contas_pagar_parcelas pa
     JOIN contas_pagar c ON c.id_conta = pa.id_conta
-    LEFT JOIN tb_usuario u ON u.id_usuario = c.id_usuario_func
+    LEFT JOIN usuario u ON u.id_usuario = c.id_usuario_func
     WHERE c.status = 'ativa' AND pa.status <> 'cancelada'
       AND pa.data_vencimento BETWEEN :inicio AND :fim
     GROUP BY 1 ORDER BY total DESC LIMIT 15");

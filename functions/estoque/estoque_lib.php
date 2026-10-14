@@ -85,7 +85,7 @@ function estoqueMovimentar(
     // FOR UPDATE trava a linha até o commit, pelo mesmo motivo da venda:
     // sem isso dois ajustes simultâneos partem do mesmo saldo.
     $stmt = $pdo->prepare("SELECT nm_material, unidade_medida, COALESCE(qt_estoque, 0) AS qt_estoque
-                           FROM tb_material
+                           FROM material
                            WHERE id_material = :id AND status = 1
                            FOR UPDATE");
     $stmt->execute([':id' => $id_material]);
@@ -110,7 +110,7 @@ function estoqueMovimentar(
         ));
     }
 
-    $stmt_saldo = $pdo->prepare("UPDATE tb_material
+    $stmt_saldo = $pdo->prepare("UPDATE material
                                  SET qt_estoque = COALESCE(qt_estoque, 0) + :delta
                                  WHERE id_material = :id
                                  RETURNING qt_estoque");
@@ -159,7 +159,7 @@ function estoquePosicao(PDO $pdo): array
                    (SELECT COUNT(*)
                       FROM estoque_movimentacoes em
                      WHERE em.id_material = m.id_material) AS total_movimentacoes
-            FROM tb_material m
+            FROM material m
             WHERE m.status = 1
             ORDER BY m.nm_material";
 
@@ -210,7 +210,7 @@ function estoqueAbaixoDoMinimo(PDO $pdo, int $limite = 0): array
 {
     $sql = "SELECT id_material, nm_material, unidade_medida,
                    COALESCE(qt_estoque, 0) AS saldo, estoque_minimo
-            FROM tb_material
+            FROM material
             WHERE status = 1
               AND estoque_minimo IS NOT NULL
               AND COALESCE(qt_estoque, 0) <= estoque_minimo

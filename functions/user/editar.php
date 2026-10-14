@@ -4,7 +4,7 @@ require_once (__DIR__ . '/../../components/permissoes.php');
 require_once(__DIR__ . '/../../banco.php');
 require_once(__DIR__ . '/../funcoes.php');
 
-// Este endpoint grava tb_usuario.permissao. Só exigir login não basta: a rota
+// Este endpoint grava usuario.permissao. Só exigir login não basta: a rota
 // usuarios/editar pede Admin, mas o arquivo recebe POST direto, e sem esta
 // checagem qualquer usuário comum se promovia a Admin mandando permissao=Admin
 // com o próprio id_usuario — o que anularia todo o controle de acesso.
@@ -50,13 +50,13 @@ try {
     $pdo->beginTransaction();
     
     // Buscar foto atual para possível remoção
-    $sqlFotoAtual = "SELECT foto FROM tb_usuario WHERE id_usuario = :id";
+    $sqlFotoAtual = "SELECT foto FROM usuario WHERE id_usuario = :id";
     $stmtFotoAtual = $pdo->prepare($sqlFotoAtual);
     $stmtFotoAtual->execute([':id' => $id]);
     $fotoAtual = $stmtFotoAtual->fetchColumn();
     
     // Atualizar dados pessoais
-    $sqlUsuario = "UPDATE tb_usuario SET 
+    $sqlUsuario = "UPDATE usuario SET 
         nome = :nome, 
         email = :email, 
         data_nascimento = :data_nascimento, 
@@ -78,13 +78,13 @@ try {
     ]);
     
     // Verificar se endereço existe, senão criar
-    $sqlVerificaEndereco = "SELECT COUNT(*) FROM tb_endereco WHERE id_usuario = :id";
+    $sqlVerificaEndereco = "SELECT COUNT(*) FROM endereco WHERE id_usuario = :id";
     $stmtVerificaEndereco = $pdo->prepare($sqlVerificaEndereco);
     $stmtVerificaEndereco->execute([':id' => $id]);
     
     if ($stmtVerificaEndereco->fetchColumn() > 0) {
         // Atualizar endereço existente
-        $sqlEndereco = "UPDATE tb_endereco SET 
+        $sqlEndereco = "UPDATE endereco SET 
             cep = :cep, 
             logradouro = :logradouro, 
             numero = :numero, 
@@ -95,7 +95,7 @@ try {
             WHERE id_usuario = :id";
     } else {
         // Inserir novo endereço
-        $sqlEndereco = "INSERT INTO tb_endereco 
+        $sqlEndereco = "INSERT INTO endereco 
             (id_usuario, cep, logradouro, numero, complemento, cidade, bairro, referencia) 
             VALUES (:id, :cep, :logradouro, :numero, :complemento, :cidade, :bairro, :referencia)";
     }
@@ -113,18 +113,18 @@ try {
     ]);
     
     // Mesma lógica para documentos
-    $sqlVerificaDocumento = "SELECT COUNT(*) FROM tb_documento WHERE id_usuario = :id";
+    $sqlVerificaDocumento = "SELECT COUNT(*) FROM documento WHERE id_usuario = :id";
     $stmtVerificaDocumento = $pdo->prepare($sqlVerificaDocumento);
     $stmtVerificaDocumento->execute([':id' => $id]);
     
     if ($stmtVerificaDocumento->fetchColumn() > 0) {
-        $sqlDocumento = "UPDATE tb_documento SET 
+        $sqlDocumento = "UPDATE documento SET 
             cpf = :cpf, 
             rg = :rg, 
             cnh = :cnh 
             WHERE id_usuario = :id";
     } else {
-        $sqlDocumento = "INSERT INTO tb_documento 
+        $sqlDocumento = "INSERT INTO documento 
             (id_usuario, cpf, rg, cnh) 
             VALUES (:id, :cpf, :rg, :cnh)";
     }
@@ -140,7 +140,7 @@ try {
     // Processar upload de foto se enviada
     $novaFoto = null;
 
-    $selecionaUsuario = "SELECT usuario FROM tb_usuario WHERE id_usuario = :id";
+    $selecionaUsuario = "SELECT usuario FROM usuario WHERE id_usuario = :id";
     $stmt = $pdo->prepare($selecionaUsuario);
     $stmt->execute([':id' => $id]);
 
@@ -154,7 +154,7 @@ try {
             $novaFoto = $resultadoUpload['filename'];
             
             // Atualizar foto no banco
-            $sqlFoto = "UPDATE tb_usuario SET foto = :foto WHERE id_usuario = :id";
+            $sqlFoto = "UPDATE usuario SET foto = :foto WHERE id_usuario = :id";
             $stmtFoto = $pdo->prepare($sqlFoto);
             $stmtFoto->execute([
                 ':foto' => $novaFoto,

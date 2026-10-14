@@ -27,7 +27,7 @@ Depois, copie `.env.example` para `.env` e preencha `DB_HOST`, `DB_PORT`,
 | senha | `admin@123` |
 
 O sistema **exige a troca da senha no primeiro acesso** — o campo
-`tb_usuario.precisa_alterar_senha` vem com `1` e bloqueia a navegação até a
+`usuario.precisa_alterar_senha` vem com `1` e bloqueia a navegação até a
 troca. Troque antes de usar.
 
 ## O que cada arquivo é

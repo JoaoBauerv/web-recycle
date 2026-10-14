@@ -30,7 +30,7 @@ $arquivo = 'margem-' . $filtros['inicio'] . '-a-' . $filtros['fim'];
 
 $rotulo_material = 'Todos';
 if ($filtros['id_material']) {
-    $stmt = $pdo->prepare("SELECT nm_material FROM tb_material WHERE id_material = ?");
+    $stmt = $pdo->prepare("SELECT nm_material FROM material WHERE id_material = ?");
     $stmt->execute([$filtros['id_material']]);
     $rotulo_material = $stmt->fetchColumn() ?: 'Todos';
 }

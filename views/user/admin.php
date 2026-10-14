@@ -35,13 +35,13 @@ if (!in_array($status, ['1', '0'], true)) {
     $status = '1';
 }
 
-$stmt = $pdo->prepare("SELECT * FROM tb_usuario WHERE status = :status ORDER BY nome");
+$stmt = $pdo->prepare("SELECT * FROM usuario WHERE status = :status ORDER BY nome");
 $stmt->execute([':status' => $status]);
 $usuarios = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-$total_ativos   = (int) $pdo->query("SELECT COUNT(*) FROM tb_usuario WHERE status = 1")->fetchColumn();
-$total_inativos = (int) $pdo->query("SELECT COUNT(*) FROM tb_usuario WHERE status = 0")->fetchColumn();
-$total_admins   = (int) $pdo->query("SELECT COUNT(*) FROM tb_usuario WHERE status = 1 AND permissao = 'Admin'")->fetchColumn();
+$total_ativos   = (int) $pdo->query("SELECT COUNT(*) FROM usuario WHERE status = 1")->fetchColumn();
+$total_inativos = (int) $pdo->query("SELECT COUNT(*) FROM usuario WHERE status = 0")->fetchColumn();
+$total_admins   = (int) $pdo->query("SELECT COUNT(*) FROM usuario WHERE status = 1 AND permissao = 'Admin'")->fetchColumn();
 ?>
 
 <div class="container-fluid py-4" style="max-width: 1400px;">

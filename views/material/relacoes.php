@@ -14,7 +14,7 @@ $busca = trim($_GET['busca'] ?? '');
 $material_foco = (int) ($_GET['material'] ?? 0);
 
 $materiais = $pdo->query("SELECT id_material, nm_material, codigo, tipo, unidade_medida
-                          FROM tb_material WHERE status = 1
+                          FROM material WHERE status = 1
                           ORDER BY nm_material")->fetchAll(PDO::FETCH_ASSOC);
 
 $modelos = $pdo->query("SELECT id_modelo, nome FROM importacao_modelo
@@ -25,7 +25,7 @@ $modelos = $pdo->query("SELECT id_modelo, nome FROM importacao_modelo
 $sql = "SELECT r.*, m.nm_material, m.codigo AS material_codigo, m.tipo,
                mo.nome AS modelo_nome
         FROM material_relacao r
-        JOIN tb_material m ON m.id_material = r.id_material
+        JOIN material m ON m.id_material = r.id_material
         LEFT JOIN importacao_modelo mo ON mo.id_modelo = r.id_modelo
         WHERE r.status = 1";
 $params = [];

@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $usar_especial = isset($_POST['preco_especial']);
 
         $stmt = $pdo->prepare("SELECT nm_material, tipo, unidade_medida, preco_especial
-                               FROM tb_material
+                               FROM material
                                WHERE id_material = :id AND status = 1");
         $stmt->execute([':id' => $id_material]);
         $material = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -93,7 +93,7 @@ $clientes = $pdo->query("SELECT id_cliente, nome, cidade, estado, preco_especial
                          ORDER BY nome")->fetchAll(PDO::FETCH_ASSOC);
 
 $materiais = $pdo->query("SELECT id_material, nm_material, tipo, unidade_medida, preco_compra, preco_especial
-                          FROM tb_material
+                          FROM material
                           WHERE status = 1
                           ORDER BY nm_material")->fetchAll(PDO::FETCH_ASSOC);
 

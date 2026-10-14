@@ -10,7 +10,7 @@ if (empty($router_managed)) {
 // mostrá-la. O que ela não faz é entrar nas somas (painel, relatório, margem).
 $compras = $pdo->query("SELECT p.id_pesagem, p.total_peso, p.total_valor, p.data_pesagem, p.status,
                                c.nome AS cliente_nome
-                        FROM tb_pesagem p
+                        FROM pesagem p
                         LEFT JOIN clientes c ON c.id_cliente = p.id_cliente
                         WHERE p.total_valor > 0
                         -- O id desempata a mesma data: sem ele o Postgres devolve a

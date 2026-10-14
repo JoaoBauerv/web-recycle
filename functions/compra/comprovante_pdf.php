@@ -17,7 +17,7 @@ use Dompdf\Options;
  */
 function carregarCompraParaComprovante(PDO $pdo, int $id_pesagem): ?array
 {
-    $stmt = $pdo->prepare("SELECT * FROM tb_pesagem WHERE id_pesagem = ?");
+    $stmt = $pdo->prepare("SELECT * FROM pesagem WHERE id_pesagem = ?");
     $stmt->execute([$id_pesagem]);
     $pesagem = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -31,8 +31,8 @@ function carregarCompraParaComprovante(PDO $pdo, int $id_pesagem): ?array
 
     $stmt_itens = $pdo->prepare("
         SELECT a.*, b.nm_material
-        FROM tb_pesagem_material A
-        LEFT JOIN tb_material B ON a.id_material = b.id_material
+        FROM pesagem_material A
+        LEFT JOIN material B ON a.id_material = b.id_material
         WHERE A.id_pesagem = ?
         ORDER BY A.id_material
     ");

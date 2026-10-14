@@ -17,7 +17,7 @@ if ($email === '' || $senha === '') {
 }
 
 // LOWER nos dois lados: e-mail não diferencia maiúsculas de minúsculas.
-$stmt = $pdo->prepare("SELECT * FROM tb_usuario WHERE LOWER(email) = LOWER(:email) AND status = 1");
+$stmt = $pdo->prepare("SELECT * FROM usuario WHERE LOWER(email) = LOWER(:email) AND status = 1");
 $stmt->bindParam(':email', $email);
 $stmt->execute();
 

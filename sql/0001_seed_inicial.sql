@@ -12,7 +12,7 @@
 --   e-mail : admin@reciclagem.local
 --   senha  : admin@123
 --   O sistema exige a troca da senha no primeiro acesso
---   (tb_usuario.precisa_alterar_senha = 1).
+--   (usuario.precisa_alterar_senha = 1).
 --
 -- Reaplicar e seguro: todos os INSERT usam ON CONFLICT DO NOTHING.
 --
@@ -20,13 +20,13 @@
 SET search_path TO reciclagem;
 
 -- Usuario administrador inicial
-INSERT INTO tb_usuario (nome, email, senha, usuario, foto, status, permissao, precisa_alterar_senha)
-VALUES ('Administrador', 'admin@reciclagem.local', '$2y$10$.CL85Yz0kaeC8112mvE6aeiFbck1A4JbjZ2LA.fw.jjHdSALE/l2O', 'admin', '', 1, 'Admin', 1)
+INSERT INTO usuario (nome, email, senha, usuario, foto, status, permissao, precisa_alterar_senha)
+VALUES ('Administrador', 'admin@reciclagem.local', '$2y$10$4Nkcd86aeSuaCAYQK8T5K.8Sa5UwUwqY0An88R/w2yGhij8FbdX.O', 'admin', '', 1, 'Admin', 1)
 ON CONFLICT DO NOTHING;
 
 -- Catalogo de materiais (33). qt_estoque fica em zero: a
 -- instalacao nova comeca sem saldo, que so entra por compra ou inventario.
-INSERT INTO tb_material (nm_material, tipo, preco_compra, preco_especial, preco_venda, unidade_medida, codigo, estoque_minimo, status) VALUES
+INSERT INTO material (nm_material, tipo, preco_compra, preco_especial, preco_venda, unidade_medida, codigo, estoque_minimo, status) VALUES
   ('Balde Branco', 'Plastico', 0.40, 0.40, 0.43, 'kg', NULL, NULL, 1),
   ('Balde Colorido', 'Plastico', 0.20, 0.20, 0.26, 'kg', NULL, NULL, 1),
   ('Bateria', 'Outro', 3.00, 3.00, 4.01, 'kg', NULL, NULL, 1),

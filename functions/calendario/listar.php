@@ -6,20 +6,21 @@ require_once(__DIR__ . '/../../components/middleware.php');
 
 header('Content-Type: application/json; charset=utf-8');
 
-$stmt = $pdo->prepare("SELECT * FROM tb_evento ORDER BY id");
+// A chave do FullCalendar continua sendo 'id': quem muda de nome é a coluna no
+// banco, não o contrato do JSON que o front-end consome.
+$stmt = $pdo->prepare("SELECT id_evento, title, color, start, \"end\"
+                       FROM evento ORDER BY id_evento");
 $stmt->execute();
 
 $eventos = [];
 
-while ($row_events = $stmt->fetch(PDO::FETCH_ASSOC)) {
-    extract($row_events);
-
+while ($e = $stmt->fetch(PDO::FETCH_ASSOC)) {
     $eventos[] = [
-        'id'    => $id,
-        'title' => $title,
-        'color' => $color,
-        'start' => $start,
-        'end'   => $end,
+        'id'    => $e['id_evento'],
+        'title' => $e['title'],
+        'color' => $e['color'],
+        'start' => $e['start'],
+        'end'   => $e['end'],
     ];
 }
 

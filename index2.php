@@ -81,7 +81,7 @@ $paginas_disponiveis = [
 
     'perfil'                => ['arquivo' => 'user/perfil',         'auth' => true,  'admin' => false],
 
-    // O calendário saiu do escopo entregue. tb_evento e as telas existem, mas
+    // O calendário saiu do escopo entregue. evento e as telas existem, mas
     // criar e listar evento solto não resolve problema nenhum do negócio: o
     // valor está em integrar agenda com coleta, compra, venda e vencimento de
     // conta, e isso é trabalho futuro (ver docs/roadmap-funcionalidades.md).
@@ -89,7 +89,7 @@ $paginas_disponiveis = [
     // $router_managed e redireciona quem chega direto. Já functions/calendario/
     // continua sendo servido pelo Apache como arquivo real (o .htaccess não
     // reescreve o que existe em disco) — os dois endpoints seguem de pé atrás
-    // de sessão e token CSRF, mas gravariam em tb_evento se chamados.
+    // de sessão e token CSRF, mas gravariam em evento se chamados.
 ];
 
 $pagina = $_GET['pagina'] ?? 'inicio';

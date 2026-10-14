@@ -110,7 +110,7 @@ function margemData(string $valor): ?DateTimeImmutable
  * Monta a análise de margem por material.
  *
  * As agregações de compra e de venda vêm de subconsultas SEPARADAS, cada uma já
- * agrupada por material antes do JOIN. Juntar tb_pesagem_material com
+ * agrupada por material antes do JOIN. Juntar pesagem_material com
  * vendas_itens direto produziria o produto cartesiano das duas: um material com
  * 4 compras e 4 vendas viraria 16 linhas, inflando os dois totais em 4x.
  */
@@ -144,14 +144,14 @@ function margemAnalise(PDO $pdo, array $filtros): array
 
                -- Custo médio ponderado de TODAS as compras até o fim do período.
                hist.custo_medio_historico
-        FROM tb_material m
+        FROM material m
 
         LEFT JOIN (
             SELECT pm.id_material,
                    SUM(pm.peso_material)                  AS qtd,
                    SUM(pm.peso_material * pm.preco_un)    AS custo
-            FROM tb_pesagem_material pm
-            JOIN tb_pesagem p ON p.id_pesagem = pm.id_pesagem
+            FROM pesagem_material pm
+            JOIN pesagem p ON p.id_pesagem = pm.id_pesagem
             WHERE p.data_pesagem BETWEEN :inicio AND :fim
               AND p.status <> 'cancelada'
             GROUP BY pm.id_material
@@ -173,8 +173,8 @@ function margemAnalise(PDO $pdo, array $filtros): array
                    CASE WHEN SUM(pm.peso_material) > 0
                         THEN SUM(pm.peso_material * pm.preco_un) / SUM(pm.peso_material)
                    END AS custo_medio_historico
-            FROM tb_pesagem_material pm
-            JOIN tb_pesagem p ON p.id_pesagem = pm.id_pesagem
+            FROM pesagem_material pm
+            JOIN pesagem p ON p.id_pesagem = pm.id_pesagem
             WHERE p.data_pesagem <= :fim
               AND p.status <> 'cancelada'
             GROUP BY pm.id_material
@@ -448,6 +448,6 @@ function margemTotais(array $materiais): array
 /** Tipos de material disponíveis para o filtro. */
 function margemTiposMaterial(PDO $pdo): array
 {
-    return $pdo->query("SELECT DISTINCT tipo FROM tb_material WHERE status = 1 ORDER BY tipo")
+    return $pdo->query("SELECT DISTINCT tipo FROM material WHERE status = 1 ORDER BY tipo")
                ->fetchAll(PDO::FETCH_COLUMN);
 }

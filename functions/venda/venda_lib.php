@@ -3,13 +3,13 @@
  * Criação de venda — caminho único para a venda manual e a importada.
  *
  * Toda venda passa por aqui, então só existe uma lógica de estoque no sistema:
- * a validação com FOR UPDATE, a baixa em tb_material e o registro em
+ * a validação com FOR UPDATE, a baixa em material e o registro em
  * estoque_movimentacoes acontecem sempre do mesmo jeito, venha a venda da tela
  * ou de uma planilha.
  */
 
 /**
- * Recalcula `tb_material.preco_venda` como o preço da ÚLTIMA venda do material.
+ * Recalcula `material.preco_venda` como o preço da ÚLTIMA venda do material.
  *
  * A coluna não é tabela de preço: cada venda é negociada, então ela guarda só o
  * último valor praticado, para a tela sugerir por onde começar. Por isso o valor
@@ -38,7 +38,7 @@ function vendaAtualizarUltimoPreco(PDO $pdo, array $ids_material): void
     // DISTINCT ON pega a primeira linha de cada material na ordenação, que aqui
     // é a venda mais recente (data, depois id, para empate no mesmo instante).
     $pdo->exec("
-        UPDATE tb_material m
+        UPDATE material m
         SET preco_venda = u.preco_un
         FROM (
             SELECT DISTINCT ON (vi.id_material) vi.id_material, vi.preco_un
@@ -54,14 +54,14 @@ function vendaAtualizarUltimoPreco(PDO $pdo, array $ids_material): void
     // Mesmo filtro de cancelada aqui: um material cuja única venda foi cancelada
     // precisa voltar a NULL, senão ficaria com o preço daquela venda para sempre.
     $pdo->exec("
-        UPDATE tb_material
+        UPDATE material
         SET preco_venda = NULL
         WHERE id_material IN ($lista)
           AND NOT EXISTS (
               SELECT 1
               FROM vendas_itens vi
               JOIN vendas v ON v.id_venda = vi.id_venda
-              WHERE vi.id_material = tb_material.id_material
+              WHERE vi.id_material = material.id_material
                 AND v.status <> 'cancelada'
           )
     ");
@@ -109,7 +109,7 @@ function vendaCriar(PDO $pdo, int $id_fornecedor, array $itens, array $opcoes): 
     // FOR UPDATE trava a linha até o commit: sem isso, duas vendas simultâneas
     // conseguiriam vender o mesmo saldo, porque ambas leriam o valor antigo.
     $stmt_saldo = $pdo->prepare("SELECT nm_material, unidade_medida, COALESCE(qt_estoque, 0) AS qt_estoque
-                                 FROM tb_material
+                                 FROM material
                                  WHERE id_material = :id_material AND status = 1
                                  FOR UPDATE");
 
@@ -176,7 +176,7 @@ function vendaCriar(PDO $pdo, int $id_fornecedor, array $itens, array $opcoes): 
     }
 
     // Venda concluída gera saída de estoque (espelho da entrada gerada pela pesagem).
-    $stmt_baixa = $pdo->prepare("UPDATE tb_material
+    $stmt_baixa = $pdo->prepare("UPDATE material
                                  SET qt_estoque = COALESCE(qt_estoque, 0) - :quantidade
                                  WHERE id_material = :id_material
                                  RETURNING nm_material, qt_estoque");

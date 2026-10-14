@@ -18,7 +18,7 @@ if (!$id_material) {
 $stmt = $pdo->prepare("SELECT id_material, nm_material, tipo, unidade_medida, codigo,
                               COALESCE(qt_estoque, 0) AS saldo,
                               preco_compra, preco_venda, estoque_minimo
-                       FROM tb_material
+                       FROM material
                        WHERE id_material = ?");
 $stmt->execute([$id_material]);
 $material = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -39,7 +39,7 @@ $movimentacoes = $pdo->prepare("SELECT em.id_movimentacao, em.data_movimentacao,
                                        em.saldo_apos, em.origem_tipo, em.origem_id, em.observacoes,
                                        u.nome AS usuario_nome
                                 FROM estoque_movimentacoes em
-                                LEFT JOIN tb_usuario u ON u.id_usuario = em.id_usuario
+                                LEFT JOIN usuario u ON u.id_usuario = em.id_usuario
                                 WHERE em.id_material = ?
                                 ORDER BY em.data_movimentacao DESC, em.id_movimentacao DESC");
 $movimentacoes->execute([$id_material]);
