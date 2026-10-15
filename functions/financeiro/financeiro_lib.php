@@ -105,6 +105,25 @@ function financeiroData(string $valor): ?string
     return null;
 }
 
+/**
+ * Fragmento de SELECT que repõe o total de parcelas da conta.
+ *
+ * Substitui a coluna contas_pagar_parcelas.total_parcelas, removida em
+ * 14/10/2026 porque repetia, em cada parcela, o COUNT(*) da própria conta.
+ *
+ * É subconsulta correlacionada, e não COUNT(*) OVER (PARTITION BY id_conta),
+ * porque a tela de parcelas filtra por período: a janela contaria apenas as
+ * parcelas que passaram pelo filtro e o "3/12" viraria "1/1".
+ *
+ * Conta TODAS as parcelas, canceladas inclusive — o número exibido é a posição
+ * no parcelamento contratado, não entre as que restaram.
+ */
+function financeiroTotalParcelasSql(string $alias = 'pa'): string
+{
+    return "(SELECT COUNT(*) FROM contas_pagar_parcelas tp
+             WHERE tp.id_conta = $alias.id_conta) AS total_parcelas";
+}
+
 /** R$ 1.234,56 */
 function financeiroMoeda(?float $valor): string
 {

@@ -369,16 +369,17 @@ switch ($acao) {
                 'motivo'   => $i['motivo'],
             ], $problemas);
 
+            // A quantidade de problemas não é gravada em coluna: é o tamanho da
+            // lista em 'erros', de onde a tela de importações a lê.
             $pdo->prepare("UPDATE importacao_historico
                            SET status = :status, total_registros = :total,
-                               registros_importados = :importados, registros_com_erro = :erros,
+                               registros_importados = :importados,
                                valor_total = :valor, pedido_externo = :pedido, erros = :log
                            WHERE id_importacao = :id")
                 ->execute([
                     ':status'     => empty($problemas) ? 'concluido' : 'concluido_avisos',
                     ':total'      => count($previa['itens']),
                     ':importados' => count($itens_ok),
-                    ':erros'      => count($problemas),
                     ':valor'      => $previa['total_valor'],
                     ':pedido'     => $pedido,
                     ':log'        => $erros_log ? json_encode($erros_log, JSON_UNESCAPED_UNICODE) : null,

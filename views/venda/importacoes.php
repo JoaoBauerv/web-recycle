@@ -94,8 +94,9 @@ $rotulo_status = [
                                 <td><?= htmlspecialchars($imp['usuario_nome'] ?? '—') ?></td>
                                 <td class="text-end">
                                     <?= (int) $imp['registros_importados'] ?> de <?= (int) $imp['total_registros'] ?>
-                                    <?php if ($imp['registros_com_erro'] > 0): ?>
-                                        <small class="text-danger d-block"><?= (int) $imp['registros_com_erro'] ?> com problema</small>
+                                    <?php // Quantos deram problema é o tamanho do log de erros, já decodificado acima. ?>
+                                    <?php if ($erros): ?>
+                                        <small class="text-danger d-block"><?= count($erros) ?> com problema</small>
                                     <?php endif; ?>
                                 </td>
                                 <td class="text-end fw-semibold" data-order="<?= (float) $imp['valor_total'] ?>">

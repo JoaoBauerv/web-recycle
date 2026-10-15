@@ -60,7 +60,8 @@ if ($f_max !== null)     { $where[] = "pa.valor <= :vmax";          $params[':vm
 $sql = "SELECT pa.*, c.descricao, c.favorecido, c.id_conta, c.status AS status_conta,
                c.recorrente, cat.nome AS categoria, cat.tipo AS categoria_tipo,
                cc.nome AS centro, u.nome AS funcionario,
-               up.nome AS pagou_nome, $situacao_sql AS situacao
+               up.nome AS pagou_nome, $situacao_sql AS situacao,
+               " . financeiroTotalParcelasSql('pa') . "
         FROM contas_pagar_parcelas pa
         JOIN contas_pagar c        ON c.id_conta = pa.id_conta
         JOIN despesa_categoria cat ON cat.id_categoria = c.id_categoria

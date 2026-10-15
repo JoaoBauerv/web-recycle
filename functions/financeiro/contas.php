@@ -84,8 +84,7 @@ switch ($acao) {
                                    favorecido = :fav, id_usuario_func = :func,
                                    data_emissao = :em, observacoes = :obs,
                                    recorrente = :rec, recorrencia_periodo = :rp,
-                                   recorrencia_dia = :rd, recorrencia_inicio = :ri, recorrencia_fim = :rf,
-                                   data_alteracao = NOW(), id_usuario_alteracao = :u
+                                   recorrencia_dia = :rd, recorrencia_inicio = :ri, recorrencia_fim = :rf
                                WHERE id_conta = :id AND status = 'ativa'")
                     ->execute([
                         ':d' => $descricao, ':cat' => $id_categoria, ':cc' => $id_centro,
@@ -96,7 +95,7 @@ switch ($acao) {
                         ':rd' => $recorrente ? $rec_dia : null,
                         ':ri' => $recorrente ? $rec_inicio : null,
                         ':rf' => $recorrente ? $rec_fim : null,
-                        ':u' => $_SESSION['id_usuario'], ':id' => $id_conta,
+                        ':id' => $id_conta,
                     ]);
 
                 if (!$tem_pagas) {
@@ -115,11 +114,13 @@ switch ($acao) {
                     : "Despesa #$id_conta atualizada.");
             }
 
+            // Quem criou e quando fica em registro_movimento, pelo contasAuditar()
+            // logo abaixo: a conta não repete essa informação em coluna própria.
             $stmt = $pdo->prepare("INSERT INTO contas_pagar
                     (descricao, id_categoria, id_centro, favorecido, id_usuario_func, valor_total,
                      data_emissao, observacoes, recorrente, recorrencia_periodo, recorrencia_dia,
-                     recorrencia_inicio, recorrencia_fim, id_usuario_cadastro)
-                   VALUES (:d,:cat,:cc,:fav,:func,:v,:em,:obs,:rec,:rp,:rd,:ri,:rf,:u)
+                     recorrencia_inicio, recorrencia_fim)
+                   VALUES (:d,:cat,:cc,:fav,:func,:v,:em,:obs,:rec,:rp,:rd,:ri,:rf)
                    RETURNING id_conta");
             $stmt->execute([
                 ':d' => $descricao, ':cat' => $id_categoria, ':cc' => $id_centro,
@@ -130,7 +131,6 @@ switch ($acao) {
                 ':rd' => $recorrente ? $rec_dia : null,
                 ':ri' => $recorrente ? ($rec_inicio ?: $emissao) : null,
                 ':rf' => $recorrente ? $rec_fim : null,
-                ':u' => $_SESSION['id_usuario'],
             ]);
             $id_conta = (int) $stmt->fetchColumn();
 
@@ -164,7 +164,8 @@ switch ($acao) {
         if (!isset(FINANCEIRO_FORMAS[$forma])) { contasVoltar($tela, 'Erro', 'Selecione a forma de pagamento.'); }
         if ($data_pg > date('Y-m-d')) { contasVoltar($tela, 'Erro', 'A data do pagamento não pode ser futura.'); }
 
-        $stmt = $pdo->prepare("SELECT pa.*, c.descricao FROM contas_pagar_parcelas pa
+        $stmt = $pdo->prepare("SELECT pa.*, c.descricao, " . financeiroTotalParcelasSql('pa') . "
+                               FROM contas_pagar_parcelas pa
                                JOIN contas_pagar c ON c.id_conta = pa.id_conta
                                WHERE pa.id_parcela = ?");
         $stmt->execute([$id_parcela]);
@@ -177,7 +178,6 @@ switch ($acao) {
         $pdo->prepare("UPDATE contas_pagar_parcelas
                        SET status = 'paga', data_pagamento = :dp, valor_pago = :vp,
                            forma_pagamento = :fp, id_usuario_pagamento = :u,
-                           data_registro_pagamento = NOW(),
                            observacao = COALESCE(NULLIF(:obs, ''), observacao)
                        WHERE id_parcela = :id")
             ->execute([':dp' => $data_pg, ':vp' => $valor_pago, ':fp' => $forma,
@@ -202,7 +202,8 @@ switch ($acao) {
         $id_parcela = (int) ($_POST['id_parcela'] ?? 0);
         if (!$id_parcela) { contasVoltar($tela, 'Erro', 'Parcela não informada.'); }
 
-        $stmt = $pdo->prepare("SELECT pa.*, c.descricao FROM contas_pagar_parcelas pa
+        $stmt = $pdo->prepare("SELECT pa.*, c.descricao, " . financeiroTotalParcelasSql('pa') . "
+                               FROM contas_pagar_parcelas pa
                                JOIN contas_pagar c ON c.id_conta = pa.id_conta
                                WHERE pa.id_parcela = ? AND pa.status = 'paga'");
         $stmt->execute([$id_parcela]);
@@ -212,8 +213,7 @@ switch ($acao) {
 
         $pdo->prepare("UPDATE contas_pagar_parcelas
                        SET status = 'pendente', data_pagamento = NULL, valor_pago = NULL,
-                           forma_pagamento = NULL, id_usuario_pagamento = NULL,
-                           data_registro_pagamento = NULL
+                           forma_pagamento = NULL, id_usuario_pagamento = NULL
                        WHERE id_parcela = ?")->execute([$id_parcela]);
 
         contasAuditar($pdo, sprintf('Pagamento ESTORNADO da parcela %d/%d de "%s" (era %s de %s)',
@@ -247,10 +247,9 @@ switch ($acao) {
                            WHERE id_conta = ? AND status = 'pendente'")->execute([$id_conta]);
 
             $pdo->prepare("UPDATE contas_pagar
-                           SET status = 'cancelada', observacoes = TRIM(COALESCE(observacoes, '') || ' [CANCELADA: ' || :m || ']'),
-                               data_alteracao = NOW(), id_usuario_alteracao = :u
+                           SET status = 'cancelada', observacoes = TRIM(COALESCE(observacoes, '') || ' [CANCELADA: ' || :m || ']')
                            WHERE id_conta = :id")
-                ->execute([':m' => $motivo, ':u' => $_SESSION['id_usuario'], ':id' => $id_conta]);
+                ->execute([':m' => $motivo, ':id' => $id_conta]);
 
             $pdo->commit();
         } catch (Throwable $e) {
@@ -326,15 +325,18 @@ function contasGerarParcelas(PDO $pdo, int $id_conta, float $total, int $quantid
     $valores = financeiroDividirParcelas($total, $quantidade);
     $datas = financeiroVencimentos($primeiro_vencimento, $quantidade, $periodo);
 
+    // O total de parcelas não é gravado: é COUNT(*) por id_conta. Ver
+    // contasTotalParcelas() e o JOIN da tela de parcelas.
     $stmt = $pdo->prepare("INSERT INTO contas_pagar_parcelas
-            (id_conta, numero_parcela, total_parcelas, valor, data_vencimento, forma_pagamento)
-         VALUES (:c, :n, :t, :v, :d, :f)");
+            (id_conta, numero_parcela, valor, data_vencimento, forma_pagamento)
+         VALUES (:c, :n, :v, :d, :f)");
 
     for ($i = 0; $i < $quantidade; $i++) {
         $stmt->execute([
-            ':c' => $id_conta, ':n' => $i + 1, ':t' => $quantidade,
+            ':c' => $id_conta, ':n' => $i + 1,
             ':v' => $valores[$i], ':d' => $datas[$i],
             ':f' => $forma !== '' ? $forma : null,
         ]);
     }
 }
+

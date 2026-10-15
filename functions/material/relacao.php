@@ -72,8 +72,7 @@ switch ($acao) {
                 $stmt = $pdo->prepare("UPDATE material_relacao
                                        SET id_material = :id_material, nome_externo = :nome,
                                            nome_normalizado = :nome_norm, codigo_externo = :codigo,
-                                           codigo_normalizado = :codigo_norm, id_modelo = :id_modelo,
-                                           data_alteracao = NOW()
+                                           codigo_normalizado = :codigo_norm, id_modelo = :id_modelo
                                        WHERE id_relacao = :id_relacao");
                 $stmt->execute([
                     ':id_material' => $id_material,
@@ -112,7 +111,8 @@ switch ($acao) {
             relacaoVoltar($tela, 'Erro', 'Relacionamento não informado.');
         }
 
-        $pdo->prepare("UPDATE material_relacao SET status = 0, data_alteracao = NOW() WHERE id_relacao = ?")
+        // Quem inativou e quando fica no registraMovimentacao() logo abaixo.
+        $pdo->prepare("UPDATE material_relacao SET status = 0 WHERE id_relacao = ?")
             ->execute([$id_relacao]);
 
         registraMovimentacao(
