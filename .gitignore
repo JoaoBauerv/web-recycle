@@ -2,7 +2,15 @@
 /vendor
 .claude
 /balanca-agent
-/images
+# A pasta de imagens mistura asset da interface com arquivo enviado por usuário.
+# Os assets (logo, avatar padrão, prints do README) são versionados; as fotos de
+# perfil que os usuários sobem, não.
+/images/*
+!/images/logo.png
+!/images/readme/
+!/images/user/
+/images/user/*
+!/images/user/padrao.png
 /docs
 
 # O schema é versionado: a baseline, as migrations datadas e o seed de
