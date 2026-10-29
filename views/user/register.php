@@ -21,7 +21,6 @@ $nome = '';
 $sobrenome = '';
 $email = '';
 $senha = '';
-//$senha2 = '123456';
 $data = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
