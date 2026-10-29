@@ -234,9 +234,11 @@ O sistema **exige a troca da senha neste primeiro acesso**. Veja a seção segui
 
 ## Como usar o sistema
 
-> **Todos os dados que aparecem nas telas desta seção são fictícios**, gerados
-> como massa de demonstração: empresas, documentos, telefones, valores e
-> movimentações. Nenhum cliente, fornecedor ou número real está representado.
+> **Os dados que aparecem nas telas desta seção são de demonstração** — as
+> empresas, os documentos, os telefones, os valores e as movimentações foram
+> gerados para teste, e nenhum cliente ou fornecedor real está representado.
+> A exceção é o nome do autor, que aparece como usuário logado e também como
+> cliente e fornecedor de teste. E-mails e telefones estão cobertos nas capturas.
 
 ### 1. Login
 
