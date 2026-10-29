@@ -52,8 +52,10 @@ gerenciadas pelo Composer: PHPMailer (envio de comprovante), Dompdf (geração d
 PDF), PhpSpreadsheet (importação e exportação de planilhas) e phpdotenv
 (configuração).
 
-> A integração com balança física será um projeto separado, fora deste
-> repositório. Por enquanto, o peso é digitado manualmente na tela de compra.
+> O agente que conversa com a balança é um programa à parte, que vive em outro
+> repositório e **não faz parte desta instalação**. O sistema funciona sem ele:
+> o peso é digitado à mão. Quando o agente está no ar, as telas de compra e de
+> venda passam a exibir a leitura automática.
 
 ---
 
@@ -310,6 +312,13 @@ A tela é montada em três blocos, na ordem em que o atendimento acontece:
    líquido e o subtotal são calculados. Cada material pesado vira um item.
 3. **Resumo da compra** — acumula os itens e fecha a operação.
 
+**A faixa com a leitura da balança** — na captura acima, "Balança conectada —
+peso estável", com o valor e o botão *Capturar Peso* — só aparece quando o
+agente da balança está rodando. Com ele no ar, o operador confere o número no
+visor e traz o peso para o formulário com um clique. **Sem o agente, a faixa não
+é exibida** e o campo de peso é preenchido manualmente; o resto da tela funciona
+igual.
+
 Ao finalizar, o sistema grava a compra, **dá entrada no estoque** de cada material
 e registra a movimentação. O comprovante pode ser impresso em PDF ou enviado por
 e-mail ao cliente.
@@ -332,6 +341,9 @@ Simétrica à compra, com duas diferenças importantes:
 - **O preço é negociado por venda**, não vem do cadastro. O preço do material é
   preço de compra; a venda à indústria é negociada caso a caso, e é dessa
   diferença que sai a margem.
+
+A leitura da balança funciona aqui como na compra: a faixa aparece quando o
+agente está rodando e some quando não está, caso em que a quantidade é digitada.
 
 ![Lista de vendas](images/readme/10-vendas-lista.png)
 
