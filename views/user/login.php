@@ -108,7 +108,8 @@ if(empty($_SESSION['logado'])){
     <div class="card shadow-lg p-4" style="width: 100%; max-width: 400px;">
 
       <div class="text-center mb-4">
-        <img src="../../images/logo.jpg" alt="Logo Web Recycle" style="max-height: 80px;" class="rounded-circle me-2">
+        <img src="<?=$url_base?>/images/logo.png" alt="<?= htmlspecialchars($_ENV['APP_NAME'] ?? 'Logo') ?>"
+             style="max-height: 64px;" class="mb-1">
         <h3 class="mt-2">Login</h3>
       </div>
 
