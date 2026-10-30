@@ -27,6 +27,12 @@
 -- documento.cnh tiverem conteúdo, já que esses dois campos não têm destino.
 --
 
+-- CODIFICAÇÃO: o arquivo está em UTF-8 e declara isso abaixo. Sem a declaração,
+-- o psql assume a codificação do cliente — no Windows em português, WIN1252 — e
+-- o COMMENT ON do passo 1 entra no banco como "EndereÃ§o"; as mensagens de
+-- RAISE EXCEPTION dos passos 5 e 6 saem igualmente tortas.
+
+SET client_encoding TO 'UTF8';
 SET search_path TO reciclagem;
 
 BEGIN;

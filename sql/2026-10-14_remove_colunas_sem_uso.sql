@@ -22,7 +22,14 @@
 -- SEGURANÇA: cada coluna do caso (A) tem uma conferência que recalcula o valor
 -- a partir da origem e aborta a transação inteira se encontrar divergência.
 --
+-- CODIFICAÇÃO: o arquivo está em UTF-8 e declara isso abaixo. Sem a declaração,
+-- o psql assume a codificação do cliente — no Windows em português, WIN1252 — e
+-- os comentários acentuados deste cabeçalho passam a carregar bytes que não
+-- existem naquela tabela. Hoje escapa porque o psql não envia comentário solto
+-- ao servidor, mas é sorte, não garantia.
+--
 
+SET client_encoding TO 'UTF8';
 SET search_path TO reciclagem;
 
 BEGIN;
