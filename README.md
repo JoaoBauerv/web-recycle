@@ -67,6 +67,26 @@ PDF), PhpSpreadsheet (importação e exportação de planilhas) e phpdotenv
 | Apache | 2.4 | com `mod_rewrite` habilitado |
 | PostgreSQL | 14 ou superior | |
 | Composer | 2.x | <https://getcomposer.org/download/> |
+| Conexão com a internet | — | nas máquinas que **usam** o sistema, não só na instalação |
+
+### Sobre a internet
+
+O sistema **precisa de conexão para funcionar**. As bibliotecas de interface —
+Bootstrap, jQuery, DataTables, Select2, Bootstrap Icons, Font Awesome, FilePond,
+Chart.js, jQuery Mask e as fontes Lexend e Source Sans 3 — são carregadas de CDN
+a cada acesso, e não ficam no repositório.
+
+Sem internet a tela de login não chega a desenhar: sem jQuery e sem Bootstrap,
+nenhum script do sistema roda e a página fica sem estilo. Não é degradação
+parcial — é o sistema não abrir.
+
+O preenchimento automático de endereço pelo CEP também é um serviço externo
+(ViaCEP). Esse falha sozinho: o formulário continua utilizável e o endereço se
+digita à mão.
+
+O que **não** depende de internet: o banco PostgreSQL, a geração de PDF e de
+planilha, o envio de comprovante por e-mail (precisa do servidor SMTP, não da
+web) e o agente da balança, que conversa por `127.0.0.1`.
 
 ### Extensões do PHP
 
