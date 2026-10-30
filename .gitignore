@@ -13,15 +13,19 @@
 !/images/user/padrao.png
 /docs
 
-# O schema é versionado: a baseline, as migrations datadas e o seed de
-# instalação são o que permite recriar o banco em outra máquina. Ficam de fora
-# os dumps e as massas de demonstração, que são volumosas e descartáveis.
+# O schema é versionado: a baseline, as três migrations de 14/10, o seed único
+# e as migrations antigas em _arquivo/ são o que permite recriar o banco em
+# outra máquina. Ficam de fora os dumps e as massas de demonstração.
+#
+# Em 30/10/2026 esses arquivos saíram do repositório (foram para
+# C:\backups\web-recycle\sql\), então nenhuma regra abaixo casa com algo hoje.
+# Continuam aqui como padrão, e não como caminho exato, porque o risco é
+# futuro: um dump colocado em sql/backup/ ou um seed de demonstração copiado de
+# volta para rodar não podem entrar no Git por descuido — os dumps carregam
+# dado pessoal real.
 /sql/backup/
-/sql/seed_dados_demo.php
-/sql/seed_operacao.php
-/sql/seed_operacao.json
-/sql/seed_teste.php
-/sql/seed_teste.json
+/sql/seed_*.php
+/sql/seed_*.json
 
 # Comprovantes enviados pelos parceiros são documentos de terceiros: o .htaccess
 # que bloqueia a pasta é versionado, os arquivos nunca.
