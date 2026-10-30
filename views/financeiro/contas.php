@@ -603,7 +603,6 @@ $(function () {
     if ($('#contasTable').length) {
         $('#contasTable').DataTable({
             "autoWidth": false,
-            "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json" },
             "pageLength": 25,
             "order": [[0, "asc"]],
             "columnDefs": [{ "orderable": false, "targets": [9] }]

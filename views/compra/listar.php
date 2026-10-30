@@ -148,7 +148,6 @@ $(function () {
 
     $('#comprasTable').DataTable({
         "autoWidth": false, // sem isto o DataTables grava um width inline e a tabela encolhe
-        "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json" },
         "pageLength": 10,
         "lengthMenu": [10, 25, 50, 100],
         // A ordem do SQL não sobrevive ao DataTables: ele reordena pela coluna 2

@@ -296,7 +296,6 @@ $(function () {
 
     $('#tabelaRelatorioVenda').DataTable({
         "autoWidth": false,
-        "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json" },
         "pageLength": 25,
         "lengthMenu": [10, 25, 50, 100],
         "order": [[1, "desc"]],

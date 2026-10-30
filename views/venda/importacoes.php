@@ -177,7 +177,6 @@ $(function () {
 
     $('#importacoesTable').DataTable({
         "autoWidth": false,
-        "language": { "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json" },
         "pageLength": 15,
         "order": [[2, "desc"]],
         "columnDefs": [{ "orderable": false, "targets": [6, 7] }]

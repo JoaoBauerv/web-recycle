@@ -294,9 +294,6 @@ $(function () {
 
     $('#tabelaRelatorio').DataTable({
         "autoWidth": false, // sem isto o DataTables grava um width inline e a tabela encolhe
-        "language": {
-            "url": "https://cdn.datatables.net/plug-ins/1.13.7/i18n/pt-BR.json"
-        },
         "pageLength": 5,
         "lengthMenu": [5, 10, 25, 50, 100],
         "order": [[1, "desc"]],
