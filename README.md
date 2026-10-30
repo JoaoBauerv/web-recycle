@@ -145,7 +145,7 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_padronizar_nomenclatura.
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_endereco_unico_e_documento.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_remove_colunas_sem_uso.sql
 
-# 3. dados de referência e usuário administrador
+# 3. seed único: dados de referência e usuário administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 ```
 
@@ -496,8 +496,9 @@ A análise de margem **não tem tabela própria**: ela é calculada a partir de
 ### Dados que o seed traz
 
 Apenas referência: 33 materiais, 16 categorias de despesa, 7 centros de custo e o
-usuário administrador. **Nada transacional** — compras, vendas, estoque, contas a
-pagar e importações começam vazios, e o saldo de todo material começa em zero.
+usuário administrador, num **único arquivo** de seed. **Nada transacional** —
+compras, vendas, estoque, contas a pagar e importações começam vazios, e o saldo
+de todo material começa em `NULL`, que o sistema lê como zero.
 
 ---
 
@@ -530,7 +531,9 @@ web-recycle/
 │   └── user/  material/  cliente/  fornecedor/
 │       compra/  venda/  estoque/  financeiro/  calendario/
 │
-├── sql/               ← baseline, migrations datadas e seed  (ver sql/README.md)
+├── sql/               ← baseline, as 3 migrations de 14/10 e o seed único
+│   └── _arquivo/      ← migrations antigas: registro histórico, já na baseline
+│                        e fora da instalação  (ver sql/README.md)
 ├── css/  js/          ← folhas de estilo e scripts próprios
 ├── images/            ← logo, avatares e os prints deste README
 ├── uploads/           ← comprovantes enviados pelos parceiros
@@ -715,7 +718,8 @@ Falta a extensão `zip`, exigida pelo PhpSpreadsheet para ler e escrever `.xlsx`
 pg_dump --no-owner --no-privileges -f backup-20261029.sql reciclagem
 ```
 
-A pasta `sql/backup/` não é versionada.
+A pasta `sql/backup/` não é versionada: um dump carrega os dados reais do banco,
+e o `.gitignore` mantém o caminho fechado mesmo estando vazio hoje.
 
 ---
 
