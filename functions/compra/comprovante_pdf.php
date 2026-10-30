@@ -191,7 +191,7 @@ function gerarComprovantePdf(PDO $pdo, int $id_pesagem): ?string
     $html = ob_get_clean();
 
     $options = new Options();
-    $options->set('isRemoteEnabled', true);
+    $options->set('isRemoteEnabled', false);
     $dompdf = new Dompdf($options);
     $dompdf->loadHtml($html);
     $dompdf->setPaper('A4', 'portrait');

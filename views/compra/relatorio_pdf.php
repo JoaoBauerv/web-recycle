@@ -167,7 +167,7 @@ ob_start();
 $html = ob_get_clean();
 
 $options = new Options();
-$options->set('isRemoteEnabled', true);
+$options->set('isRemoteEnabled', false);
 $dompdf = new Dompdf($options);
 
 $dompdf->loadHtml($html);

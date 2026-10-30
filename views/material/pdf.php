@@ -11,7 +11,7 @@ csrfExigir($url_base . '/materiais');
 // Configurações
 $options = new Options();
 $options->set('isHtml5ParserEnabled', true);
-$options->set('isRemoteEnabled', true); 
+$options->set('isRemoteEnabled', false); 
 $dompdf = new Dompdf($options);
 
 // O tipo escolhido no formulário entra como parâmetro, nunca concatenado no SQL:
