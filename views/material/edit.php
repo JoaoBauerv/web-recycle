@@ -4,6 +4,7 @@ if (empty($router_managed)) {
     exit;
 }
 require_once __DIR__ . '/../../components/csrf.php';
+require_once __DIR__ . '/../../functions/material/material_lib.php';
 
 $sql = "SELECT * FROM material WHERE id_material = :id";
 $stmt = $pdo->prepare($sql);
@@ -31,10 +32,12 @@ $material = $stmt->fetch(PDO::FETCH_ASSOC);
             <div class="mb-3">
                 <label class="form-label">Categoria material</label>
                 <select name="categoria" class="form-select" required>
-                    <option value="Aluminio" <?= ($material['tipo'] == 'Aluminio')? 'Selectd' : '' ?>>Alumínio</option>
-                    <option value="Cobre" <?= ($material['tipo'] == 'Outro')? 'Cobre' : '' ?>>Cobre</option>
-                    <option value="Plastico" <?= ($material['tipo'] == 'Outro')? 'Plastico' : '' ?>>Plástico</option>
-                    <option value="Outro" <?= ($material['tipo'] == 'Outro')? 'Selectd' : '' ?>>Outro</option>
+                    <?php foreach (materialTiposPara($material['tipo']) as $valor => $rotulo): ?>
+                        <option value="<?= htmlspecialchars($valor) ?>"
+                                <?= $material['tipo'] === $valor ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($rotulo) ?>
+                        </option>
+                    <?php endforeach; ?>
                 </select>
             </div>
 

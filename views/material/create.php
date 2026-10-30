@@ -4,6 +4,7 @@ if (empty($router_managed)) {
     exit;
 }
 require_once __DIR__ . '/../../components/csrf.php';
+require_once __DIR__ . '/../../functions/material/material_lib.php';
 ?>
 
 <div class="container mt-5">
@@ -24,11 +25,9 @@ require_once __DIR__ . '/../../components/csrf.php';
                 <label class="form-label">Categoria material</label>
                 <select name="categoria" class="form-select" required>
                     <option value="">Selecione</option>
-                    <option value="Aluminio">Alumínio</option>
-                    <option value="Cobre">Cobre</option>
-                    <option value="Plastico">Plástico</option>
-                    <option value="Papel">Papel</option>
-                    <option value="Outro">Outro</option>
+                    <?php foreach (MATERIAL_TIPOS as $valor => $rotulo): ?>
+                        <option value="<?= htmlspecialchars($valor) ?>"><?= htmlspecialchars($rotulo) ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
 
