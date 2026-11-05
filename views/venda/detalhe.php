@@ -308,6 +308,7 @@ $venda_cancelada = ($venda['status'] ?? '') === 'cancelada';
                                    class="btn btn-sm btn-outline-secondary">
                                     <i class="bi bi-download me-1" aria-hidden="true"></i> Baixar
                                 </a>
+                                <?php if (usuarioPode('venda.comprovante_alterar')): ?>
                                 <button type="button" class="btn btn-sm btn-outline-secondary"
                                         data-bs-toggle="collapse" data-bs-target="#formComprovante">
                                     <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> Substituir
@@ -320,6 +321,7 @@ $venda_cancelada = ($venda['status'] ?? '') === 'cancelada';
                                         <i class="bi bi-trash me-1" aria-hidden="true"></i> Remover
                                     </button>
                                 </form>
+                                <?php endif; ?>
                             </div>
                         </div>
 

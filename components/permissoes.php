@@ -22,6 +22,12 @@ const PERMISSOES_POR_ACAO = [
     'compra.cancelar'      => ['Admin'],
     'venda.cancelar'       => ['Admin'],
 
+    // Anexar o comprovante recebido do comprador é rotina do operador. Trocar
+    // ou remover apaga o arquivo anterior, que é a prova da venda: fica com o
+    // Admin, como o cancelamento.
+    'venda.comprovante_anexar'  => ['Admin', 'Usuario'],
+    'venda.comprovante_alterar' => ['Admin'],
+
     // O preço de compra do material é a base de toda pesagem e do cálculo de
     // margem, então cadastrar, editar e inativar material fica com o Admin.
     // Consultar a lista continua liberado para todo mundo.

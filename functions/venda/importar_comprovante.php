@@ -6,7 +6,10 @@
  * guarda o arquivo recebido para conferência posterior.
  */
 require_once(__DIR__ . '/../../components/middleware.php');
+require_once(__DIR__ . '/../../components/permissoes.php');
 require_once __DIR__ . '/../funcoes.php';
+
+exigirPermissao('venda.comprovante_anexar', $url_base);
 
 const COMPROVANTE_TAMANHO_MAX = 10 * 1024 * 1024; // 10 MB
 
@@ -39,6 +42,12 @@ $venda = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$venda) {
     importacaoErro($destino, 'Venda não encontrada.');
+}
+
+// Remover e substituir apagam o arquivo que já estava guardado.
+if ((($_POST['acao'] ?? '') === 'remover' || !empty($venda['comprovante_arquivo']))
+    && !usuarioPode('venda.comprovante_alterar')) {
+    importacaoErro($destino, 'Só o administrador pode substituir ou remover um comprovante já importado.');
 }
 
 // ---------------------------------------------------------------- remoção
