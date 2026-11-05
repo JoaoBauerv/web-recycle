@@ -11,9 +11,7 @@ require_once __DIR__ . '/../../functions/material/material_lib.php';
     <div class="card bg-secondary text-light shadow-lg p-4 rounded-4">
         <h2 class="text-center mb-4">Cadastro de Material</h2>
 
-        <!-- <?php if ($mensagem): ?>
-            <div class="alert alert-info"><?= $mensagem ?></div>
-        <?php endif; ?> -->
+        <?php require_once __DIR__ . '/../../components/alert.php'; ?>
 
         <form method="POST" action="<?=$url_base?>/functions/material/registrar.php">
             <div class="mb-3">

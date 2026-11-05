@@ -12,21 +12,22 @@ $stmt->bindValue(':id', (int) $_REQUEST['id'], PDO::PARAM_INT);
 $stmt->execute();
 $material = $stmt->fetch(PDO::FETCH_ASSOC);
 
-// var_dump($material);
+if (!$material) {
+    header('Location: ' . $url_base . '/materiais?msgErro=' . urlencode('Material não encontrado.'));
+    exit;
+}
 ?>
 
 <div class="container mt-5">
     <div class="card bg-secondary text-light shadow-lg p-4 rounded-4">
         <h2 class="text-center mb-4">Editar Material</h2>
 
-        <!-- <?php if ($mensagem): ?>
-            <div class="alert alert-info"><?= $mensagem ?></div>
-        <?php endif; ?> -->
+        <?php require_once __DIR__ . '/../../components/alert.php'; ?>
 
         <form method="POST" action="<?=$url_base?>/functions/material/registrar.php">
             <div class="mb-3">
                 <label class="form-label">Nome do material</label>
-                <input type="text" name="nome" class="form-control" placeholder="Ex: Alumínio" value="<?=$material['nm_material']?>" required>
+                <input type="text" name="nome" class="form-control" placeholder="Ex: Alumínio" maxlength="40" value="<?= htmlspecialchars($material['nm_material']) ?>" required>
             </div>
 
             <div class="mb-3">
@@ -43,7 +44,7 @@ $material = $stmt->fetch(PDO::FETCH_ASSOC);
 
             <input type="hidden" value="editar" name="acao">
             <?= csrfCampo() ?>
-            <input type="hidden" value="<?=$_REQUEST['id']?>" name ="id">
+            <input type="hidden" value="<?= (int) $material['id_material'] ?>" name="id">
 
             <div class="mb-3">
                 <label class="form-label">Preço Normal</label>
