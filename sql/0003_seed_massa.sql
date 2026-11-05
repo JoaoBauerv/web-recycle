@@ -6,7 +6,7 @@
 --
 -- OPCIONAL e ALTERNATIVA a 0002_seed_demo.sql: rode uma OU a outra, nunca as
 -- duas. A 0002 e pequena e serve para apresentar o sistema; esta e para
--- carregar o banco. Vem depois das migrations e de 0001_seed_inicial.sql:
+-- carregar o banco. Vem depois de 0000_baseline_schema.sql e 0001_seed_inicial.sql:
 --
 --   psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0003_seed_massa.sql
 --

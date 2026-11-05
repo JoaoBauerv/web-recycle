@@ -151,36 +151,29 @@ versões testadas; `update` as ignora e pode trazer versões diferentes.
 
 ### 3. Criar o banco de dados
 
-O passo a passo completo — criação do banco, ordem das migrations e dados de
-referência — está em **[`sql/README.md`](sql/README.md)**. Em resumo:
+O passo a passo completo — criação do banco, dados de referência e como
+atualizar um banco antigo — está em **[`sql/README.md`](sql/README.md)**. Em
+resumo:
 
 ```bash
 createdb reciclagem
 
-# 1. estrutura (ponto zero)
+# 1. estrutura completa e final
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0000_baseline_schema.sql
 
-# 2. migrations posteriores à baseline, em ordem cronológica
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_padronizar_nomenclatura.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_endereco_unico_e_documento.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_remove_colunas_sem_uso.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_tipo.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_descricao.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-05_remove_recorrencia_despesa.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-05_conta_cancelada_com_pagamento.sql
-
-# 3. seed único: dados de referência e usuário administrador
+# 2. seed único: dados de referência e usuário administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 
-# 4. (opcional, escolha UMA) dados fictícios -- nunca em produção
+# 3. (opcional, escolha UMA) dados fictícios -- nunca em produção
 #    demonstração pequena (75 dias):
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
 #    ou dois anos de operação, para testar relatórios com volume:
 # psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0003_seed_massa.sql
 ```
 
-A ordem importa: o seed usa os nomes já padronizados, então é o **último** passo.
-Ao final você terá 19 tabelas no schema `reciclagem`.
+Ao final você terá 19 tabelas no schema `reciclagem`. As migrations que
+construíram o schema estão em `sql/_arquivo/`, só como histórico e para
+atualizar bancos instalados antes de 05/11/2026.
 
 ### 4. Configurar o `.env`
 
@@ -561,9 +554,9 @@ web-recycle/
 │   └── user/  material/  cliente/  fornecedor/
 │       compra/  venda/  estoque/  financeiro/  calendario/
 │
-├── sql/               ← baseline, as 3 migrations de 14/10 e o seed único
-│   └── _arquivo/      ← migrations antigas: registro histórico, já na baseline
-│                        e fora da instalação  (ver sql/README.md)
+├── sql/               ← schema final (baseline), seed único e seeds opcionais
+│   └── _arquivo/      ← migrations já incorporadas na baseline: histórico e
+│                        atualização de bancos antigos  (ver sql/README.md)
 ├── css/  js/          ← folhas de estilo e scripts próprios
 ├── images/            ← logo, avatares e os prints deste README
 ├── uploads/           ← comprovantes enviados pelos parceiros

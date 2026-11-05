@@ -14,9 +14,10 @@
 !/images/user/.htaccess
 /docs
 
-# O schema é versionado: a baseline, as três migrations de 14/10, o seed único
-# e as migrations antigas em _arquivo/ são o que permite recriar o banco em
-# outra máquina. Ficam de fora os dumps e as massas de demonstração.
+# O schema é versionado: a baseline (schema final), os seeds e as migrations
+# históricas em _arquivo/ são o que permite recriar ou atualizar o banco em
+# outra máquina. Ficam de fora os dumps e as massas antigas geradas em PHP
+# (as seeds 0002 e 0003, em SQL, são versionadas).
 #
 # Em 30/10/2026 esses arquivos saíram do repositório (foram para
 # C:\backups\web-recycle\sql\), então nenhuma regra abaixo casa com algo hoje.

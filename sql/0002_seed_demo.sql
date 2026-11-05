@@ -4,9 +4,9 @@
 -- Massa de DEMONSTRACAO: dados ficticios em todas as tabelas, para apresentar o
 -- sistema, testar telas e relatorios sem precisar lancar tudo a mao.
 --
--- OPCIONAL. Uma instalacao de producao NAO roda este arquivo. Ele vem depois das
--- migrations (inclusive 2026-11-04_registro_movimento_tipo.sql) e de
--- 0001_seed_inicial.sql, e pressupoe o catalogo e o administrador que ele cria.
+-- OPCIONAL. Uma instalacao de producao NAO roda este arquivo. Ele vem depois de
+-- 0000_baseline_schema.sql e 0001_seed_inicial.sql, e pressupoe o catalogo e o
+-- administrador que o seed cria.
 --
 -- O que entra (contagens aproximadas):
 --
@@ -223,8 +223,8 @@ BEGIN
            (pg_temp.mat('Pet Branca'),   'PET CRISTAL',      'pet cristal',      NULL,     NULL,    NULL,     'manual',     pg_temp.ts(45, '15:00')),
            (pg_temp.mat('Sucata'),       'Sucata Mista',     'sucata mista',     'SUC-1',  'suc1',  NULL,     'manual',     pg_temp.ts(45, '15:05'));
 
-    -- 'Relacionamento Material' tem 23 caracteres: depende da migration
-    -- 2026-11-04_registro_movimento_tipo.sql, que levou a coluna a varchar(40).
+    -- 'Relacionamento Material' tem 23 caracteres: registro_movimento.tipo é
+    -- varchar(40) desde 04/11/2026 (sql/_arquivo/2026-11-04_registro_movimento_tipo.sql).
     PERFORM pg_temp.auditar(u_admin, u_admin, 'Relacionamento: ' || nome_externo || ' -> material #' || id_material,
                             'Relacionamento Material', data_cadastro)
        FROM material_relacao ORDER BY id_relacao;

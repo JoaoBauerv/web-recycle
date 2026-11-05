@@ -2,8 +2,7 @@
 -- 0001_seed_inicial.sql
 --
 -- Seed unico da instalacao. E o unico arquivo de dados que uma instalacao nova
--- precisa: aplicar DEPOIS de 0000_baseline_schema.sql e das migrations de
--- 14/10/2026, que sao o que deixa o schema no estado final.
+-- precisa: aplicar DEPOIS de 0000_baseline_schema.sql, que ja e o schema final.
 --
 -- Traz apenas dados de REFERENCIA, o minimo para o sistema abrir e operar:
 --

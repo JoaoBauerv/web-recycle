@@ -1,40 +1,42 @@
 --
 -- 0000_baseline_schema.sql
 --
--- Ponto zero do schema. Ate 14/10/2026 as tabelas centrais do sistema
--- (tb_usuario, tb_material, tb_pesagem, clientes, fornecedores, vendas,
--- vendas_itens) nunca tiveram DDL versionado: foram criadas a mao no inicio do
--- projeto, e as 8 migrations existentes apenas as alteravam. Sem uma baseline
--- nao havia como recriar o banco do zero nem validar uma refatoracao.
+-- Estrutura COMPLETA e FINAL do banco: o schema 'reciclagem' com as 19
+-- tabelas, constraints, indices, sequencias e comentarios, no estado em que o
+-- sistema espera encontrar. Uma instalacao nova roda este arquivo e depois o
+-- seed 0001_seed_inicial.sql -- nada mais:
 --
--- Este arquivo foi gerado com pg_dump --schema-only sobre o banco em producao,
--- ANTES da refatoracao de nomenclatura. A ordem de aplicacao passa a ser:
+--   createdb reciclagem
+--   psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0000_baseline_schema.sql
+--   psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 --
---   1. 0000_baseline_schema.sql        (este arquivo)
---   2. as migrations datadas, em ordem cronologica
+-- COMO FOI GERADO (05/11/2026)
+--   Ate esta data a instalacao era a baseline de 14/10/2026 seguida de sete
+--   migrations que a alteravam (nomenclatura, endereco unico, colunas sem uso,
+--   auditoria, recorrencia de despesa). Este arquivo e o pg_dump --schema-only
+--   --no-owner --no-privileges do banco resultante daquele caminho; instalar
+--   por aqui produz exatamente o mesmo schema, conferido comparando o pg_dump
+--   dos dois bancos.
 --
--- As migrations anteriores a esta data ja estao refletidas aqui; sao mantidas
--- no repositorio como historico e sao idempotentes (IF EXISTS / IF NOT EXISTS),
--- de modo que reaplicar nao quebra.
+--   As sete migrations foram para sql/_arquivo/ como historico. Elas ainda
+--   servem para ATUALIZAR um banco instalado antes de 05/11/2026 -- ver
+--   sql/README.md, secao "Atualizar um banco existente". Instalacao nova nao
+--   as usa.
 --
--- COMPATIBILIDADE (04/11/2026)
---   O dump saiu do pg_dump 18 e trazia tres linhas que so o 17/18 entendem:
---     SET transaction_timeout = 0;      parametro criado no PostgreSQL 17
---     \restrict <chave> / \unrestrict   meta-comandos do psql criados nas
---                                       versoes de agosto/2025
---   Num PostgreSQL 16, ou com um psql mais antigo, a instalacao abortava na
---   primeira delas. As tres foram retiradas: transaction_timeout = 0 e o padrao
---   (sem limite), e \restrict so protege a restauracao de dump de origem
---   desconhecida. Nenhuma mexe no schema. Instalacao conferida no PostgreSQL 16.
+-- COMPATIBILIDADE
+--   O pg_dump emite \restrict / \unrestrict, meta-comandos que so o psql de
+--   agosto/2025 em diante entende; foram retirados, como ja tinha sido feito
+--   na baseline anterior. Instalacao conferida no PostgreSQL 16.
+--
+-- Roda em uma transacao: ou a estrutura entra inteira, ou nao entra.
 --
 
+BEGIN;
 --
 -- PostgreSQL database dump
 --
 
 
--- Dumped from database version 18.4
--- Dumped by pg_dump version 18.4
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -102,16 +104,10 @@ CREATE TABLE reciclagem.clientes (
     telefone character varying(20),
     celular character varying(20),
     email character varying(100),
-    cep character varying(9),
-    logradouro character varying(100),
-    numero character varying(10),
-    complemento character varying(50),
-    bairro character varying(50),
-    cidade character varying(50),
-    estado character varying(2),
     preco_especial boolean DEFAULT false NOT NULL,
     status smallint DEFAULT 1 NOT NULL,
-    data_cadastro timestamp without time zone DEFAULT now() NOT NULL
+    data_cadastro timestamp without time zone DEFAULT now() NOT NULL,
+    id_endereco integer
 );
 
 
@@ -163,18 +159,9 @@ CREATE TABLE reciclagem.contas_pagar (
     valor_total numeric(12,2) NOT NULL,
     data_emissao date DEFAULT CURRENT_DATE NOT NULL,
     observacoes character varying(255),
-    recorrente boolean DEFAULT false NOT NULL,
-    recorrencia_periodo character varying(15),
-    recorrencia_dia smallint,
-    recorrencia_inicio date,
-    recorrencia_fim date,
     status character varying(15) DEFAULT 'ativa'::character varying NOT NULL,
     data_cadastro timestamp without time zone DEFAULT now() NOT NULL,
-    id_usuario_cadastro integer NOT NULL,
-    data_alteracao timestamp without time zone,
-    id_usuario_alteracao integer,
-    CONSTRAINT ck_conta_recorrencia CHECK (((NOT recorrente) OR (((recorrencia_periodo)::text = ANY ((ARRAY['mensal'::character varying, 'quinzenal'::character varying, 'semanal'::character varying, 'anual'::character varying])::text[])) AND (recorrencia_inicio IS NOT NULL)))),
-    CONSTRAINT ck_conta_status CHECK (((status)::text = ANY ((ARRAY['ativa'::character varying, 'cancelada'::character varying])::text[]))),
+    CONSTRAINT ck_conta_status CHECK (((status)::text = ANY (ARRAY[('ativa'::character varying)::text, ('cancelada'::character varying)::text]))),
     CONSTRAINT ck_conta_valor CHECK ((valor_total > (0)::numeric))
 );
 
@@ -221,19 +208,17 @@ CREATE TABLE reciclagem.contas_pagar_parcelas (
     id_parcela integer NOT NULL,
     id_conta integer NOT NULL,
     numero_parcela smallint NOT NULL,
-    total_parcelas smallint NOT NULL,
     valor numeric(12,2) NOT NULL,
     data_vencimento date NOT NULL,
     valor_pago numeric(12,2),
     data_pagamento date,
     forma_pagamento character varying(20),
     id_usuario_pagamento integer,
-    data_registro_pagamento timestamp without time zone,
     status character varying(15) DEFAULT 'pendente'::character varying NOT NULL,
     observacao character varying(255),
-    CONSTRAINT ck_parcela_numero CHECK (((numero_parcela >= 1) AND (numero_parcela <= total_parcelas))),
+    CONSTRAINT ck_parcela_numero CHECK ((numero_parcela >= 1)),
     CONSTRAINT ck_parcela_paga CHECK ((((status)::text <> 'paga'::text) OR ((data_pagamento IS NOT NULL) AND (valor_pago IS NOT NULL) AND (valor_pago > (0)::numeric) AND (id_usuario_pagamento IS NOT NULL)))),
-    CONSTRAINT ck_parcela_status CHECK (((status)::text = ANY ((ARRAY['pendente'::character varying, 'paga'::character varying, 'cancelada'::character varying])::text[]))),
+    CONSTRAINT ck_parcela_status CHECK (((status)::text = ANY (ARRAY[('pendente'::character varying)::text, ('paga'::character varying)::text, ('cancelada'::character varying)::text]))),
     CONSTRAINT ck_parcela_valor CHECK ((valor > (0)::numeric))
 );
 
@@ -275,7 +260,7 @@ CREATE TABLE reciclagem.despesa_categoria (
     tipo character varying(20) DEFAULT 'geral'::character varying NOT NULL,
     status smallint DEFAULT 1 NOT NULL,
     data_cadastro timestamp without time zone DEFAULT now() NOT NULL,
-    CONSTRAINT ck_categoria_tipo CHECK (((tipo)::text = ANY ((ARRAY['geral'::character varying, 'funcionario'::character varying])::text[])))
+    CONSTRAINT ck_categoria_tipo CHECK (((tipo)::text = ANY (ARRAY[('geral'::character varying)::text, ('funcionario'::character varying)::text])))
 );
 
 
@@ -300,6 +285,50 @@ ALTER SEQUENCE reciclagem.despesa_categoria_id_categoria_seq OWNED BY reciclagem
 
 
 --
+-- Name: endereco; Type: TABLE; Schema: reciclagem; Owner: -
+--
+
+CREATE TABLE reciclagem.endereco (
+    id_endereco integer NOT NULL,
+    cep character varying(9) DEFAULT NULL::character varying,
+    logradouro character varying(100) DEFAULT NULL::character varying,
+    complemento character varying(50) DEFAULT NULL::character varying,
+    cidade character varying(50) DEFAULT NULL::character varying,
+    bairro character varying(50) DEFAULT NULL::character varying,
+    referencia character varying(100) DEFAULT NULL::character varying,
+    numero character varying(10),
+    estado character varying(2)
+);
+
+
+--
+-- Name: TABLE endereco; Type: COMMENT; Schema: reciclagem; Owner: -
+--
+
+COMMENT ON TABLE reciclagem.endereco IS 'Endereço de qualquer entidade do sistema. Referenciada por usuario, clientes e fornecedores.';
+
+
+--
+-- Name: endereco_id_endereco_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
+--
+
+CREATE SEQUENCE reciclagem.endereco_id_endereco_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: endereco_id_endereco_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
+--
+
+ALTER SEQUENCE reciclagem.endereco_id_endereco_seq OWNED BY reciclagem.endereco.id_endereco;
+
+
+--
 -- Name: estoque_movimentacoes; Type: TABLE; Schema: reciclagem; Owner: -
 --
 
@@ -314,8 +343,8 @@ CREATE TABLE reciclagem.estoque_movimentacoes (
     id_usuario integer NOT NULL,
     data_movimentacao timestamp without time zone DEFAULT now() NOT NULL,
     observacoes character varying(255),
-    CONSTRAINT ck_mov_origem CHECK (((origem_tipo)::text = ANY ((ARRAY['pesagem'::character varying, 'venda'::character varying, 'ajuste_manual'::character varying, 'processamento'::character varying, 'estorno_compra'::character varying, 'estorno_venda'::character varying])::text[]))),
-    CONSTRAINT ck_mov_tipo CHECK (((tipo)::text = ANY ((ARRAY['entrada'::character varying, 'saida'::character varying, 'ajuste'::character varying, 'perda'::character varying])::text[])))
+    CONSTRAINT ck_mov_origem CHECK (((origem_tipo)::text = ANY (ARRAY[('pesagem'::character varying)::text, ('venda'::character varying)::text, ('ajuste_manual'::character varying)::text, ('processamento'::character varying)::text, ('estorno_compra'::character varying)::text, ('estorno_venda'::character varying)::text]))),
+    CONSTRAINT ck_mov_tipo CHECK (((tipo)::text = ANY (ARRAY[('entrada'::character varying)::text, ('saida'::character varying)::text, ('ajuste'::character varying)::text, ('perda'::character varying)::text])))
 );
 
 
@@ -354,25 +383,44 @@ ALTER SEQUENCE reciclagem.estoque_movimentacoes_id_movimentacao_seq OWNED BY rec
 
 
 --
+-- Name: evento_id_evento_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
+--
+
+CREATE SEQUENCE reciclagem.evento_id_evento_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: evento; Type: TABLE; Schema: reciclagem; Owner: -
+--
+
+CREATE TABLE reciclagem.evento (
+    id_evento integer DEFAULT nextval('reciclagem.evento_id_evento_seq'::regclass) NOT NULL,
+    title character varying(150) NOT NULL,
+    color character varying(50) DEFAULT '#FFD700'::character varying NOT NULL,
+    start timestamp without time zone NOT NULL,
+    "end" timestamp without time zone NOT NULL
+);
+
+
+--
 -- Name: fornecedores; Type: TABLE; Schema: reciclagem; Owner: -
 --
 
 CREATE TABLE reciclagem.fornecedores (
     id_fornecedor integer NOT NULL,
     nome_razao_social character varying(150) NOT NULL,
-    cnpj_cpf character varying(18),
+    cpf_cnpj character varying(18),
     telefone character varying(20),
     email character varying(100),
-    cep character varying(9),
-    logradouro character varying(100),
-    numero character varying(10),
-    complemento character varying(50),
-    bairro character varying(50),
-    cidade character varying(50),
-    estado character varying(2),
     status smallint DEFAULT 1 NOT NULL,
     data_cadastro timestamp without time zone DEFAULT now() NOT NULL,
-    observacoes character varying(255)
+    observacoes character varying(255),
+    id_endereco integer
 );
 
 
@@ -415,12 +463,11 @@ CREATE TABLE reciclagem.importacao_historico (
     pedido_externo character varying(60),
     total_registros integer DEFAULT 0 NOT NULL,
     registros_importados integer DEFAULT 0 NOT NULL,
-    registros_com_erro integer DEFAULT 0 NOT NULL,
     valor_total numeric(12,2) DEFAULT 0 NOT NULL,
     status character varying(25) DEFAULT 'processando'::character varying NOT NULL,
     erros jsonb,
     data_importacao timestamp without time zone DEFAULT now() NOT NULL,
-    CONSTRAINT ck_importacao_status CHECK (((status)::text = ANY ((ARRAY['processando'::character varying, 'concluido'::character varying, 'concluido_avisos'::character varying, 'erro'::character varying, 'cancelado'::character varying])::text[])))
+    CONSTRAINT ck_importacao_status CHECK (((status)::text = ANY (ARRAY[('processando'::character varying)::text, ('concluido'::character varying)::text, ('concluido_avisos'::character varying)::text, ('erro'::character varying)::text, ('cancelado'::character varying)::text])))
 );
 
 
@@ -462,8 +509,7 @@ CREATE TABLE reciclagem.importacao_modelo (
     linha_cabecalho smallint DEFAULT 1 NOT NULL,
     mapeamento jsonb NOT NULL,
     status smallint DEFAULT 1 NOT NULL,
-    data_cadastro timestamp without time zone DEFAULT now() NOT NULL,
-    data_alteracao timestamp without time zone
+    data_cadastro timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
@@ -509,6 +555,67 @@ ALTER SEQUENCE reciclagem.importacao_modelo_id_modelo_seq OWNED BY reciclagem.im
 
 
 --
+-- Name: material; Type: TABLE; Schema: reciclagem; Owner: -
+--
+
+CREATE TABLE reciclagem.material (
+    id_material integer NOT NULL,
+    nm_material character varying(40) NOT NULL,
+    tipo character varying(20) NOT NULL,
+    preco_compra numeric(10,2) NOT NULL,
+    qt_estoque numeric(10,2),
+    status smallint DEFAULT 1,
+    preco_especial numeric(10,2),
+    preco_venda numeric(10,2),
+    unidade_medida character varying(10) DEFAULT 'kg'::character varying NOT NULL,
+    codigo character varying(30),
+    estoque_minimo numeric(10,2),
+    CONSTRAINT ck_material_estoque_minimo CHECK (((estoque_minimo IS NULL) OR (estoque_minimo >= (0)::numeric)))
+);
+
+
+--
+-- Name: COLUMN material.preco_venda; Type: COMMENT; Schema: reciclagem; Owner: -
+--
+
+COMMENT ON COLUMN reciclagem.material.preco_venda IS 'Preço médio de venda ao fornecedor (material já processado)';
+
+
+--
+-- Name: COLUMN material.codigo; Type: COMMENT; Schema: reciclagem; Owner: -
+--
+
+COMMENT ON COLUMN reciclagem.material.codigo IS 'Código oficial do material, usado como chave no de/para das importações.';
+
+
+--
+-- Name: COLUMN material.estoque_minimo; Type: COMMENT; Schema: reciclagem; Owner: -
+--
+
+COMMENT ON COLUMN reciclagem.material.estoque_minimo IS 'Saldo a partir do qual o material é sinalizado como baixo. NULL = sem alerta configurado.';
+
+
+--
+-- Name: material_id_material_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
+--
+
+CREATE SEQUENCE reciclagem.material_id_material_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: material_id_material_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
+--
+
+ALTER SEQUENCE reciclagem.material_id_material_seq OWNED BY reciclagem.material.id_material;
+
+
+--
 -- Name: material_relacao; Type: TABLE; Schema: reciclagem; Owner: -
 --
 
@@ -523,7 +630,6 @@ CREATE TABLE reciclagem.material_relacao (
     origem character varying(100),
     status smallint DEFAULT 1 NOT NULL,
     data_cadastro timestamp without time zone DEFAULT now() NOT NULL,
-    data_alteracao timestamp without time zone,
     CONSTRAINT ck_relacao_tem_chave CHECK (((nome_normalizado IS NOT NULL) OR (codigo_normalizado IS NOT NULL)))
 );
 
@@ -570,166 +676,10 @@ ALTER SEQUENCE reciclagem.material_relacao_id_relacao_seq OWNED BY reciclagem.ma
 
 
 --
--- Name: tb_documento; Type: TABLE; Schema: reciclagem; Owner: -
+-- Name: pesagem; Type: TABLE; Schema: reciclagem; Owner: -
 --
 
-CREATE TABLE reciclagem.tb_documento (
-    id integer NOT NULL,
-    id_usuario integer NOT NULL,
-    cpf character varying(14) DEFAULT NULL::character varying,
-    rg character varying(9) DEFAULT NULL::character varying,
-    cnh character varying(11) DEFAULT NULL::character varying
-);
-
-
---
--- Name: tb_documento_id_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
---
-
-CREATE SEQUENCE reciclagem.tb_documento_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: tb_documento_id_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
---
-
-ALTER SEQUENCE reciclagem.tb_documento_id_seq OWNED BY reciclagem.tb_documento.id;
-
-
---
--- Name: tb_endereco; Type: TABLE; Schema: reciclagem; Owner: -
---
-
-CREATE TABLE reciclagem.tb_endereco (
-    id integer NOT NULL,
-    id_usuario integer NOT NULL,
-    cep character varying(9) DEFAULT NULL::character varying,
-    logradouro character varying(100) DEFAULT NULL::character varying,
-    complemento character varying(50) DEFAULT NULL::character varying,
-    cidade character varying(50) DEFAULT NULL::character varying,
-    bairro character varying(50) DEFAULT NULL::character varying,
-    referencia character varying(100) DEFAULT NULL::character varying,
-    numero character varying(5)
-);
-
-
---
--- Name: tb_endereco_id_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
---
-
-CREATE SEQUENCE reciclagem.tb_endereco_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: tb_endereco_id_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
---
-
-ALTER SEQUENCE reciclagem.tb_endereco_id_seq OWNED BY reciclagem.tb_endereco.id;
-
-
---
--- Name: tb_evento_id_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
---
-
-CREATE SEQUENCE reciclagem.tb_evento_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: tb_evento; Type: TABLE; Schema: reciclagem; Owner: -
---
-
-CREATE TABLE reciclagem.tb_evento (
-    id integer DEFAULT nextval('reciclagem.tb_evento_id_seq'::regclass) NOT NULL,
-    title character varying(150) NOT NULL,
-    color character varying(50) DEFAULT '#FFD700'::character varying NOT NULL,
-    start timestamp without time zone NOT NULL,
-    "end" timestamp without time zone NOT NULL
-);
-
-
---
--- Name: tb_material; Type: TABLE; Schema: reciclagem; Owner: -
---
-
-CREATE TABLE reciclagem.tb_material (
-    id_material integer NOT NULL,
-    nm_material character varying(40) NOT NULL,
-    tipo character varying(20) NOT NULL,
-    preco_compra numeric(10,2) NOT NULL,
-    qt_estoque numeric(10,2),
-    status smallint DEFAULT 1,
-    preco_especial numeric(10,2),
-    preco_venda numeric(10,2),
-    unidade_medida character varying(10) DEFAULT 'kg'::character varying NOT NULL,
-    codigo character varying(30),
-    estoque_minimo numeric(10,2),
-    CONSTRAINT ck_material_estoque_minimo CHECK (((estoque_minimo IS NULL) OR (estoque_minimo >= (0)::numeric)))
-);
-
-
---
--- Name: COLUMN tb_material.preco_venda; Type: COMMENT; Schema: reciclagem; Owner: -
---
-
-COMMENT ON COLUMN reciclagem.tb_material.preco_venda IS 'Preço médio de venda ao fornecedor (material já processado)';
-
-
---
--- Name: COLUMN tb_material.codigo; Type: COMMENT; Schema: reciclagem; Owner: -
---
-
-COMMENT ON COLUMN reciclagem.tb_material.codigo IS 'Código oficial do material, usado como chave no de/para das importações.';
-
-
---
--- Name: COLUMN tb_material.estoque_minimo; Type: COMMENT; Schema: reciclagem; Owner: -
---
-
-COMMENT ON COLUMN reciclagem.tb_material.estoque_minimo IS 'Saldo a partir do qual o material é sinalizado como baixo. NULL = sem alerta configurado.';
-
-
---
--- Name: tb_material_id_material_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
---
-
-CREATE SEQUENCE reciclagem.tb_material_id_material_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
---
--- Name: tb_material_id_material_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
---
-
-ALTER SEQUENCE reciclagem.tb_material_id_material_seq OWNED BY reciclagem.tb_material.id_material;
-
-
---
--- Name: tb_pesagem; Type: TABLE; Schema: reciclagem; Owner: -
---
-
-CREATE TABLE reciclagem.tb_pesagem (
+CREATE TABLE reciclagem.pesagem (
     id_pesagem integer NOT NULL,
     total_valor numeric(10,2) NOT NULL,
     total_peso numeric(10,2) NOT NULL,
@@ -740,29 +690,29 @@ CREATE TABLE reciclagem.tb_pesagem (
     id_usuario_cancelou integer,
     motivo_cancelamento character varying(500),
     CONSTRAINT ck_pesagem_cancelamento CHECK ((((status)::text <> 'cancelada'::text) OR ((cancelada_em IS NOT NULL) AND (id_usuario_cancelou IS NOT NULL) AND (motivo_cancelamento IS NOT NULL) AND (btrim((motivo_cancelamento)::text) <> ''::text)))),
-    CONSTRAINT ck_pesagem_status CHECK (((status)::text = ANY ((ARRAY['ativa'::character varying, 'cancelada'::character varying])::text[])))
+    CONSTRAINT ck_pesagem_status CHECK (((status)::text = ANY (ARRAY[('ativa'::character varying)::text, ('cancelada'::character varying)::text])))
 );
 
 
 --
--- Name: COLUMN tb_pesagem.status; Type: COMMENT; Schema: reciclagem; Owner: -
+-- Name: COLUMN pesagem.status; Type: COMMENT; Schema: reciclagem; Owner: -
 --
 
-COMMENT ON COLUMN reciclagem.tb_pesagem.status IS 'Situação do documento: ativa ou cancelada. Compra cancelada fica fora das somas, mas continua visível.';
-
-
---
--- Name: COLUMN tb_pesagem.motivo_cancelamento; Type: COMMENT; Schema: reciclagem; Owner: -
---
-
-COMMENT ON COLUMN reciclagem.tb_pesagem.motivo_cancelamento IS 'Obrigatório quando status = cancelada (ck_pesagem_cancelamento).';
+COMMENT ON COLUMN reciclagem.pesagem.status IS 'Situação do documento: ativa ou cancelada. Compra cancelada fica fora das somas, mas continua visível.';
 
 
 --
--- Name: tb_pesagem_id_pesagem_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
+-- Name: COLUMN pesagem.motivo_cancelamento; Type: COMMENT; Schema: reciclagem; Owner: -
 --
 
-CREATE SEQUENCE reciclagem.tb_pesagem_id_pesagem_seq
+COMMENT ON COLUMN reciclagem.pesagem.motivo_cancelamento IS 'Obrigatório quando status = cancelada (ck_pesagem_cancelamento).';
+
+
+--
+-- Name: pesagem_id_pesagem_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
+--
+
+CREATE SEQUENCE reciclagem.pesagem_id_pesagem_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -771,33 +721,33 @@ CREATE SEQUENCE reciclagem.tb_pesagem_id_pesagem_seq
 
 
 --
--- Name: tb_pesagem_id_pesagem_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
+-- Name: pesagem_id_pesagem_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
 --
 
-ALTER SEQUENCE reciclagem.tb_pesagem_id_pesagem_seq OWNED BY reciclagem.tb_pesagem.id_pesagem;
+ALTER SEQUENCE reciclagem.pesagem_id_pesagem_seq OWNED BY reciclagem.pesagem.id_pesagem;
 
 
 --
--- Name: tb_pesagem_material; Type: TABLE; Schema: reciclagem; Owner: -
+-- Name: pesagem_material; Type: TABLE; Schema: reciclagem; Owner: -
 --
 
-CREATE TABLE reciclagem.tb_pesagem_material (
+CREATE TABLE reciclagem.pesagem_material (
     id_pesagem integer NOT NULL,
     id_material integer NOT NULL,
     preco_un numeric(10,2) NOT NULL,
     peso_material numeric(10,2) NOT NULL,
     obs character varying(100),
-    id integer NOT NULL,
+    id_pesagem_material integer NOT NULL,
     peso_bruto numeric(10,2) DEFAULT 0 NOT NULL,
     tara numeric(10,2) DEFAULT 0 NOT NULL
 );
 
 
 --
--- Name: tb_pesagem_material_id_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
+-- Name: pesagem_material_id_pesagem_material_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
 --
 
-CREATE SEQUENCE reciclagem.tb_pesagem_material_id_seq
+CREATE SEQUENCE reciclagem.pesagem_material_id_pesagem_material_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -807,31 +757,31 @@ CREATE SEQUENCE reciclagem.tb_pesagem_material_id_seq
 
 
 --
--- Name: tb_pesagem_material_id_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
+-- Name: pesagem_material_id_pesagem_material_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
 --
 
-ALTER SEQUENCE reciclagem.tb_pesagem_material_id_seq OWNED BY reciclagem.tb_pesagem_material.id;
+ALTER SEQUENCE reciclagem.pesagem_material_id_pesagem_material_seq OWNED BY reciclagem.pesagem_material.id_pesagem_material;
 
 
 --
--- Name: tb_registro_movimento; Type: TABLE; Schema: reciclagem; Owner: -
+-- Name: registro_movimento; Type: TABLE; Schema: reciclagem; Owner: -
 --
 
-CREATE TABLE reciclagem.tb_registro_movimento (
-    id integer NOT NULL,
+CREATE TABLE reciclagem.registro_movimento (
+    id_registro_movimento integer NOT NULL,
     id_usuario_admin integer NOT NULL,
     id_usuario_modificado integer NOT NULL,
-    descricao character varying(100) NOT NULL,
-    tipo character varying(20) NOT NULL,
+    descricao character varying(255) NOT NULL,
+    tipo character varying(40) NOT NULL,
     data timestamp without time zone NOT NULL
 );
 
 
 --
--- Name: tb_registro_movimento_id_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
+-- Name: registro_movimento_id_registro_movimento_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
 --
 
-CREATE SEQUENCE reciclagem.tb_registro_movimento_id_seq
+CREATE SEQUENCE reciclagem.registro_movimento_id_registro_movimento_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -841,17 +791,17 @@ CREATE SEQUENCE reciclagem.tb_registro_movimento_id_seq
 
 
 --
--- Name: tb_registro_movimento_id_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
+-- Name: registro_movimento_id_registro_movimento_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
 --
 
-ALTER SEQUENCE reciclagem.tb_registro_movimento_id_seq OWNED BY reciclagem.tb_registro_movimento.id;
+ALTER SEQUENCE reciclagem.registro_movimento_id_registro_movimento_seq OWNED BY reciclagem.registro_movimento.id_registro_movimento;
 
 
 --
--- Name: tb_usuario; Type: TABLE; Schema: reciclagem; Owner: -
+-- Name: usuario; Type: TABLE; Schema: reciclagem; Owner: -
 --
 
-CREATE TABLE reciclagem.tb_usuario (
+CREATE TABLE reciclagem.usuario (
     id_usuario integer NOT NULL,
     nome character varying(40) NOT NULL,
     email character varying(50) NOT NULL,
@@ -864,22 +814,24 @@ CREATE TABLE reciclagem.tb_usuario (
     telefone character varying(20) DEFAULT NULL::character varying,
     celular character varying(20) DEFAULT NULL::character varying,
     precisa_alterar_senha smallint DEFAULT 0,
-    CONSTRAINT ck_usuario_permissao CHECK (((permissao)::text = ANY ((ARRAY['Admin'::character varying, 'Usuario'::character varying])::text[])))
+    id_endereco integer,
+    cpf_cnpj character varying(18),
+    CONSTRAINT ck_usuario_permissao CHECK (((permissao)::text = ANY (ARRAY[('Admin'::character varying)::text, ('Usuario'::character varying)::text])))
 );
 
 
 --
--- Name: COLUMN tb_usuario.permissao; Type: COMMENT; Schema: reciclagem; Owner: -
+-- Name: COLUMN usuario.permissao; Type: COMMENT; Schema: reciclagem; Owner: -
 --
 
-COMMENT ON COLUMN reciclagem.tb_usuario.permissao IS 'Perfil de acesso: Admin ou Usuario. As permissões por ação ficam em components/permissoes.php.';
+COMMENT ON COLUMN reciclagem.usuario.permissao IS 'Perfil de acesso: Admin ou Usuario. As permissões por ação ficam em components/permissoes.php.';
 
 
 --
--- Name: tb_usuario_id_usuario_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
+-- Name: usuario_id_usuario_seq; Type: SEQUENCE; Schema: reciclagem; Owner: -
 --
 
-CREATE SEQUENCE reciclagem.tb_usuario_id_usuario_seq
+CREATE SEQUENCE reciclagem.usuario_id_usuario_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -889,10 +841,10 @@ CREATE SEQUENCE reciclagem.tb_usuario_id_usuario_seq
 
 
 --
--- Name: tb_usuario_id_usuario_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
+-- Name: usuario_id_usuario_seq; Type: SEQUENCE OWNED BY; Schema: reciclagem; Owner: -
 --
 
-ALTER SEQUENCE reciclagem.tb_usuario_id_usuario_seq OWNED BY reciclagem.tb_usuario.id_usuario;
+ALTER SEQUENCE reciclagem.usuario_id_usuario_seq OWNED BY reciclagem.usuario.id_usuario;
 
 
 --
@@ -917,8 +869,8 @@ CREATE TABLE reciclagem.vendas (
     id_usuario_cancelou integer,
     motivo_cancelamento character varying(500),
     CONSTRAINT ck_venda_cancelamento CHECK ((((status)::text <> 'cancelada'::text) OR ((cancelada_em IS NOT NULL) AND (id_usuario_cancelou IS NOT NULL) AND (motivo_cancelamento IS NOT NULL) AND (btrim((motivo_cancelamento)::text) <> ''::text)))),
-    CONSTRAINT ck_venda_origem CHECK (((origem)::text = ANY ((ARRAY['manual'::character varying, 'importacao'::character varying])::text[]))),
-    CONSTRAINT ck_venda_status CHECK (((status)::text = ANY ((ARRAY['concluida'::character varying, 'cancelada'::character varying])::text[])))
+    CONSTRAINT ck_venda_origem CHECK (((origem)::text = ANY (ARRAY[('manual'::character varying)::text, ('importacao'::character varying)::text]))),
+    CONSTRAINT ck_venda_status CHECK (((status)::text = ANY (ARRAY[('concluida'::character varying)::text, ('cancelada'::character varying)::text])))
 );
 
 
@@ -1028,6 +980,13 @@ ALTER TABLE ONLY reciclagem.despesa_categoria ALTER COLUMN id_categoria SET DEFA
 
 
 --
+-- Name: endereco id_endereco; Type: DEFAULT; Schema: reciclagem; Owner: -
+--
+
+ALTER TABLE ONLY reciclagem.endereco ALTER COLUMN id_endereco SET DEFAULT nextval('reciclagem.endereco_id_endereco_seq'::regclass);
+
+
+--
 -- Name: estoque_movimentacoes id_movimentacao; Type: DEFAULT; Schema: reciclagem; Owner: -
 --
 
@@ -1056,6 +1015,13 @@ ALTER TABLE ONLY reciclagem.importacao_modelo ALTER COLUMN id_modelo SET DEFAULT
 
 
 --
+-- Name: material id_material; Type: DEFAULT; Schema: reciclagem; Owner: -
+--
+
+ALTER TABLE ONLY reciclagem.material ALTER COLUMN id_material SET DEFAULT nextval('reciclagem.material_id_material_seq'::regclass);
+
+
+--
 -- Name: material_relacao id_relacao; Type: DEFAULT; Schema: reciclagem; Owner: -
 --
 
@@ -1063,52 +1029,31 @@ ALTER TABLE ONLY reciclagem.material_relacao ALTER COLUMN id_relacao SET DEFAULT
 
 
 --
--- Name: tb_documento id; Type: DEFAULT; Schema: reciclagem; Owner: -
+-- Name: pesagem id_pesagem; Type: DEFAULT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_documento ALTER COLUMN id SET DEFAULT nextval('reciclagem.tb_documento_id_seq'::regclass);
-
-
---
--- Name: tb_endereco id; Type: DEFAULT; Schema: reciclagem; Owner: -
---
-
-ALTER TABLE ONLY reciclagem.tb_endereco ALTER COLUMN id SET DEFAULT nextval('reciclagem.tb_endereco_id_seq'::regclass);
+ALTER TABLE ONLY reciclagem.pesagem ALTER COLUMN id_pesagem SET DEFAULT nextval('reciclagem.pesagem_id_pesagem_seq'::regclass);
 
 
 --
--- Name: tb_material id_material; Type: DEFAULT; Schema: reciclagem; Owner: -
+-- Name: pesagem_material id_pesagem_material; Type: DEFAULT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_material ALTER COLUMN id_material SET DEFAULT nextval('reciclagem.tb_material_id_material_seq'::regclass);
-
-
---
--- Name: tb_pesagem id_pesagem; Type: DEFAULT; Schema: reciclagem; Owner: -
---
-
-ALTER TABLE ONLY reciclagem.tb_pesagem ALTER COLUMN id_pesagem SET DEFAULT nextval('reciclagem.tb_pesagem_id_pesagem_seq'::regclass);
+ALTER TABLE ONLY reciclagem.pesagem_material ALTER COLUMN id_pesagem_material SET DEFAULT nextval('reciclagem.pesagem_material_id_pesagem_material_seq'::regclass);
 
 
 --
--- Name: tb_pesagem_material id; Type: DEFAULT; Schema: reciclagem; Owner: -
+-- Name: registro_movimento id_registro_movimento; Type: DEFAULT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_pesagem_material ALTER COLUMN id SET DEFAULT nextval('reciclagem.tb_pesagem_material_id_seq'::regclass);
-
-
---
--- Name: tb_registro_movimento id; Type: DEFAULT; Schema: reciclagem; Owner: -
---
-
-ALTER TABLE ONLY reciclagem.tb_registro_movimento ALTER COLUMN id SET DEFAULT nextval('reciclagem.tb_registro_movimento_id_seq'::regclass);
+ALTER TABLE ONLY reciclagem.registro_movimento ALTER COLUMN id_registro_movimento SET DEFAULT nextval('reciclagem.registro_movimento_id_registro_movimento_seq'::regclass);
 
 
 --
--- Name: tb_usuario id_usuario; Type: DEFAULT; Schema: reciclagem; Owner: -
+-- Name: usuario id_usuario; Type: DEFAULT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_usuario ALTER COLUMN id_usuario SET DEFAULT nextval('reciclagem.tb_usuario_id_usuario_seq'::regclass);
+ALTER TABLE ONLY reciclagem.usuario ALTER COLUMN id_usuario SET DEFAULT nextval('reciclagem.usuario_id_usuario_seq'::regclass);
 
 
 --
@@ -1206,74 +1151,66 @@ ALTER TABLE ONLY reciclagem.material_relacao
 
 
 --
--- Name: tb_pesagem pk_pesagem; Type: CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: pesagem pk_pesagem; Type: CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_pesagem
+ALTER TABLE ONLY reciclagem.pesagem
     ADD CONSTRAINT pk_pesagem PRIMARY KEY (id_pesagem);
 
 
 --
--- Name: tb_pesagem_material pk_pesagem_material; Type: CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: pesagem_material pk_pesagem_material; Type: CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_pesagem_material
-    ADD CONSTRAINT pk_pesagem_material PRIMARY KEY (id);
-
-
---
--- Name: tb_documento tb_documento_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
---
-
-ALTER TABLE ONLY reciclagem.tb_documento
-    ADD CONSTRAINT tb_documento_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY reciclagem.pesagem_material
+    ADD CONSTRAINT pk_pesagem_material PRIMARY KEY (id_pesagem_material);
 
 
 --
--- Name: tb_endereco tb_endereco_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: endereco tb_endereco_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_endereco
-    ADD CONSTRAINT tb_endereco_pkey PRIMARY KEY (id);
-
-
---
--- Name: tb_evento tb_evento_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
---
-
-ALTER TABLE ONLY reciclagem.tb_evento
-    ADD CONSTRAINT tb_evento_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY reciclagem.endereco
+    ADD CONSTRAINT tb_endereco_pkey PRIMARY KEY (id_endereco);
 
 
 --
--- Name: tb_material tb_material_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: evento tb_evento_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_material
+ALTER TABLE ONLY reciclagem.evento
+    ADD CONSTRAINT tb_evento_pkey PRIMARY KEY (id_evento);
+
+
+--
+-- Name: material tb_material_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
+--
+
+ALTER TABLE ONLY reciclagem.material
     ADD CONSTRAINT tb_material_pkey PRIMARY KEY (id_material);
 
 
 --
--- Name: tb_registro_movimento tb_registro_movimento_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: registro_movimento tb_registro_movimento_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_registro_movimento
-    ADD CONSTRAINT tb_registro_movimento_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY reciclagem.registro_movimento
+    ADD CONSTRAINT tb_registro_movimento_pkey PRIMARY KEY (id_registro_movimento);
 
 
 --
--- Name: tb_usuario tb_usuario_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: usuario tb_usuario_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_usuario
+ALTER TABLE ONLY reciclagem.usuario
     ADD CONSTRAINT tb_usuario_pkey PRIMARY KEY (id_usuario);
 
 
 --
--- Name: tb_material unique_nm_material; Type: CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: material unique_nm_material; Type: CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_material
+ALTER TABLE ONLY reciclagem.material
     ADD CONSTRAINT unique_nm_material UNIQUE (nm_material);
 
 
@@ -1310,6 +1247,20 @@ ALTER TABLE ONLY reciclagem.vendas
 
 
 --
+-- Name: idx_clientes_endereco; Type: INDEX; Schema: reciclagem; Owner: -
+--
+
+CREATE INDEX idx_clientes_endereco ON reciclagem.clientes USING btree (id_endereco);
+
+
+--
+-- Name: idx_fornecedores_endereco; Type: INDEX; Schema: reciclagem; Owner: -
+--
+
+CREATE INDEX idx_fornecedores_endereco ON reciclagem.fornecedores USING btree (id_endereco);
+
+
+--
 -- Name: idx_mov_material; Type: INDEX; Schema: reciclagem; Owner: -
 --
 
@@ -1327,21 +1278,28 @@ CREATE INDEX idx_mov_origem ON reciclagem.estoque_movimentacoes USING btree (ori
 -- Name: idx_pesagem_cliente; Type: INDEX; Schema: reciclagem; Owner: -
 --
 
-CREATE INDEX idx_pesagem_cliente ON reciclagem.tb_pesagem USING btree (id_cliente);
+CREATE INDEX idx_pesagem_cliente ON reciclagem.pesagem USING btree (id_cliente);
 
 
 --
 -- Name: idx_pesagem_status; Type: INDEX; Schema: reciclagem; Owner: -
 --
 
-CREATE INDEX idx_pesagem_status ON reciclagem.tb_pesagem USING btree (status);
+CREATE INDEX idx_pesagem_status ON reciclagem.pesagem USING btree (status);
 
 
 --
 -- Name: idx_tb_usuario_email_unico; Type: INDEX; Schema: reciclagem; Owner: -
 --
 
-CREATE UNIQUE INDEX idx_tb_usuario_email_unico ON reciclagem.tb_usuario USING btree (lower((email)::text));
+CREATE UNIQUE INDEX idx_tb_usuario_email_unico ON reciclagem.usuario USING btree (lower((email)::text));
+
+
+--
+-- Name: idx_usuario_endereco; Type: INDEX; Schema: reciclagem; Owner: -
+--
+
+CREATE INDEX idx_usuario_endereco ON reciclagem.usuario USING btree (id_endereco);
 
 
 --
@@ -1390,7 +1348,7 @@ CREATE INDEX ix_importacao_data ON reciclagem.importacao_historico USING btree (
 -- Name: ix_material_estoque_minimo; Type: INDEX; Schema: reciclagem; Owner: -
 --
 
-CREATE INDEX ix_material_estoque_minimo ON reciclagem.tb_material USING btree (id_material) WHERE (estoque_minimo IS NOT NULL);
+CREATE INDEX ix_material_estoque_minimo ON reciclagem.material USING btree (id_material) WHERE (estoque_minimo IS NOT NULL);
 
 
 --
@@ -1439,7 +1397,7 @@ CREATE UNIQUE INDEX uq_centro_nome ON reciclagem.centro_custo USING btree (lower
 -- Name: uq_material_codigo; Type: INDEX; Schema: reciclagem; Owner: -
 --
 
-CREATE UNIQUE INDEX uq_material_codigo ON reciclagem.tb_material USING btree (lower((codigo)::text)) WHERE ((codigo IS NOT NULL) AND (status = 1));
+CREATE UNIQUE INDEX uq_material_codigo ON reciclagem.material USING btree (lower((codigo)::text)) WHERE ((codigo IS NOT NULL) AND (status = 1));
 
 
 --
@@ -1487,27 +1445,11 @@ ALTER TABLE ONLY reciclagem.contas_pagar
 
 
 --
--- Name: contas_pagar contas_pagar_id_usuario_alteracao_fkey; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
---
-
-ALTER TABLE ONLY reciclagem.contas_pagar
-    ADD CONSTRAINT contas_pagar_id_usuario_alteracao_fkey FOREIGN KEY (id_usuario_alteracao) REFERENCES reciclagem.tb_usuario(id_usuario);
-
-
---
--- Name: contas_pagar contas_pagar_id_usuario_cadastro_fkey; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
---
-
-ALTER TABLE ONLY reciclagem.contas_pagar
-    ADD CONSTRAINT contas_pagar_id_usuario_cadastro_fkey FOREIGN KEY (id_usuario_cadastro) REFERENCES reciclagem.tb_usuario(id_usuario);
-
-
---
 -- Name: contas_pagar contas_pagar_id_usuario_func_fkey; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
 ALTER TABLE ONLY reciclagem.contas_pagar
-    ADD CONSTRAINT contas_pagar_id_usuario_func_fkey FOREIGN KEY (id_usuario_func) REFERENCES reciclagem.tb_usuario(id_usuario);
+    ADD CONSTRAINT contas_pagar_id_usuario_func_fkey FOREIGN KEY (id_usuario_func) REFERENCES reciclagem.usuario(id_usuario);
 
 
 --
@@ -1523,7 +1465,7 @@ ALTER TABLE ONLY reciclagem.contas_pagar_parcelas
 --
 
 ALTER TABLE ONLY reciclagem.contas_pagar_parcelas
-    ADD CONSTRAINT contas_pagar_parcelas_id_usuario_pagamento_fkey FOREIGN KEY (id_usuario_pagamento) REFERENCES reciclagem.tb_usuario(id_usuario);
+    ADD CONSTRAINT contas_pagar_parcelas_id_usuario_pagamento_fkey FOREIGN KEY (id_usuario_pagamento) REFERENCES reciclagem.usuario(id_usuario);
 
 
 --
@@ -1531,23 +1473,23 @@ ALTER TABLE ONLY reciclagem.contas_pagar_parcelas
 --
 
 ALTER TABLE ONLY reciclagem.clientes
-    ADD CONSTRAINT fk_cliente_usuario FOREIGN KEY (id_usuario) REFERENCES reciclagem.tb_usuario(id_usuario);
+    ADD CONSTRAINT fk_cliente_usuario FOREIGN KEY (id_usuario) REFERENCES reciclagem.usuario(id_usuario);
 
 
 --
--- Name: tb_documento fk_documento_usuario; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: clientes fk_clientes_endereco; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_documento
-    ADD CONSTRAINT fk_documento_usuario FOREIGN KEY (id_usuario) REFERENCES reciclagem.tb_usuario(id_usuario);
+ALTER TABLE ONLY reciclagem.clientes
+    ADD CONSTRAINT fk_clientes_endereco FOREIGN KEY (id_endereco) REFERENCES reciclagem.endereco(id_endereco) ON DELETE SET NULL;
 
 
 --
--- Name: tb_endereco fk_endereco_usuario; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: fornecedores fk_fornecedores_endereco; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_endereco
-    ADD CONSTRAINT fk_endereco_usuario FOREIGN KEY (id_usuario) REFERENCES reciclagem.tb_usuario(id_usuario);
+ALTER TABLE ONLY reciclagem.fornecedores
+    ADD CONSTRAINT fk_fornecedores_endereco FOREIGN KEY (id_endereco) REFERENCES reciclagem.endereco(id_endereco) ON DELETE SET NULL;
 
 
 --
@@ -1555,7 +1497,7 @@ ALTER TABLE ONLY reciclagem.tb_endereco
 --
 
 ALTER TABLE ONLY reciclagem.vendas_itens
-    ADD CONSTRAINT fk_item_material FOREIGN KEY (id_material) REFERENCES reciclagem.tb_material(id_material);
+    ADD CONSTRAINT fk_item_material FOREIGN KEY (id_material) REFERENCES reciclagem.material(id_material);
 
 
 --
@@ -1571,7 +1513,7 @@ ALTER TABLE ONLY reciclagem.vendas_itens
 --
 
 ALTER TABLE ONLY reciclagem.estoque_movimentacoes
-    ADD CONSTRAINT fk_mov_material FOREIGN KEY (id_material) REFERENCES reciclagem.tb_material(id_material);
+    ADD CONSTRAINT fk_mov_material FOREIGN KEY (id_material) REFERENCES reciclagem.material(id_material);
 
 
 --
@@ -1579,47 +1521,55 @@ ALTER TABLE ONLY reciclagem.estoque_movimentacoes
 --
 
 ALTER TABLE ONLY reciclagem.estoque_movimentacoes
-    ADD CONSTRAINT fk_mov_usuario FOREIGN KEY (id_usuario) REFERENCES reciclagem.tb_usuario(id_usuario);
+    ADD CONSTRAINT fk_mov_usuario FOREIGN KEY (id_usuario) REFERENCES reciclagem.usuario(id_usuario);
 
 
 --
--- Name: tb_pesagem fk_pesagem_cliente; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: pesagem fk_pesagem_cliente; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_pesagem
+ALTER TABLE ONLY reciclagem.pesagem
     ADD CONSTRAINT fk_pesagem_cliente FOREIGN KEY (id_cliente) REFERENCES reciclagem.clientes(id_cliente);
 
 
 --
--- Name: tb_pesagem_material fk_pesagem_material_material; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: pesagem_material fk_pesagem_material_material; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_pesagem_material
-    ADD CONSTRAINT fk_pesagem_material_material FOREIGN KEY (id_material) REFERENCES reciclagem.tb_material(id_material);
-
-
---
--- Name: tb_pesagem fk_pesagem_usuario_cancelou; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
---
-
-ALTER TABLE ONLY reciclagem.tb_pesagem
-    ADD CONSTRAINT fk_pesagem_usuario_cancelou FOREIGN KEY (id_usuario_cancelou) REFERENCES reciclagem.tb_usuario(id_usuario);
+ALTER TABLE ONLY reciclagem.pesagem_material
+    ADD CONSTRAINT fk_pesagem_material_material FOREIGN KEY (id_material) REFERENCES reciclagem.material(id_material);
 
 
 --
--- Name: tb_registro_movimento fk_registro_admin; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: pesagem fk_pesagem_usuario_cancelou; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_registro_movimento
-    ADD CONSTRAINT fk_registro_admin FOREIGN KEY (id_usuario_admin) REFERENCES reciclagem.tb_usuario(id_usuario);
+ALTER TABLE ONLY reciclagem.pesagem
+    ADD CONSTRAINT fk_pesagem_usuario_cancelou FOREIGN KEY (id_usuario_cancelou) REFERENCES reciclagem.usuario(id_usuario);
 
 
 --
--- Name: tb_registro_movimento fk_registro_modificado; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: registro_movimento fk_registro_admin; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_registro_movimento
-    ADD CONSTRAINT fk_registro_modificado FOREIGN KEY (id_usuario_modificado) REFERENCES reciclagem.tb_usuario(id_usuario);
+ALTER TABLE ONLY reciclagem.registro_movimento
+    ADD CONSTRAINT fk_registro_admin FOREIGN KEY (id_usuario_admin) REFERENCES reciclagem.usuario(id_usuario);
+
+
+--
+-- Name: registro_movimento fk_registro_modificado; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
+--
+
+ALTER TABLE ONLY reciclagem.registro_movimento
+    ADD CONSTRAINT fk_registro_modificado FOREIGN KEY (id_usuario_modificado) REFERENCES reciclagem.usuario(id_usuario);
+
+
+--
+-- Name: usuario fk_usuario_endereco; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
+--
+
+ALTER TABLE ONLY reciclagem.usuario
+    ADD CONSTRAINT fk_usuario_endereco FOREIGN KEY (id_endereco) REFERENCES reciclagem.endereco(id_endereco) ON DELETE SET NULL;
 
 
 --
@@ -1643,7 +1593,7 @@ ALTER TABLE ONLY reciclagem.vendas
 --
 
 ALTER TABLE ONLY reciclagem.vendas
-    ADD CONSTRAINT fk_venda_usuario FOREIGN KEY (id_usuario) REFERENCES reciclagem.tb_usuario(id_usuario);
+    ADD CONSTRAINT fk_venda_usuario FOREIGN KEY (id_usuario) REFERENCES reciclagem.usuario(id_usuario);
 
 
 --
@@ -1651,7 +1601,7 @@ ALTER TABLE ONLY reciclagem.vendas
 --
 
 ALTER TABLE ONLY reciclagem.vendas
-    ADD CONSTRAINT fk_venda_usuario_cancelou FOREIGN KEY (id_usuario_cancelou) REFERENCES reciclagem.tb_usuario(id_usuario);
+    ADD CONSTRAINT fk_venda_usuario_cancelou FOREIGN KEY (id_usuario_cancelou) REFERENCES reciclagem.usuario(id_usuario);
 
 
 --
@@ -1667,7 +1617,7 @@ ALTER TABLE ONLY reciclagem.importacao_historico
 --
 
 ALTER TABLE ONLY reciclagem.importacao_historico
-    ADD CONSTRAINT importacao_historico_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES reciclagem.tb_usuario(id_usuario);
+    ADD CONSTRAINT importacao_historico_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES reciclagem.usuario(id_usuario);
 
 
 --
@@ -1683,7 +1633,7 @@ ALTER TABLE ONLY reciclagem.importacao_modelo
 --
 
 ALTER TABLE ONLY reciclagem.material_relacao
-    ADD CONSTRAINT material_relacao_id_material_fkey FOREIGN KEY (id_material) REFERENCES reciclagem.tb_material(id_material);
+    ADD CONSTRAINT material_relacao_id_material_fkey FOREIGN KEY (id_material) REFERENCES reciclagem.material(id_material);
 
 
 --
@@ -1695,15 +1645,15 @@ ALTER TABLE ONLY reciclagem.material_relacao
 
 
 --
--- Name: tb_pesagem_material tb_pesagem_tb_pesagem_material_fk; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
+-- Name: pesagem_material tb_pesagem_tb_pesagem_material_fk; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
-ALTER TABLE ONLY reciclagem.tb_pesagem_material
-    ADD CONSTRAINT tb_pesagem_tb_pesagem_material_fk FOREIGN KEY (id_pesagem) REFERENCES reciclagem.tb_pesagem(id_pesagem);
+ALTER TABLE ONLY reciclagem.pesagem_material
+    ADD CONSTRAINT tb_pesagem_tb_pesagem_material_fk FOREIGN KEY (id_pesagem) REFERENCES reciclagem.pesagem(id_pesagem);
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-
+COMMIT;

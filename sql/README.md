@@ -4,43 +4,35 @@ Tudo o que é necessário para recriar o banco em outra máquina.
 
 ## Instalação do zero
 
-Pré-requisitos: PostgreSQL 14 ou superior, e um banco vazio já criado. O schema
-`reciclagem` é criado pelo primeiro arquivo — não precisa criá-lo à mão.
+Pré-requisitos: PostgreSQL 14 ou superior (instalação conferida no 16), e um
+banco vazio já criado. O schema `reciclagem` é criado pelo primeiro arquivo —
+não precisa criá-lo à mão.
 
 ```bash
 createdb reciclagem
 
-# 1. estrutura (ponto zero)
+# 1. estrutura completa e final
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0000_baseline_schema.sql
 
-# 2. migrations posteriores à baseline, em ordem cronológica
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_padronizar_nomenclatura.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_endereco_unico_e_documento.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_remove_colunas_sem_uso.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_tipo.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_descricao.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-05_remove_recorrencia_despesa.sql
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-05_conta_cancelada_com_pagamento.sql
-
-# 3. seed único: os dados de referência e o administrador
+# 2. seed único: os dados de referência e o administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 
-# 4. (opcional, escolha UMA) dados fictícios -- nunca em produção
+# 3. (opcional, escolha UMA) dados fictícios -- nunca em produção
 #    demonstração pequena (75 dias):
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
 #    ou dois anos de operação, para testar relatórios com volume:
-# psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0003_seed_massa.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0003_seed_massa.sql
 ```
 
-São nove arquivos obrigatórios, e **um só de dados**. A ordem importa: o seed usa os nomes de
-tabela e coluna já padronizados, então ele é o **último** passo.
+São **dois arquivos obrigatórios**: a estrutura e o seed. Desde 05/11/2026 a
+baseline já é o schema final — não há migration para aplicar depois dela (ver
+[Como a baseline chegou aqui](#como-a-baseline-chegou-aqui)). Cada um roda em
+uma transação: ou entra inteiro, ou não entra.
 
 Os arquivos estão em UTF-8. A baseline e o seed declaram a codificação no
-topo (`SET client_encoding TO 'UTF8'`), então não é preciso ajustar o terminal —
-sem isso o psql assumiria a codificação do cliente, que no Windows em português
-é WIN1252, e abortaria na categoria `Água`. As duas migrations de 14/10 que têm
-texto acentuado também declaram; `2026-10-14_padronizar_nomenclatura.sql` não
-precisa, porque não tem um único caractere fora do ASCII.
+topo (`SET client_encoding`), então não é preciso ajustar o terminal — sem isso
+o psql assumiria a codificação do cliente, que no Windows em português é
+WIN1252, e abortaria na categoria `Água`.
 
 Testado: instalar com o cliente em WIN1252 e com o cliente em UTF-8 produz
 exatamente os mesmos dados e os mesmos comentários de tabela e de coluna.
@@ -129,72 +121,70 @@ seed leva os 33 ativos.
 
 | Arquivo | Papel |
 |---|---|
-| `0000_baseline_schema.sql` | Estrutura completa no estado de 14/10/2026: 20 tabelas, 203 colunas, 71 constraints e 23 índices próprios. É o ponto zero — até essa data as tabelas centrais não tinham DDL versionado |
-| `2026-10-14_padronizar_nomenclatura.sql` | Tira o prefixo `tb_` das tabelas e padroniza as PKs como `id_<entidade>` |
-| `2026-10-14_endereco_unico_e_documento.sql` | Unifica o endereço numa tabela só, remove `documento` (o CPF/CNPJ vira coluna da entidade) e `public.produtos` |
-| `2026-10-14_remove_colunas_sem_uso.sql` | Remove 8 colunas: deriváveis por `COUNT`, auditoria que `registro_movimento` já guarda, e uma nunca escrita nem lida |
-| `2026-11-04_registro_movimento_tipo.sql` | Aumenta `registro_movimento.tipo` para `varchar(40)`: o rótulo `Relacionamento Material` (23 caracteres) não cabia em 20 e quebrava a tela de relacionamentos |
-| `2026-11-04_registro_movimento_descricao.sql` | Aumenta `registro_movimento.descricao` para `varchar(255)`: descrições de despesa e motivos de cancelamento estouravam 100 caracteres depois da operação já gravada |
-| `2026-11-05_remove_recorrencia_despesa.sql` | Remove as colunas de recorrência de `contas_pagar`: eram gravadas e nunca usadas. Despesa que se repete é lançada como parcelamento (12x mensal, por exemplo) |
-| `2026-11-05_conta_cancelada_com_pagamento.sql` | Devolve a `ativa` as despesas canceladas que tinham parcela paga: os relatórios filtram `status = 'ativa'` e esses pagamentos sumiam das somas. O cancelamento passou a ser por parcela |
+| `0000_baseline_schema.sql` | **A estrutura, completa e final:** 19 tabelas, 175 colunas, 68 constraints (19 PK, 3 UNIQUE, 28 FK e 18 CHECK), 26 índices próprios e 24 comentários de tabela e coluna |
 | `0001_seed_inicial.sql` | **O seed único.** Dados de referência e o administrador |
 | `0002_seed_demo.sql` | **Opcional.** Massa pequena de demonstração em todas as tabelas — ver abaixo |
 | `0003_seed_massa.sql` | **Opcional, alternativa à 0002.** Dois anos de operação simulada, para testar volume — ver abaixo |
 | `seed_funcoes.sql` | Funções comuns às duas seeds; incluído por elas, não se roda sozinho |
-| `_arquivo/2026-*.sql` | As 8 migrations anteriores a 14/10/2026 — **registro histórico**, já incorporadas na baseline e fora da instalação |
+| `_arquivo/*.sql` | As 15 migrations já incorporadas na baseline — **histórico**, fora da instalação |
 
-As contagens acima e as da seção seguinte somam PK, UNIQUE, FK e CHECK. O
-PostgreSQL 17 e superiores também registram cada `NOT NULL` em `pg_constraint`;
-são 112 no estado final e ficam fora da conta.
+As contagens somam PK, UNIQUE, FK e CHECK. O PostgreSQL 17 e superiores também
+registram cada `NOT NULL` em `pg_constraint`; esses ficam fora da conta.
 
-## As migrations antigas, em `_arquivo/`
+## Como a baseline chegou aqui
 
-**As 8 migrations anteriores a 14/10/2026 são registro histórico: já estão
-incorporadas na baseline e não fazem parte da instalação.** Por isso saíram da
-raiz de `sql/` e foram para `sql/_arquivo/` em 30/10/2026 — continuam
-versionadas, só não se confundem mais com os arquivos que se roda.
+O schema foi construído em três fases, e as migrations de cada uma estão em
+`_arquivo/`:
 
-Elas foram escritas para serem idempotentes (`IF EXISTS` / `IF NOT EXISTS`), mas
-isso valia sobre o schema **daquela época**. Hoje 7 das 8 falham de saída, porque
-mexem em `tb_material`, `tb_usuario`, `tb_pesagem` e `tb_pesagem_material` —
-nomes que a migration de nomenclatura aposentou:
+| Fase | Migrations | O que fizeram |
+|---|---|---|
+| Até 01/10/2026 | 8 arquivos `2026-09-*` e `2026-10-01_*` | Tara, importação de vendas, estoque mínimo, financeiro, cancelamento. As tabelas centrais ainda não tinham DDL versionado |
+| 14/10/2026 | `2026-10-14_padronizar_nomenclatura.sql` | Tira o prefixo `tb_` das tabelas e padroniza as PKs como `id_<entidade>` |
+| | `2026-10-14_endereco_unico_e_documento.sql` | Unifica o endereço numa tabela só, remove `documento` (o CPF/CNPJ vira coluna da entidade) e `public.produtos` |
+| | `2026-10-14_remove_colunas_sem_uso.sql` | Remove 8 colunas: deriváveis por `COUNT`, auditoria que `registro_movimento` já guarda, e uma nunca escrita nem lida |
+| 04-05/11/2026 | `2026-11-04_registro_movimento_tipo.sql` | `registro_movimento.tipo` para `varchar(40)`: `Relacionamento Material` não cabia em 20 e quebrava a tela de relacionamentos |
+| | `2026-11-04_registro_movimento_descricao.sql` | `registro_movimento.descricao` para `varchar(255)`: descrições de despesa e motivos de cancelamento estouravam 100 caracteres depois da operação já gravada |
+| | `2026-11-05_remove_recorrencia_despesa.sql` | Remove as colunas de recorrência de `contas_pagar`, gravadas e nunca usadas |
+| | `2026-11-05_conta_cancelada_com_pagamento.sql` | Só dados: devolve a `ativa` as despesas canceladas que tinham parcela paga, que sumiam dos relatórios |
 
+Em 14/10/2026 o banco em produção foi exportado com `pg_dump --schema-only` e
+virou a primeira baseline; as migrations daquela data e as de novembro eram
+aplicadas depois dela. Em **05/11/2026 a baseline foi regerada** a partir do
+banco resultante de todo esse caminho, e passou a ser o schema final.
+
+**Conferido:** instalar pela baseline nova e instalar pelo caminho antigo
+(baseline de 14/10 + as sete migrations) produzem `pg_dump --schema-only`
+idênticos, linha por linha — mesmas tabelas, colunas, tipos, padrões,
+constraints, índices, sequências e comentários.
+
+### Atualizar um banco existente
+
+Instalação nova **não** usa nada de `_arquivo/`. As migrations de lá servem
+para atualizar um banco instalado antes de 05/11/2026: aplique, em ordem, as que
+ele ainda não tem.
+
+```bash
+# banco instalado entre 14/10 e 04/11/2026, por exemplo:
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/_arquivo/2026-11-04_registro_movimento_tipo.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/_arquivo/2026-11-04_registro_movimento_descricao.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/_arquivo/2026-11-05_remove_recorrencia_despesa.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/_arquivo/2026-11-05_conta_cancelada_com_pagamento.sql
 ```
-ERRO:  relação "tb_material" não existe
-```
 
-A única que ainda roda é
-`_arquivo/2026-09-24_comprovante_venda_importado.sql`, que toca em `vendas`,
-tabela que nunca teve o prefixo. Não é defeito: são registros de um schema que
-já não existe, e falhar é melhor que aplicar meia alteração.
+Para saber em que ponto um banco está: se `registro_movimento.descricao` ainda
+tem 100 caracteres, faltam as de novembro; se ainda existe `tb_usuario`, faltam
+também as de 14/10.
 
-Duas delas trazem dados junto da estrutura, e por isso parecem concorrer com o
-seed: `_arquivo/2026-09-25_financeiro.sql` insere as 16 categorias e os 7
-centros de custo, e `_arquivo/2026-09-24_limpeza_estrutura.sql` recria como
-inativos os materiais que compras antigas referenciavam. Numa instalação do zero
-nenhuma das duas roda, então não há duplicação — e, pelo parágrafo anterior, hoje
-as duas falham na primeira linha de qualquer jeito. O seed é a única origem
-desses dados.
+As migrations de 14/10 e a de recorrência **não** são idempotentes — uma
+segunda passada falha, porque tentaria renomear tabela que já tem o nome novo
+ou remover coluna que já saiu. É de propósito: numa migração de estrutura,
+falhar alto é melhor que seguir em silêncio sobre um banco em estado
+inesperado. As de 04/11 e a de despesas canceladas podem ser reaplicadas.
 
-## As três migrations de 14/10
-
-As três migrations **de** 14/10/2026 em diante **são necessárias**: a baseline
-reflete o estado anterior a elas. O passo 2 da instalação acima aplica as três,
-em ordem; migrations novas entram no fim dessa lista.
-
-As migrations de 14/10/2026 **não** são idempotentes — uma segunda passada falha,
-porque tentaria renomear tabela que já tem o nome novo ou remover coluna que já
-saiu. Isso é de propósito: numa migração de estrutura, falhar alto é melhor que
-seguir em silêncio sobre um banco em estado inesperado.
-
-Cada uma roda inteira em uma transação e aborta tudo se a conferência dos dados
-divergir — a de endereço compara campo por campo antes de derrubar coluna, e a
-de remoção recalcula cada valor derivável a partir da origem.
-
-Instalar do zero por este caminho produz **exatamente** o mesmo schema que
-migrar um banco existente: 19 tabelas, 175 colunas, 68 constraints (19 PK,
-3 UNIQUE, 28 FK e 18 CHECK) e 26 índices próprios — contagem depois da
-migration de 05/11/2026, que tirou as 5 colunas de recorrência e o CHECK delas.
+As 8 migrations anteriores a 14/10/2026 só valem para o schema daquela época:
+7 delas mexem em `tb_material`, `tb_usuario` e outras tabelas que a
+padronização renomeou, e falham de saída num banco atual
+(`ERRO: relação "tb_material" não existe`). São registro histórico.
 
 ## Massas de demonstração
 
