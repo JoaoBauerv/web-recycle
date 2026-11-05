@@ -172,8 +172,11 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-05_conta_cancelada_com_paga
 # 3. seed único: dados de referência e usuário administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 
-# 4. (opcional) dados de demonstração -- nunca em produção
+# 4. (opcional, escolha UMA) dados fictícios -- nunca em produção
+#    demonstração pequena (75 dias):
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
+#    ou dois anos de operação, para testar relatórios com volume:
+# psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0003_seed_massa.sql
 ```
 
 A ordem importa: o seed usa os nomes já padronizados, então é o **último** passo.

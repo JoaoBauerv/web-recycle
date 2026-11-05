@@ -25,8 +25,11 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-05_conta_cancelada_com_paga
 # 3. seed único: os dados de referência e o administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 
-# 4. (opcional) dados de demonstração -- nunca em produção
+# 4. (opcional, escolha UMA) dados fictícios -- nunca em produção
+#    demonstração pequena (75 dias):
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
+#    ou dois anos de operação, para testar relatórios com volume:
+# psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0003_seed_massa.sql
 ```
 
 São nove arquivos obrigatórios, e **um só de dados**. A ordem importa: o seed usa os nomes de
@@ -135,7 +138,9 @@ seed leva os 33 ativos.
 | `2026-11-05_remove_recorrencia_despesa.sql` | Remove as colunas de recorrência de `contas_pagar`: eram gravadas e nunca usadas. Despesa que se repete é lançada como parcelamento (12x mensal, por exemplo) |
 | `2026-11-05_conta_cancelada_com_pagamento.sql` | Devolve a `ativa` as despesas canceladas que tinham parcela paga: os relatórios filtram `status = 'ativa'` e esses pagamentos sumiam das somas. O cancelamento passou a ser por parcela |
 | `0001_seed_inicial.sql` | **O seed único.** Dados de referência e o administrador |
-| `0002_seed_demo.sql` | **Opcional.** Massa de demonstração em todas as tabelas — ver abaixo |
+| `0002_seed_demo.sql` | **Opcional.** Massa pequena de demonstração em todas as tabelas — ver abaixo |
+| `0003_seed_massa.sql` | **Opcional, alternativa à 0002.** Dois anos de operação simulada, para testar volume — ver abaixo |
+| `seed_funcoes.sql` | Funções comuns às duas seeds; incluído por elas, não se roda sozinho |
 | `_arquivo/2026-*.sql` | As 8 migrations anteriores a 14/10/2026 — **registro histórico**, já incorporadas na baseline e fora da instalação |
 
 As contagens acima e as da seção seguinte somam PK, UNIQUE, FK e CHECK. O
@@ -235,6 +240,59 @@ obrigatória: `fernanda.oliveira@example.com` (Admin) e
   alerta de estoque baixo aparecer.
 - **Só em banco recém-instalado**: aborta sem gravar nada se já houver cliente,
   compra ou venda. Para recomeçar, recrie o banco e rode a instalação de novo.
+
+### `0003_seed_massa.sql` — dois anos de operação, para testar volume
+
+**Opcional, nunca em produção, e alternativa à 0002**: rode uma ou a outra (a
+0003 recusa banco que já tenha a 0002). Simula 730 dias de operação, dia a dia,
+para testar relatórios, filtros, paginação e desempenho. Leva cerca de 15
+segundos:
+
+```bash
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0003_seed_massa.sql
+```
+
+| Tabela | Linhas (aprox.) | O que entra |
+|---|---|---|
+| `clientes` / `fornecedores` | 60 / 9 | 6 cooperativas, 8 sucatarias e 46 catadores, que entram e saem ao longo do período (5 inativados); compradores por grupo de material |
+| `usuario` | +5 | gerente (Admin) e quatro operadores com períodos diferentes (um inativo) |
+| `pesagem` / `pesagem_material` | 6.400 / 13.300 | compras de segunda a sábado, ~100 canceladas |
+| `vendas` / `vendas_itens` | 1.000 / 2.400 | terças e sextas, por grupo; ~50 importadas por planilha, ~20 canceladas |
+| `estoque_movimentacoes` | 16.000 | compras, vendas, estornos, perdas de inventário e sobras |
+| `contas_pagar` / `_parcelas` | 280 / 440 | 24 meses de despesas, com atrasos e juros, vencidas em aberto e cancelamentos |
+| `registro_movimento` | 8.500 | auditoria de tudo, inclusive 8 reajustes de preço |
+
+O que a simulação reproduz:
+
+- **Sazonalidade e crescimento**: dezembro forte, fevereiro fraco, volume ~50%
+  maior no fim do período que no começo.
+- **Clientes desiguais**: cooperativas e sucatarias trazem mais material e com
+  mais frequência que catadores (sorteio ponderado).
+- **Vendas por lote**: cada grupo (papel, plástico, metal, cobre, sucata) é
+  vendido quando o estoque passa do lote mínimo; parte do papel chega por
+  importação de planilha.
+- **Preços que mudam**: começam 14% abaixo do catálogo e são reajustados a cada
+  91 dias (com auditoria), então a margem varia no tempo.
+- **Financeiro realista**: salários de quem trabalhava no mês, energia mais
+  cara no verão, impostos de 3% sobre as vendas do mês anterior, contratos
+  anuais lançados em 12x, equipamentos parcelados, contrato encerrado no meio
+  (parcelas canceladas) e despesa cancelada por inteiro.
+
+Além das conferências da 0002 (saldo igual à trilha), a 0003 confere que o
+`saldo_apos` de cada movimentação é a soma acumulada em ordem cronológica — o
+extrato do estoque conta a história na ordem certa — e que nenhuma despesa
+cancelada tem parcela paga. `setseed()` torna a massa reproduzível.
+
+Usuários: os mesmos da 0002 (`fernanda.oliveira@example.com` Admin,
+`carlos.ramos@example.com`) mais `juliana.prado@example.com` e
+`marcos.vieira@example.com`, todos com a senha `admin@123`.
+
+### `seed_funcoes.sql`
+
+Funções auxiliares comuns às duas seeds (compra, venda, estorno, movimentação
+de estoque, conta a pagar, geração de CPF/CNPJ). **Não se roda sozinho**: cada
+seed o inclui com `\ir seed_funcoes.sql`, por isso as seeds precisam ser
+executadas pelo `psql`.
 
 ## Backup
 
