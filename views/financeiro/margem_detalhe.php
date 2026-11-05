@@ -27,7 +27,7 @@ if (!$m) {
     exit;
 }
 
-$p = [':id' => $id_material, ':inicio' => $filtros['inicio'] . ' 00:00:00', ':fim' => $filtros['fim'] . ' 23:59:59'];
+$p = [':id' => $id_material, ':inicio' => $filtros['inicio'] . ' 00:00:00', ':fim' => $filtros['fim'] . ' 23:59:59.999999'];
 
 $compras = $pdo->prepare("SELECT p.id_pesagem, p.data_pesagem, c.nome AS cliente,
                                  pm.peso_material, pm.peso_bruto, pm.tara, pm.preco_un,

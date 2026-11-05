@@ -145,7 +145,8 @@ switch ($acao) {
 
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
-            contasVoltar($tela, 'Erro', 'Não foi possível salvar: ' . $e->getMessage());
+            error_log('Não foi possível salvar: ' . $e->getMessage());
+            contasVoltar($tela, 'Erro', 'Não foi possível salvar. Confira os dados e tente novamente.');
         }
 
     // ---------------------------------------------------- registrar pagamento
@@ -175,13 +176,20 @@ switch ($acao) {
         if ($parcela['status'] === 'paga')      { contasVoltar($tela, 'Erro', 'Esta parcela já está paga.'); }
         if ($parcela['status'] === 'cancelada') { contasVoltar($tela, 'Erro', 'Parcela cancelada não pode ser paga.'); }
 
-        $pdo->prepare("UPDATE contas_pagar_parcelas
+        // A condição status = 'pendente' no próprio UPDATE é o que impede pagar
+        // duas vezes: dois envios do formulário (duplo clique, duas abas) passam
+        // juntos pela checagem acima, mas só o primeiro encontra a parcela pendente.
+        $pago = $pdo->prepare("UPDATE contas_pagar_parcelas
                        SET status = 'paga', data_pagamento = :dp, valor_pago = :vp,
                            forma_pagamento = :fp, id_usuario_pagamento = :u,
-                           observacao = COALESCE(NULLIF(:obs, ''), observacao)
-                       WHERE id_parcela = :id")
-            ->execute([':dp' => $data_pg, ':vp' => $valor_pago, ':fp' => $forma,
-                       ':u' => $_SESSION['id_usuario'], ':obs' => $obs, ':id' => $id_parcela]);
+                           observacao = LEFT(COALESCE(NULLIF(:obs, ''), observacao), 255)
+                       WHERE id_parcela = :id AND status = 'pendente'");
+        $pago->execute([':dp' => $data_pg, ':vp' => $valor_pago, ':fp' => $forma,
+                        ':u' => $_SESSION['id_usuario'], ':obs' => $obs, ':id' => $id_parcela]);
+
+        if ($pago->rowCount() === 0) {
+            contasVoltar($tela, 'Erro', 'Esta parcela já foi paga ou cancelada por outra operação.');
+        }
 
         contasAuditar($pdo, sprintf('Parcela %d/%d de "%s" paga: %s em %s por %s',
             $parcela['numero_parcela'], $parcela['total_parcelas'], $parcela['descricao'],
@@ -211,10 +219,15 @@ switch ($acao) {
 
         if (!$parcela) { contasVoltar($tela, 'Erro', 'Parcela não encontrada ou não está paga.'); }
 
-        $pdo->prepare("UPDATE contas_pagar_parcelas
+        $estorno = $pdo->prepare("UPDATE contas_pagar_parcelas
                        SET status = 'pendente', data_pagamento = NULL, valor_pago = NULL,
                            forma_pagamento = NULL, id_usuario_pagamento = NULL
-                       WHERE id_parcela = ?")->execute([$id_parcela]);
+                       WHERE id_parcela = ? AND status = 'paga'");
+        $estorno->execute([$id_parcela]);
+
+        if ($estorno->rowCount() === 0) {
+            contasVoltar($tela, 'Erro', 'Este pagamento já foi estornado por outra operação.');
+        }
 
         contasAuditar($pdo, sprintf('Pagamento ESTORNADO da parcela %d/%d de "%s" (era %s de %s)',
             $parcela['numero_parcela'], $parcela['total_parcelas'], $parcela['descricao'],
@@ -247,14 +260,18 @@ switch ($acao) {
                            WHERE id_conta = ? AND status = 'pendente'")->execute([$id_conta]);
 
             $pdo->prepare("UPDATE contas_pagar
-                           SET status = 'cancelada', observacoes = TRIM(COALESCE(observacoes, '') || ' [CANCELADA: ' || :m || ']')
-                           WHERE id_conta = :id")
+                           SET status = 'cancelada',
+                               -- observacoes é varchar(255): sem o LEFT, um motivo
+                               -- longo derrubava o cancelamento inteiro.
+                               observacoes = LEFT(TRIM(COALESCE(observacoes, '') || ' [CANCELADA: ' || :m || ']'), 255)
+                           WHERE id_conta = :id AND status = 'ativa'")
                 ->execute([':m' => $motivo, ':id' => $id_conta]);
 
             $pdo->commit();
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
-            contasVoltar($tela, 'Erro', 'Não foi possível cancelar: ' . $e->getMessage());
+            error_log('Não foi possível cancelar: ' . $e->getMessage());
+            contasVoltar($tela, 'Erro', 'Não foi possível cancelar. Confira os dados e tente novamente.');
         }
 
         contasAuditar($pdo, sprintf('Despesa #%d cancelada: %s (%s). Motivo: %s',
@@ -302,7 +319,8 @@ switch ($acao) {
             if ($e->getCode() === '23505') {
                 contasVoltar($destino, 'Erro', 'Já existe uma categoria ativa com esse nome.');
             }
-            contasVoltar($destino, 'Erro', 'Não foi possível salvar: ' . $e->getMessage());
+            error_log('Não foi possível salvar: ' . $e->getMessage());
+            contasVoltar($destino, 'Erro', 'Não foi possível salvar. Confira os dados e tente novamente.');
         }
 
         contasAuditar($pdo, "Categoria de despesa salva: $nome");

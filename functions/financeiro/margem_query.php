@@ -118,7 +118,7 @@ function margemAnalise(PDO $pdo, array $filtros): array
 {
     $params = [
         ':inicio' => $filtros['inicio'] . ' 00:00:00',
-        ':fim'    => $filtros['fim'] . ' 23:59:59',
+        ':fim'    => $filtros['fim'] . ' 23:59:59.999999',   // NOW() grava microssegundos: com :59 o último segundo do dia ficava de fora
     ];
 
     $where = ['m.status = 1'];
@@ -286,7 +286,7 @@ function margemSaldoMedio(PDO $pdo, string $inicio, string $fim): array
                            FROM estoque_movimentacoes
                            WHERE data_movimentacao <= :fim
                            ORDER BY id_material, data_movimentacao, id_movimentacao");
-    $stmt->execute([':fim' => $fim . ' 23:59:59']);
+    $stmt->execute([':fim' => $fim . ' 23:59:59.999999']);
 
     $inicio_ts = strtotime($inicio . ' 00:00:00');
     $fim_ts    = strtotime($fim . ' 23:59:59');
