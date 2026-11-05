@@ -115,6 +115,11 @@ if ($config['admin'] && (($_SESSION['permissao'] ?? '') !== 'Admin')) {
     exit;
 }
 
+// Telas como compra, venda e cadastro de usuário processam o próprio POST
+// antes de desenhar a página: o token é conferido aqui, uma vez, para todas.
+require_once __DIR__ . '/components/csrf.php';
+csrfExigirEmPost($url_base);
+
 $arquivo_conteudo = __DIR__ . '/views/' . $config['arquivo'] . '.php';
 
 // Sinaliza para sidebar.php que é o roteador quem vai fechar a página (evita fechar </html> cedo demais)
@@ -140,6 +145,36 @@ $router_managed = true;
 
     <!-- JS -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Token CSRF em todo POST, sem depender de cada formulário lembrar dele:
+         entra como campo escondido em todo <form method="post"> (na carga da
+         página e de novo no envio, para formulários criados depois) e como
+         cabeçalho X-CSRF-Token nas chamadas jQuery. O servidor recusa POST sem
+         ele — ver csrfExigirEmPost() em components/csrf.php. -->
+    <meta name="csrf-token" content="<?= htmlspecialchars(csrfToken(), ENT_QUOTES, 'UTF-8') ?>">
+    <script>
+        (function () {
+            var token = document.querySelector('meta[name="csrf-token"]').content;
+
+            function incluirToken(form) {
+                if (!form || form.method.toLowerCase() !== 'post' || form.querySelector('input[name="csrf_token"]')) {
+                    return;
+                }
+                var campo = document.createElement('input');
+                campo.type = 'hidden';
+                campo.name = 'csrf_token';
+                campo.value = token;
+                form.appendChild(campo);
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                document.querySelectorAll('form').forEach(incluirToken);
+            });
+            document.addEventListener('submit', function (e) { incluirToken(e.target); }, true);
+
+            jQuery.ajaxSetup({ headers: { 'X-CSRF-Token': token } });
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/pt-BR.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>

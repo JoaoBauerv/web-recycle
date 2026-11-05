@@ -6,7 +6,7 @@ require_once(__DIR__ . '/../../components/endereco.php');
 unset($_SESSION['msg_erro']);
 unset($_SESSION['msg_sucesso']);
 
-switch ($_REQUEST['acao']) {
+switch ($_REQUEST['acao'] ?? '') {
 
     case 'cadastrar':
 

@@ -2,6 +2,7 @@
 session_start();
 require_once(__DIR__ . '/../../banco.php');
 require_once(__DIR__ . '/../../functions/funcoes.php');
+require_once(__DIR__ . '/../../components/csrf.php');
 
 // Verificar se realmente precisa alterar a senha
 if (!isset($_SESSION['precisa_alterar_senha']) || !$_SESSION['precisa_alterar_senha']) {
@@ -13,6 +14,9 @@ define('REQUIRED_FIELD_ERROR', 'É necessário preencher esse campo!');
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Esta tela fica fora do roteador (index2.php), então confere o token aqui.
+    csrfExigir($url_base . '/views/user/alterar_senha.php');
+
     // Senha não passa por htmlspecialchars/stripslashes: isso alteraria o valor
     // digitado antes de conferir o hash. Os valores também nunca voltam para o
     // HTML (ver os inputs abaixo, sem atributo value).
@@ -113,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php endif; ?>
 
             <form action="" method="POST" id="formSenha" novalidate>
+                <?= csrfCampo() ?>
 
                 <div class="mb-3">
                     <label for="senha_atual" class="form-label">Senha atual</label>

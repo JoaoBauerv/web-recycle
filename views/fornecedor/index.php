@@ -50,12 +50,16 @@ $fornecedores = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                        title="Editar Fornecedor">
                                         <i class="fas fa-edit"></i> Editar
                                     </a>
-                                    <a href="<?=$url_base?>/functions/fornecedor/registrar.php?id=<?= $f['id_fornecedor'] ?>&acao=excluir"
-                                       onclick="return confirm('Tem certeza que deseja excluir este fornecedor?')"
-                                       class="btn btn-danger btn-sm"
-                                       title="Excluir Fornecedor">
-                                        <i class="fas fa-trash"></i> Excluir
-                                    </a>
+                                    <!-- POST, e não link: por GET a exclusão andava sem token. -->
+                                    <form method="POST" action="<?=$url_base?>/functions/fornecedor/registrar.php"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Tem certeza que deseja excluir este fornecedor?')">
+                                        <input type="hidden" name="acao" value="excluir">
+                                        <input type="hidden" name="id" value="<?= (int) $f['id_fornecedor'] ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Excluir Fornecedor">
+                                            <i class="fas fa-trash"></i> Excluir
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                             <?php endif; ?>

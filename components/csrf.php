@@ -69,6 +69,35 @@ function csrfExigir(string $url_destino): void
 }
 
 /**
+ * Checagem central: toda requisição POST precisa trazer o token.
+ *
+ * Chamada pelo middleware (endpoints em functions/) e pelo roteador (telas
+ * que processam o próprio formulário). Antes cada endpoint precisava lembrar
+ * de chamar csrfExigir(), e a maioria não chamava — pagamento de parcela,
+ * ajuste de estoque e finalizar compra estavam entre os desprotegidos.
+ *
+ * O token chega sem ninguém precisar mexer nos formulários: o layout
+ * (index2.php) injeta o campo em todo <form method="post"> e o cabeçalho
+ * X-CSRF-Token nas chamadas AJAX.
+ */
+function csrfExigirEmPost(string $url_base): void
+{
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST' || csrfValido()) {
+        return;
+    }
+
+    if (defined('MIDDLEWARE_RESPOSTA_JSON')) {
+        csrfExigirJson();
+    }
+
+    // Volta para a tela de onde o formulário veio, se ela for deste sistema.
+    $origem = $_SERVER['HTTP_REFERER'] ?? '';
+    $destino = str_starts_with($origem, $url_base . '/') ? strtok($origem, '#') : $url_base . '/index2.php';
+    $destino = preg_replace('/([?&])msg(Erro|Sucesso|Aviso)=[^&]*&?/', '$1', $destino);
+    csrfExigir(rtrim($destino, '?&'));
+}
+
+/**
  * Mesma checagem para endpoint consumido por AJAX, que espera JSON de volta.
  */
 function csrfExigirJson(): void

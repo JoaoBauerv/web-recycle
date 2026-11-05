@@ -50,12 +50,16 @@ $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                        title="Editar Cliente">
                                         <i class="fas fa-edit"></i> Editar
                                     </a>
-                                    <a href="<?=$url_base?>/functions/cliente/registrar.php?id=<?= $c['id_cliente'] ?>&acao=excluir"
-                                       onclick="return confirm('Tem certeza que deseja excluir este cliente?')"
-                                       class="btn btn-danger btn-sm"
-                                       title="Excluir Cliente">
-                                        <i class="fas fa-trash"></i> Excluir
-                                    </a>
+                                    <!-- POST, e não link: por GET a exclusão andava sem token. -->
+                                    <form method="POST" action="<?=$url_base?>/functions/cliente/registrar.php"
+                                          class="d-inline"
+                                          onsubmit="return confirm('Tem certeza que deseja excluir este cliente?')">
+                                        <input type="hidden" name="acao" value="excluir">
+                                        <input type="hidden" name="id" value="<?= (int) $c['id_cliente'] ?>">
+                                        <button type="submit" class="btn btn-danger btn-sm" title="Excluir Cliente">
+                                            <i class="fas fa-trash"></i> Excluir
+                                        </button>
+                                    </form>
                                 </div>
                             </td>
                             <?php endif; ?>
