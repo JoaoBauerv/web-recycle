@@ -18,6 +18,7 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_padronizar_nomenclatura.
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_endereco_unico_e_documento.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_remove_colunas_sem_uso.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_tipo.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_descricao.sql
 
 # 3. seed único: os dados de referência e o administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
@@ -26,7 +27,7 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
 ```
 
-São seis arquivos obrigatórios, e **um só de dados**. A ordem importa: o seed usa os nomes de
+São sete arquivos obrigatórios, e **um só de dados**. A ordem importa: o seed usa os nomes de
 tabela e coluna já padronizados, então ele é o **último** passo.
 
 Os arquivos estão em UTF-8. A baseline e o seed declaram a codificação no
@@ -128,6 +129,7 @@ seed leva os 33 ativos.
 | `2026-10-14_endereco_unico_e_documento.sql` | Unifica o endereço numa tabela só, remove `documento` (o CPF/CNPJ vira coluna da entidade) e `public.produtos` |
 | `2026-10-14_remove_colunas_sem_uso.sql` | Remove 8 colunas: deriváveis por `COUNT`, auditoria que `registro_movimento` já guarda, e uma nunca escrita nem lida |
 | `2026-11-04_registro_movimento_tipo.sql` | Aumenta `registro_movimento.tipo` para `varchar(40)`: o rótulo `Relacionamento Material` (23 caracteres) não cabia em 20 e quebrava a tela de relacionamentos |
+| `2026-11-04_registro_movimento_descricao.sql` | Aumenta `registro_movimento.descricao` para `varchar(255)`: descrições de despesa e motivos de cancelamento estouravam 100 caracteres depois da operação já gravada |
 | `0001_seed_inicial.sql` | **O seed único.** Dados de referência e o administrador |
 | `0002_seed_demo.sql` | **Opcional.** Massa de demonstração em todas as tabelas — ver abaixo |
 | `_arquivo/2026-*.sql` | As 8 migrations anteriores a 14/10/2026 — **registro histórico**, já incorporadas na baseline e fora da instalação |

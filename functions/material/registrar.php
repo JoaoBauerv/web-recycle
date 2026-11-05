@@ -10,7 +10,7 @@ unset($_SESSION['msg_erro']);
 unset($_SESSION['msg_sucesso']);
 
 // 'excluir' não manda nome; sem o ?? '' o PHP 8 emite aviso de chave indefinida.
-$nome = ucwords(strtolower($_REQUEST['nome'] ?? ''));
+$nome = nomeProprio($_REQUEST['nome'] ?? '');
 
 switch($_REQUEST['acao'] ?? ''){
 

@@ -147,7 +147,7 @@ $f$;
 CREATE FUNCTION pg_temp.auditar(p_admin int, p_alvo int, p_desc text, p_tipo text, p_data timestamp) RETURNS void
 LANGUAGE sql AS $f$
     INSERT INTO registro_movimento (id_usuario_admin, id_usuario_modificado, descricao, tipo, data)
-    VALUES (p_admin, p_alvo, left(p_desc, 100), p_tipo, p_data);
+    VALUES (p_admin, p_alvo, left(p_desc, 255), p_tipo, p_data);
 $f$;
 
 -- Mesma conta de estoqueMovimentar(): entrada soma, o resto subtrai.

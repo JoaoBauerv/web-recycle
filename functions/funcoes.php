@@ -9,7 +9,38 @@ function removerAcentos($string) {
 }
 
 
+/**
+ * Padroniza nome de pessoa, empresa ou material: "JOSÉ DA CONCEIÇÃO" vira
+ * "José da Conceição".
+ *
+ * ucwords(strtolower()) não serve: as duas só conhecem ASCII, então a letra
+ * acentuada fica como veio e o resultado é "JosÉ Da ConceiÇÃo". As preposições
+ * ficam em minúscula, exceto no começo do nome.
+ */
+function nomeProprio(string $texto): string
+{
+    $texto = trim(preg_replace('/\s+/u', ' ', $texto));
+    $texto = mb_convert_case($texto, MB_CASE_TITLE, 'UTF-8');
+
+    return preg_replace_callback(
+        '/(?<=\s)(Da|De|Do|Das|Dos|E)(?=\s)/u',
+        fn($m) => mb_strtolower($m[1], 'UTF-8'),
+        $texto
+    );
+}
+
+/**
+ * Grava uma linha na trilha de auditoria.
+ *
+ * A descrição é cortada no tamanho da coluna (registro_movimento.descricao,
+ * varchar(255)). Sem o corte, uma despesa ou um motivo de cancelamento longo
+ * derrubava o INSERT — e como a auditoria roda depois do commit da operação, o
+ * usuário via erro numa ação que já tinha sido gravada.
+ */
 function registraMovimentacao($id_cadastrou, $id_cadastrado, $descricao, $tipo, $pdo){
+
+$descricao = mb_substr((string) $descricao, 0, 255, 'UTF-8');
+
 
 $sql = "INSERT INTO registro_movimento (id_usuario_admin, id_usuario_modificado, descricao, tipo, data) VALUES (:id_cadastrou, :id_cadastrado, :descricao, :tipo, :data)";
 $stmt = $pdo->prepare($sql);

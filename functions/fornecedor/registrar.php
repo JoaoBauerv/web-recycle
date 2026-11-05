@@ -11,7 +11,7 @@ switch ($_REQUEST['acao']) {
     case 'cadastrar':
 
         try {
-            $nome = ucwords(strtolower(trim($_REQUEST['nome_razao_social'])));
+            $nome = nomeProprio($_REQUEST['nome_razao_social'] ?? '');
 
             if (empty($nome)) {
                 header("Location: $url_base/fornecedores/novo?msgErro=Nome/Razão Social é obrigatório.");
@@ -65,7 +65,7 @@ switch ($_REQUEST['acao']) {
 
         try {
             $id = (int) $_REQUEST['id'];
-            $nome = ucwords(strtolower(trim($_REQUEST['nome_razao_social'])));
+            $nome = nomeProprio($_REQUEST['nome_razao_social'] ?? '');
 
             // Reaproveita a linha de endereço que o fornecedor já apontava, se houver.
             $atual = $pdo->prepare("SELECT id_endereco FROM fornecedores WHERE id_fornecedor = :id");

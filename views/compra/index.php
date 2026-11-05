@@ -155,7 +155,7 @@ $pronto_para_finalizar = $cliente_selecionado && $total_itens > 0;
                             <div class="d-flex align-items-center">
                                 <div class="d-flex align-items-center justify-content-center me-3 text-white"
                                      style="width:48px;height:48px;border-radius:12px;background:var(--color-accent);font-weight:700;">
-                                    <?= htmlspecialchars(strtoupper(substr($cliente_selecionado['nome'], 0, 1))) ?>
+                                    <?= htmlspecialchars(mb_strtoupper(mb_substr($cliente_selecionado['nome'], 0, 1))) ?>
                                 </div>
                                 <div>
                                     <strong class="d-block"><?= htmlspecialchars($cliente_selecionado['nome']) ?></strong>

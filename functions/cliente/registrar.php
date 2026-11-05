@@ -11,7 +11,7 @@ switch ($_REQUEST['acao']) {
     case 'cadastrar':
 
         try {
-            $nome = ucwords(strtolower(trim($_REQUEST['nome'])));
+            $nome = nomeProprio($_REQUEST['nome'] ?? '');
 
             if (empty($nome)) {
                 header("Location: $url_base/clientes/novo?msgErro=Nome é obrigatório.");
@@ -68,7 +68,7 @@ switch ($_REQUEST['acao']) {
 
         try {
             $id = (int) $_REQUEST['id'];
-            $nome = ucwords(strtolower(trim($_REQUEST['nome'])));
+            $nome = nomeProprio($_REQUEST['nome'] ?? '');
 
             $preco_especial = isset($_REQUEST['preco_especial']) && $_REQUEST['preco_especial'] === 'on';
 
