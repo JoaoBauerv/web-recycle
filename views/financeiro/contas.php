@@ -318,11 +318,18 @@ $usuarios   = $pdo->query("SELECT id_usuario, nome FROM usuario WHERE status = 1
                                         </form>
                                     <?php endif; ?>
 
-                                    <?php if ($pode_cancelar && $p['status_conta'] === 'ativa'): ?>
+                                    <?php if ($pode_cancelar && $p['status_conta'] === 'ativa' && $p['status'] !== 'cancelada'): ?>
                                         <button type="button" class="btn btn-sm btn-outline-danger btn-cancelar"
-                                                data-conta="<?= (int) $p['id_conta'] ?>"
-                                                data-descricao="<?= htmlspecialchars($p['descricao'], ENT_QUOTES) ?>"
-                                                title="Cancelar despesa inteira">
+                                                data-parcela='<?= htmlspecialchars(json_encode([
+                                                    'id' => (int) $p['id_parcela'],
+                                                    'descricao' => $p['descricao'],
+                                                    'numero' => (int) $p['numero_parcela'],
+                                                    'total' => (int) $p['total_parcelas'],
+                                                    'valor' => financeiroMoeda((float) $p['valor']),
+                                                    'vencimento' => date('d/m/Y', strtotime($p['data_vencimento'])),
+                                                    'pendente' => $p['status'] === 'pendente',
+                                                ]), ENT_QUOTES) ?>'
+                                                title="Cancelar parcela ou despesa">
                                             <i class="bi bi-x-lg" aria-hidden="true"></i>
                                         </button>
                                     <?php endif; ?>
@@ -402,11 +409,27 @@ $usuarios   = $pdo->query("SELECT id_usuario, nome FROM usuario WHERE status = 1
                             <small class="form-text text-muted">Registra o custo, não substitui folha de pagamento.</small>
                         </div>
 
+                        <div class="col-12">
+                            <span class="form-label d-block">Como informar o valor</span>
+                            <div class="btn-group" role="group" aria-label="Como informar o valor">
+                                <input type="radio" class="btn-check" name="modo_valor" id="modo_total" value="total" checked>
+                                <label class="btn btn-outline-secondary" for="modo_total">
+                                    <i class="bi bi-pie-chart me-1" aria-hidden="true"></i>Valor total dividido nas parcelas
+                                </label>
+                                <input type="radio" class="btn-check" name="modo_valor" id="modo_parcela" value="parcela">
+                                <label class="btn btn-outline-secondary" for="modo_parcela">
+                                    <i class="bi bi-stack me-1" aria-hidden="true"></i>Valor de cada parcela
+                                </label>
+                            </div>
+                        </div>
+
                         <div class="col-md-4">
-                            <label for="valor_form" class="form-label">Valor total <span class="text-danger">*</span></label>
+                            <label for="valor_form" class="form-label">
+                                <span id="rotulo-valor">Valor total</span> <span class="text-danger">*</span>
+                            </label>
                             <div class="input-group">
                                 <span class="input-group-text">R$</span>
-                                <input type="text" name="valor_total" id="valor_form" class="form-control"
+                                <input type="text" name="valor" id="valor_form" class="form-control"
                                        inputmode="decimal" required placeholder="0,00">
                             </div>
                         </div>
@@ -457,7 +480,7 @@ $usuarios   = $pdo->query("SELECT id_usuario, nome FROM usuario WHERE status = 1
                     <p class="small text-muted mt-2 mb-0" id="previa-parcelas"></p>
                     <p class="small text-muted mt-1 mb-0">
                         Despesa que se repete (aluguel, internet, salário) é lançada com o número de
-                        parcelas que cobre o período — por exemplo, 12x mensal para um ano.
+                        parcelas que cobre o período — por exemplo, 12x de R$ 3.500,00 mensal para um ano.
                     </p>
 
                     <div class="mt-3">
@@ -542,13 +565,43 @@ $usuarios   = $pdo->query("SELECT id_usuario, nome FROM usuario WHERE status = 1
         <div class="modal-content">
             <form method="POST" action="<?= $acoes ?>">
                 <input type="hidden" name="acao" value="cancelar">
-                <input type="hidden" name="id_conta" id="cn-conta">
+                <input type="hidden" name="id_parcela" id="cn-parcela">
                 <div class="modal-header">
-                    <h5 class="modal-title">Cancelar despesa</h5>
+                    <h5 class="modal-title">Cancelar</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="mb-3">Cancelar <strong id="cn-descricao"></strong> e todas as parcelas <em>pendentes</em>?</p>
+                    <p class="mb-3">
+                        <strong id="cn-descricao"></strong>
+                        <small class="text-muted d-block" id="cn-detalhe"></small>
+                    </p>
+
+                    <fieldset class="mb-3">
+                        <legend class="form-label fs-6">O que cancelar?</legend>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="escopo" id="cn-escopo-parcela" value="parcela" required>
+                            <label class="form-check-label" for="cn-escopo-parcela">
+                                Só esta parcela
+                                <small class="text-muted d-block" id="cn-aviso-paga" hidden>
+                                    Esta parcela já foi paga. Para desfazer, use o estorno do pagamento.
+                                </small>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="escopo" id="cn-escopo-seguintes" value="seguintes">
+                            <label class="form-check-label" for="cn-escopo-seguintes">
+                                Esta e as próximas pendentes
+                                <small class="text-muted d-block">Ex.: contrato encerrado antes do fim.</small>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="escopo" id="cn-escopo-todas" value="todas">
+                            <label class="form-check-label" for="cn-escopo-todas">
+                                Todas as parcelas pendentes da despesa
+                            </label>
+                        </div>
+                    </fieldset>
+
                     <div class="alert alert-light border small">
                         <i class="bi bi-info-circle me-1" aria-hidden="true"></i>
                         Parcelas já pagas são mantidas: o dinheiro saiu de verdade e apagar isso falsearia o histórico.
@@ -560,7 +613,7 @@ $usuarios   = $pdo->query("SELECT id_usuario, nome FROM usuario WHERE status = 1
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Voltar</button>
-                    <button type="submit" class="btn btn-danger">Cancelar despesa</button>
+                    <button type="submit" class="btn btn-danger">Confirmar cancelamento</button>
                 </div>
             </form>
         </div>
@@ -601,27 +654,44 @@ $(function () {
         document.getElementById('bloco-funcionario').hidden = !eFuncionario;
     });
 
-    // Prévia do parcelamento: confere o valor antes de salvar.
+    // Prévia do parcelamento: confere o valor antes de salvar. A conta é a
+    // mesma do servidor (financeiroDividirParcelas): no modo "total", a sobra
+    // de centavos vai para a 1ª parcela; no modo "parcela", todas são iguais.
     function previaParcelas() {
         const bruto = ($('#valor_form').val() || '').replace(/\./g, '').replace(',', '.');
-        const total = parseFloat(bruto);
+        const valor = parseFloat(bruto);
         const n = parseInt($('#parcelas_form').val(), 10) || 1;
+        const porParcela = $('input[name=modo_valor]:checked').val() === 'parcela';
         const alvo = document.getElementById('previa-parcelas');
-
-        if (!total || total <= 0 || n < 1) { alvo.textContent = ''; return; }
-
-        const centavos = Math.round(total * 100);
-        const base = Math.floor(centavos / n);
-        const sobra = centavos - base * n;
         const fmt = v => (v / 100).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
+        $('#rotulo-valor').text(porParcela ? 'Valor de cada parcela' : 'Valor total');
+
+        if (!valor || valor <= 0 || n < 1) { alvo.textContent = ''; return; }
+
+        const centavos = Math.round(valor * 100);
+
+        if (porParcela) {
+            alvo.textContent = n === 1
+                ? 'Parcela única de R$ ' + fmt(centavos)
+                : n + 'x de R$ ' + fmt(centavos) + ' = total R$ ' + fmt(centavos * n);
+            return;
+        }
+
+        const base = Math.floor(centavos / n);
+        const sobra = centavos - base * n;
         alvo.textContent = n === 1
             ? 'Parcela única de R$ ' + fmt(centavos)
-            : n + 'x de R$ ' + fmt(base) + (sobra > 0 ? ' (a 1ª fica R$ ' + fmt(base + sobra) + ')' : '');
+            : n + 'x de R$ ' + fmt(base) + (sobra > 0 ? ' (a 1ª fica R$ ' + fmt(base + sobra) + ')' : '')
+              + ' = total R$ ' + fmt(centavos);
     }
     $('#valor_form, #parcelas_form').on('input', previaParcelas);
+    $('input[name=modo_valor]').on('change', previaParcelas);
 
-    $('.btn-pagar').on('click', function () {
+    // Delegado no document, não ligado em cada botão: o DataTables só mantém
+    // no DOM as linhas da página atual, e um .on() direto deixava sem ação os
+    // botões da segunda página em diante.
+    $(document).on('click', '.btn-pagar', function () {
         const p = $(this).data('parcela');
         $('#pg-parcela').val(p.id);
         $('#pg-valor').val(p.valor);
@@ -630,9 +700,20 @@ $(function () {
         new bootstrap.Modal(document.getElementById('modalPagamento')).show();
     });
 
-    $('.btn-cancelar').on('click', function () {
-        $('#cn-conta').val($(this).data('conta'));
-        $('#cn-descricao').text($(this).data('descricao'));
+    $(document).on('click', '.btn-cancelar', function () {
+        const p = $(this).data('parcela');
+        $('#cn-parcela').val(p.id);
+        $('#cn-descricao').text(p.descricao);
+        $('#cn-detalhe').text('Parcela ' + p.numero + '/' + p.total + ' — ' + p.valor + ', vence em ' + p.vencimento);
+
+        // Parcela paga não se cancela sozinha (estorno é o caminho); as outras
+        // opções continuam valendo para as pendentes da mesma despesa.
+        $('#cn-escopo-parcela').prop('disabled', !p.pendente);
+        $('#cn-aviso-paga').prop('hidden', p.pendente);
+        $('input[name=escopo]').prop('checked', false);
+        $(p.pendente ? '#cn-escopo-parcela' : '#cn-escopo-todas').prop('checked', true);
+        $('#cn-motivo').val('');
+
         new bootstrap.Modal(document.getElementById('modalCancelar')).show();
     });
 });

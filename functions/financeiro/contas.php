@@ -43,7 +43,7 @@ switch ($acao) {
         $id_centro   = (int) ($_POST['id_centro'] ?? 0) ?: null;
         $favorecido  = trim($_POST['favorecido'] ?? '');
         $id_func     = (int) ($_POST['id_usuario_func'] ?? 0) ?: null;
-        $valor_total = financeiroNumero($_POST['valor_total'] ?? '');
+        $valor       = financeiroNumero($_POST['valor'] ?? '');
         $emissao     = financeiroData($_POST['data_emissao'] ?? '');
         $observacoes = trim($_POST['observacoes'] ?? '');
 
@@ -52,14 +52,30 @@ switch ($acao) {
         $primeiro_vc = financeiroData($_POST['primeiro_vencimento'] ?? '');
         $forma       = $_POST['forma_pagamento'] ?? '';
 
+        // Duas formas de informar o valor:
+        //   'total'   — R$ 1.200 em 12x: o total é dividido (a sobra de centavos
+        //               vai para a 1ª parcela, ver financeiroDividirParcelas);
+        //   'parcela' — 12x de R$ 100: cada parcela tem o valor digitado e o
+        //               total é a multiplicação.
+        $modo_valor  = ($_POST['modo_valor'] ?? 'total') === 'parcela' ? 'parcela' : 'total';
+
         if ($descricao === '')      { contasVoltar($tela, 'Erro', 'Informe a descrição da despesa.'); }
         if (!$id_categoria)         { contasVoltar($tela, 'Erro', 'Selecione a categoria.'); }
-        if ($valor_total === null || $valor_total <= 0) { contasVoltar($tela, 'Erro', 'Informe um valor maior que zero.'); }
+        if ($valor === null || $valor <= 0) { contasVoltar($tela, 'Erro', 'Informe um valor maior que zero.'); }
         if (!$emissao)              { contasVoltar($tela, 'Erro', 'Informe a data da despesa.'); }
         if (!$primeiro_vc)          { contasVoltar($tela, 'Erro', 'Informe a data do primeiro vencimento.'); }
         if ($parcelas > 120)        { contasVoltar($tela, 'Erro', 'No máximo 120 parcelas.'); }
         if ($forma !== '' && !isset(FINANCEIRO_FORMAS[$forma])) { contasVoltar($tela, 'Erro', 'Forma de pagamento inválida.'); }
         if (!isset(FINANCEIRO_PERIODOS[$periodo])) { contasVoltar($tela, 'Erro', 'Selecione o intervalo entre as parcelas.'); }
+
+        $valores = $modo_valor === 'parcela'
+            ? array_fill(0, $parcelas, round($valor, 2))
+            : financeiroDividirParcelas($valor, $parcelas);
+        $valor_total = round(array_sum($valores), 2);
+
+        if ($modo_valor === 'total' && $valores[$parcelas - 1] <= 0) {
+            contasVoltar($tela, 'Erro', 'O valor total é pequeno demais para tantas parcelas.');
+        }
 
         try {
             $pdo->beginTransaction();
@@ -87,7 +103,7 @@ switch ($acao) {
                     // Sem parcela paga, regera o parcelamento com os valores novos.
                     $pdo->prepare("DELETE FROM contas_pagar_parcelas WHERE id_conta = ? AND status <> 'paga'")
                         ->execute([$id_conta]);
-                    contasGerarParcelas($pdo, $id_conta, $valor_total, $parcelas, $primeiro_vc, $periodo, $forma);
+                    contasGerarParcelas($pdo, $id_conta, $valores, $primeiro_vc, $periodo, $forma);
                     $pdo->prepare("UPDATE contas_pagar SET valor_total = ? WHERE id_conta = ?")
                         ->execute([$valor_total, $id_conta]);
                 }
@@ -113,14 +129,17 @@ switch ($acao) {
             ]);
             $id_conta = (int) $stmt->fetchColumn();
 
-            contasGerarParcelas($pdo, $id_conta, $valor_total, $parcelas, $primeiro_vc, $periodo, $forma);
+            contasGerarParcelas($pdo, $id_conta, $valores, $primeiro_vc, $periodo, $forma);
 
             $pdo->commit();
 
-            contasAuditar($pdo, sprintf('Despesa #%d criada: %s, %s em %dx',
-                $id_conta, $descricao, financeiroMoeda($valor_total), $parcelas));
+            $resumo = $modo_valor === 'parcela'
+                ? sprintf('%dx de %s (total %s)', $parcelas, financeiroMoeda($valores[0]), financeiroMoeda($valor_total))
+                : sprintf('%s em %dx', financeiroMoeda($valor_total), $parcelas);
 
-            contasVoltar($tela, 'Sucesso', sprintf('Despesa #%d criada com %d parcela(s).', $id_conta, $parcelas));
+            contasAuditar($pdo, sprintf('Despesa #%d criada: %s, %s', $id_conta, $descricao, $resumo));
+
+            contasVoltar($tela, 'Sucesso', sprintf('Despesa #%d criada: %s.', $id_conta, $resumo));
 
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
@@ -214,49 +233,108 @@ switch ($acao) {
 
         contasVoltar($tela, 'Sucesso', 'Pagamento estornado. A parcela voltou a pendente.');
 
-    // ------------------------------------------------------ cancelar conta
+    // -------------------------------------------------- cancelar parcela(s)
+    // Três alcances, escolhidos no modal a partir de uma parcela:
+    //   'parcela'   — só ela;
+    //   'seguintes' — ela e as pendentes depois dela (contrato encerrado no meio);
+    //   'todas'     — todas as pendentes da despesa.
+    //
+    // Parcela paga NÃO é cancelada em nenhum dos três: o dinheiro saiu de verdade
+    // e apagar isso falsearia o histórico. Para desfazer um pagamento existe o
+    // estorno, que a devolve a pendente.
+    //
+    // A despesa só passa a 'cancelada' quando não sobra nenhuma parcela fora de
+    // 'cancelada'. Se houver parcela paga ela continua 'ativa': os relatórios
+    // filtram c.status = 'ativa', e cancelar a conta inteira (como era antes)
+    // tirava das somas o que já tinha sido pago.
     case 'cancelar':
         exigirPermissao('financeiro.conta_cancelar', $url_base);
 
-        $id_conta = (int) ($_POST['id_conta'] ?? 0);
+        $id_parcela = (int) ($_POST['id_parcela'] ?? 0);
+        $escopo = $_POST['escopo'] ?? '';
         $motivo = trim($_POST['motivo'] ?? '');
 
-        if (!$id_conta) { contasVoltar($tela, 'Erro', 'Despesa não informada.'); }
-        if ($motivo === '') { contasVoltar($tela, 'Erro', 'Informe o motivo do cancelamento.'); }
+        $escopos = ['parcela' => 'só esta parcela', 'seguintes' => 'esta e as próximas', 'todas' => 'todas as pendentes'];
 
-        $stmt = $pdo->prepare("SELECT descricao, valor_total FROM contas_pagar WHERE id_conta = ? AND status = 'ativa'");
-        $stmt->execute([$id_conta]);
-        $conta = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$conta) { contasVoltar($tela, 'Erro', 'Despesa não encontrada ou já cancelada.'); }
+        if (!$id_parcela)               { contasVoltar($tela, 'Erro', 'Parcela não informada.'); }
+        if (!isset($escopos[$escopo]))  { contasVoltar($tela, 'Erro', 'Escolha o que cancelar.'); }
+        if ($motivo === '')             { contasVoltar($tela, 'Erro', 'Informe o motivo do cancelamento.'); }
+        if (mb_strlen($motivo) > 150)   { contasVoltar($tela, 'Erro', 'O motivo deve ter no máximo 150 caracteres.'); }
 
         try {
             $pdo->beginTransaction();
 
-            // Parcela paga NÃO é cancelada: o dinheiro saiu de verdade e apagar
-            // isso falsearia o histórico. Só as pendentes deixam de ser devidas.
-            $pdo->prepare("UPDATE contas_pagar_parcelas SET status = 'cancelada'
-                           WHERE id_conta = ? AND status = 'pendente'")->execute([$id_conta]);
+            // FOR UPDATE na conta: dois cancelamentos simultâneos da mesma
+            // despesa decidiriam o status final a partir da mesma leitura.
+            $stmt = $pdo->prepare("SELECT pa.id_conta, pa.numero_parcela, c.descricao
+                                   FROM contas_pagar_parcelas pa
+                                   JOIN contas_pagar c ON c.id_conta = pa.id_conta
+                                   WHERE pa.id_parcela = ? AND c.status = 'ativa'
+                                   FOR UPDATE OF c");
+            $stmt->execute([$id_parcela]);
+            $alvo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            $pdo->prepare("UPDATE contas_pagar
-                           SET status = 'cancelada',
-                               -- observacoes é varchar(255): sem o LEFT, um motivo
-                               -- longo derrubava o cancelamento inteiro.
-                               observacoes = LEFT(TRIM(COALESCE(observacoes, '') || ' [CANCELADA: ' || :m || ']'), 255)
-                           WHERE id_conta = :id AND status = 'ativa'")
-                ->execute([':m' => $motivo, ':id' => $id_conta]);
+            if (!$alvo) {
+                throw new DomainException('Despesa não encontrada ou já cancelada.');
+            }
+
+            $filtro = match ($escopo) {
+                'parcela'   => 'id_parcela = :p',
+                'seguintes' => 'id_conta = :c AND numero_parcela >= :n',
+                'todas'     => 'id_conta = :c',
+            };
+            $params = match ($escopo) {
+                'parcela'   => [':p' => $id_parcela],
+                'seguintes' => [':c' => $alvo['id_conta'], ':n' => $alvo['numero_parcela']],
+                'todas'     => [':c' => $alvo['id_conta']],
+            };
+
+            // observacao é varchar(255): o LEFT impede que o motivo derrube o UPDATE.
+            $cancelar = $pdo->prepare("UPDATE contas_pagar_parcelas
+                                       SET status = 'cancelada',
+                                           observacao = LEFT(TRIM(COALESCE(observacao, '') || ' [CANCELADA: ' || :m || ']'), 255)
+                                       WHERE $filtro AND status = 'pendente'");
+            $cancelar->execute($params + [':m' => $motivo]);
+            $qtd = $cancelar->rowCount();
+
+            if ($qtd === 0) {
+                throw new DomainException($escopo === 'parcela'
+                    ? 'Esta parcela não está pendente. Parcela paga não se cancela: estorne o pagamento antes.'
+                    : 'Não há parcelas pendentes para cancelar.');
+            }
+
+            // Sobrou alguma parcela que não esteja cancelada? Se não, a despesa
+            // inteira deixa de existir para os relatórios.
+            $vivas = $pdo->prepare("SELECT COUNT(*) FROM contas_pagar_parcelas
+                                    WHERE id_conta = ? AND status <> 'cancelada'");
+            $vivas->execute([$alvo['id_conta']]);
+            $encerrada = (int) $vivas->fetchColumn() === 0;
+
+            if ($encerrada) {
+                $pdo->prepare("UPDATE contas_pagar
+                               SET status = 'cancelada',
+                                   observacoes = LEFT(TRIM(COALESCE(observacoes, '') || ' [CANCELADA: ' || :m || ']'), 255)
+                               WHERE id_conta = :id")
+                    ->execute([':m' => $motivo, ':id' => $alvo['id_conta']]);
+            }
 
             $pdo->commit();
+        } catch (DomainException $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            contasVoltar($tela, 'Erro', $e->getMessage());
         } catch (Throwable $e) {
             if ($pdo->inTransaction()) { $pdo->rollBack(); }
             error_log('Não foi possível cancelar: ' . $e->getMessage());
             contasVoltar($tela, 'Erro', 'Não foi possível cancelar. Confira os dados e tente novamente.');
         }
 
-        contasAuditar($pdo, sprintf('Despesa #%d cancelada: %s (%s). Motivo: %s',
-            $id_conta, $conta['descricao'], financeiroMoeda((float) $conta['valor_total']), $motivo));
+        contasAuditar($pdo, sprintf('Despesa #%d (%s): %d parcela(s) cancelada(s) — %s, a partir da %dª%s. Motivo: %s',
+            $alvo['id_conta'], $alvo['descricao'], $qtd, $escopos[$escopo], $alvo['numero_parcela'],
+            $encerrada ? '; despesa encerrada' : '', $motivo));
 
-        contasVoltar($tela, 'Sucesso', "Despesa #$id_conta cancelada. As parcelas pagas foram mantidas no histórico.");
+        contasVoltar($tela, 'Sucesso', sprintf('%d parcela(s) cancelada(s).%s', $qtd, $encerrada
+            ? ' Não restou parcela ativa, então a despesa foi cancelada.'
+            : ' As demais parcelas continuam valendo.'));
 
     // --------------------------------------------------------- categorias
     case 'categoria':
@@ -313,13 +391,16 @@ switch ($acao) {
 /**
  * Cria as parcelas de uma conta.
  *
- * O valor é dividido sem perder centavos e os vencimentos respeitam meses com
- * menos dias — ver financeiroDividirParcelas() e financeiroVencimentos().
+ * Recebe o valor de cada parcela já calculado — dividido do total ou repetido,
+ * conforme o modo escolhido no formulário. Os vencimentos respeitam meses com
+ * menos dias — ver financeiroVencimentos().
+ *
+ * @param float[] $valores um valor por parcela, na ordem
  */
-function contasGerarParcelas(PDO $pdo, int $id_conta, float $total, int $quantidade,
+function contasGerarParcelas(PDO $pdo, int $id_conta, array $valores,
                              string $primeiro_vencimento, string $periodo, string $forma): void
 {
-    $valores = financeiroDividirParcelas($total, $quantidade);
+    $quantidade = count($valores);
     $datas = financeiroVencimentos($primeiro_vencimento, $quantidade, $periodo);
 
     // O total de parcelas não é gravado: é COUNT(*) por id_conta. Ver

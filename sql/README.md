@@ -20,6 +20,7 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_remove_colunas_sem_uso.s
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_tipo.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_descricao.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-05_remove_recorrencia_despesa.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-05_conta_cancelada_com_pagamento.sql
 
 # 3. seed único: os dados de referência e o administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
@@ -28,7 +29,7 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
 ```
 
-São oito arquivos obrigatórios, e **um só de dados**. A ordem importa: o seed usa os nomes de
+São nove arquivos obrigatórios, e **um só de dados**. A ordem importa: o seed usa os nomes de
 tabela e coluna já padronizados, então ele é o **último** passo.
 
 Os arquivos estão em UTF-8. A baseline e o seed declaram a codificação no
@@ -132,6 +133,7 @@ seed leva os 33 ativos.
 | `2026-11-04_registro_movimento_tipo.sql` | Aumenta `registro_movimento.tipo` para `varchar(40)`: o rótulo `Relacionamento Material` (23 caracteres) não cabia em 20 e quebrava a tela de relacionamentos |
 | `2026-11-04_registro_movimento_descricao.sql` | Aumenta `registro_movimento.descricao` para `varchar(255)`: descrições de despesa e motivos de cancelamento estouravam 100 caracteres depois da operação já gravada |
 | `2026-11-05_remove_recorrencia_despesa.sql` | Remove as colunas de recorrência de `contas_pagar`: eram gravadas e nunca usadas. Despesa que se repete é lançada como parcelamento (12x mensal, por exemplo) |
+| `2026-11-05_conta_cancelada_com_pagamento.sql` | Devolve a `ativa` as despesas canceladas que tinham parcela paga: os relatórios filtram `status = 'ativa'` e esses pagamentos sumiam das somas. O cancelamento passou a ser por parcela |
 | `0001_seed_inicial.sql` | **O seed único.** Dados de referência e o administrador |
 | `0002_seed_demo.sql` | **Opcional.** Massa de demonstração em todas as tabelas — ver abaixo |
 | `_arquivo/2026-*.sql` | As 8 migrations anteriores a 14/10/2026 — **registro histórico**, já incorporadas na baseline e fora da instalação |
