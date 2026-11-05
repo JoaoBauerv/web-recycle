@@ -17,12 +17,21 @@
 -- no repositorio como historico e sao idempotentes (IF EXISTS / IF NOT EXISTS),
 -- de modo que reaplicar nao quebra.
 --
+-- COMPATIBILIDADE (04/11/2026)
+--   O dump saiu do pg_dump 18 e trazia tres linhas que so o 17/18 entendem:
+--     SET transaction_timeout = 0;      parametro criado no PostgreSQL 17
+--     \restrict <chave> / \unrestrict   meta-comandos do psql criados nas
+--                                       versoes de agosto/2025
+--   Num PostgreSQL 16, ou com um psql mais antigo, a instalacao abortava na
+--   primeira delas. As tres foram retiradas: transaction_timeout = 0 e o padrao
+--   (sem limite), e \restrict so protege a restauracao de dump de origem
+--   desconhecida. Nenhuma mexe no schema. Instalacao conferida no PostgreSQL 16.
+--
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict Dqaubo09jjquAia3igP25nJViuEShMSoztEpXNMTMTGSdZfRLtopZcsoqSHcYzU
 
 -- Dumped from database version 18.4
 -- Dumped by pg_dump version 18.4
@@ -30,7 +39,6 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -1698,5 +1706,4 @@ ALTER TABLE ONLY reciclagem.tb_pesagem_material
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Dqaubo09jjquAia3igP25nJViuEShMSoztEpXNMTMTGSdZfRLtopZcsoqSHcYzU
 
