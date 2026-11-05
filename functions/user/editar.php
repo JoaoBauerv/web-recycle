@@ -43,6 +43,23 @@ try {
         throw new Exception('Este email já está sendo usado por outro usuário.');
     }
     
+    // O sistema não pode ficar sem administrador ativo: só o Admin cria
+    // usuário, reseta senha e promove alguém, então rebaixar ou inativar o
+    // último trancaria todo mundo fora dessas funções, sem volta pela tela.
+    $deixa_de_ser_admin = $validacaoUsuario['dados']['permissao'] !== 'Admin'
+                       || (int) $validacaoUsuario['dados']['status'] !== 1;
+    if ($deixa_de_ser_admin) {
+        $outros = $pdo->prepare("SELECT COUNT(*) FROM usuario
+                                 WHERE permissao = 'Admin' AND status = 1 AND id_usuario <> :id");
+        $outros->execute([':id' => $id]);
+        $era_admin = $pdo->prepare("SELECT 1 FROM usuario WHERE id_usuario = :id AND permissao = 'Admin' AND status = 1");
+        $era_admin->execute([':id' => $id]);
+
+        if ($era_admin->fetchColumn() && (int) $outros->fetchColumn() === 0) {
+            throw new Exception('Este é o único administrador ativo. Promova outro usuário a Admin antes de rebaixar ou inativar este.');
+        }
+    }
+
     // Iniciar transação
     $pdo->beginTransaction();
 
