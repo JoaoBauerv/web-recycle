@@ -41,7 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([':id' => $id_material]);
         $material = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $quantidade = $quantidade_bruta - $tara;
+        // Arredondado pelo mesmo motivo da compra: resíduo de float não vai para o banco.
+        $quantidade = round($quantidade_bruta - $tara, 3);
 
         // Soma o que já está no carrinho: o estoque limita o total do material na venda,
         // não cada linha isoladamente.
@@ -89,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'tara'        => $tara,
                 'quantidade'  => $quantidade,
                 'preco_un'    => $preco_un,
-                'valor_total' => $quantidade * $preco_un,
+                'valor_total' => round($quantidade * $preco_un, 2),   // centavos, como na importação
             ];
         }
     }

@@ -41,7 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([':id' => $id_material]);
         $material = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $peso = $peso_bruto - $tara;
+        // Arredondado: em float, 10,3 - 0,1 dá 10,200000000000001, e esse resíduo ia
+        // para o banco e para as somas do relatório.
+        $peso = round($peso_bruto - $tara, 3);
 
         if (!$material) {
             $erro_form = 'Material não encontrado.';
@@ -68,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'tara'        => $tara,
                 'peso'        => $peso,
                 'preco_un'    => $preco_un,
-                'valor_total' => $peso * $preco_un,
+                'valor_total' => round($peso * $preco_un, 2),   // centavos, como na importação
                 'especial'    => $tem_especial,
                 'observacoes' => trim($_POST['observacoes'] ?? ''),
             ];
