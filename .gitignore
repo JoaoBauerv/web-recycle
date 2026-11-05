@@ -11,6 +11,7 @@
 !/images/user/
 /images/user/*
 !/images/user/padrao.png
+!/images/user/.htaccess
 /docs
 
 # O schema é versionado: a baseline, as três migrations de 14/10, o seed único

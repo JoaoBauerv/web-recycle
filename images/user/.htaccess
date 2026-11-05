@@ -1,0 +1,9 @@
+# Fotos de perfil enviadas pelos usuários. A pasta é pública (as imagens
+# aparecem no menu e na lista de usuários), então o que não for imagem não pode
+# ser servido nem, principalmente, executado: um .php gravado aqui rodaria com
+# os privilégios do sistema.
+<FilesMatch "(?i)\.(php\d?|phtml|phar|pht|cgi|pl|py|sh|htaccess)$">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes -ExecCGI
