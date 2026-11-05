@@ -1,6 +1,7 @@
 <?php
-session_start();
+// banco.php antes do session_start(): é ele que configura o cookie de sessão.
 require_once(__DIR__ . '/../../banco.php');
+session_start();
 require_once(__DIR__ . '/../../functions/funcoes.php');
 require_once(__DIR__ . '/../../components/csrf.php');
 

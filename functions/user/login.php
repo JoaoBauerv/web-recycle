@@ -1,6 +1,7 @@
 <?php
-session_start();
+// banco.php antes do session_start(): é ele que configura o cookie de sessão.
 require_once(__DIR__ . '/../../banco.php');
+session_start();
 
 // A autenticação passou a ser pelo e-mail: ele é único, o usuário já o conhece
 // e não depende do nome de login gerado automaticamente no cadastro.
@@ -24,6 +25,11 @@ $stmt->execute();
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if ($user && password_verify($senha, $user['senha'])) {
+    // Identificador de sessão novo a cada login. Sem isso, quem conseguisse
+    // plantar um identificador no navegador da vítima antes do login
+    // (session fixation) herdaria a sessão autenticada dela.
+    session_regenerate_id(true);
+
     // A sessão identifica o usuário pela chave primária. A coluna `usuario`
     // continua existindo no banco (é NOT NULL e nomeia os arquivos de foto),
     // mas não é mais credencial nem chave de busca.

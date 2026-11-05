@@ -131,7 +131,7 @@ if(empty($_SESSION['logado'])){
         <input type="password"  class="form-control <?php echo isset($errors['senha']) ? 'is-invalid' : '' ?>" id="senha" name="senha" aria-describedby="senha-erro">
 
           <div class="invalid-feedback" id="senha-erro">
-        <?php echo $errors['senha'] ?>
+        <?php echo $errors['senha'] ?? '' ?>
           </div>
         </div>
 
