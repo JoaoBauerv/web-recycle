@@ -16,11 +16,9 @@ date_default_timezone_set('America/Sao_Paulo');
 
 define('REQUIRED_FIELD_ERROR', 'É necessario preencher esse campo!');
 $errors = [];
-$admin = '';
 $nome = '';
 $sobrenome = '';
 $email = '';
-$senha = '';
 $data = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -31,10 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nome = post_data('nome');
     $sobrenome = post_data('sobrenome');
     $email = post_data('email');
-    $senha = post_data('senha');
-    // $senha2 = post_data('senha2');
     $data = post_data('data');
-    $admin = post_data('admin'); 
     
     $dataObj = null;
     if ($data) {
@@ -78,24 +73,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['email'] = 'Esse campo precisa ser um email válido!';
     }
 
-    // if (!$senha) {
-    //     $errors['senha'] = REQUIRED_FIELD_ERROR;
-    // } 
-    // elseif (strlen($senha) < 8) {
-    //     $errors['senha'] = 'A senha deve ter no mínimo 8 caracteres';
-    // } 
-    // elseif (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/', $senha)) {
-    //     $errors['senha'] = 'A senha deve conter ao menos: 1 maiúscula, 1 minúscula e 1 número';
-    // }
-
-    // if (!$senha2) {
-    //     $errors['senha2'] = REQUIRED_FIELD_ERROR;
-    // }
-
-    // if ($senha && $senha2 && strcmp($senha, $senha2) !== 0) {
-    //     $errors['senha2'] = 'As senhas precisam ser iguais!';
-    // }
-
     // Gera o nome de usuário
     $usuario = '';
     if (!empty($nome) && !empty($sobrenome)) {
@@ -111,30 +88,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Se não houver erros, processa o cadastro
     if (empty($errors)) {
-        $foto_nome = null;
-        
-        // Processa upload de arquivo
-        if (isset($_FILES['arquivos']['name'][0]) && !empty($_FILES['arquivos']['name'][0])) {
-            $file_name = $_FILES['arquivos']['name'][0];
-            $tmp_name = $_FILES['arquivos']['tmp_name'][0];
-            
-            $url = $usuario . '_' . $file_name;
-            $uploadDir = realpath(__DIR__ . '/../../images/user/') . DIRECTORY_SEPARATOR;
-            $destino = $uploadDir . $url;
+        $foto_nome = '';
 
-            if (move_uploaded_file($tmp_name, $destino)) {
-                $foto_nome = $url;
+        // Mesmo tratamento da tela de edição: tipo conferido pelo conteúdo,
+        // tamanho limitado e nome gerado pelo sistema. Antes o arquivo era
+        // gravado com o nome original, sem checagem, numa pasta pública — um
+        // .php enviado aqui seria executado pelo Apache.
+        if (!empty($_FILES['arquivos']['name'][0])) {
+            $resultadoUpload = processarUploadFoto([
+                'name'     => $_FILES['arquivos']['name'][0],
+                'type'     => $_FILES['arquivos']['type'][0],
+                'tmp_name' => $_FILES['arquivos']['tmp_name'][0],
+                'error'    => $_FILES['arquivos']['error'][0],
+                'size'     => $_FILES['arquivos']['size'][0],
+            ], $usuario);
+
+            if ($resultadoUpload['success']) {
+                $foto_nome = $resultadoUpload['filename'];
+            } else {
+                $errors['arquivo'] = 'Foto não aceita: ' . $resultadoUpload['error'];
             }
         }
+    }
 
+    if (empty($errors)) {
+        // A senha não vem mais do formulário: registrar.php gera uma aleatória.
         $dados = [
             'nome_completo' => $nomeCompleto,
             'usuario' => $usuario,
             'email' => $email,
-            'senha' => $senha,
             'foto_nome' => $foto_nome,
             'data' => $data,
-            'admin' => $admin
         ];
 
         // Os dados seguem pela sessão, não pela query string: a senha em texto puro
@@ -199,25 +183,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
 
-            <!-- <div class="row">
-                <div class="col mb-3">
-                    <label-- for="senha" class="form-label text-white">Senha</label-->
-                    <input type="hidden" class="form-control <?php // echo isset($errors['senha']) ? 'is-invalid' : '' ?>" 
-                           id="senha" name="senha" value="123456"<?php //echo $senha ?> >
-                    <!--div class="invalid-feedback"> 
-                        <?php //echo $errors['senha'] ?? '' ?>
-                    </div>
-                </div>
-
-                <div class="col mb-3">
-                    <label for="senha2" class="form-label text-white">Confirma senha</label>
-                    <input type="password" class="form-control <?php //echo isset($errors['senha2']) ? 'is-invalid' : '' ?>" 
-                           id="senha2" name="senha2" value="<?php // echo $senha2 ?>" >
-                    <div class="invalid-feedback"> 
-                        <?php // echo $errors['senha2'] ?? '' ?>
-                    </div>
-                </div>
-            </div> -->
+            <p class="small text-muted mb-3">
+                <i class="bi bi-key me-1" aria-hidden="true"></i>
+                Uma senha temporária é gerada pelo sistema e enviada para o e-mail informado.
+                No primeiro acesso, o usuário é obrigado a trocá-la.
+            </p>
 
             <div class="mb-3 centralizar-filepond" style="text-align: center;">
                 <label for="file" class="form-label">Escolha uma foto de perfil</label>
@@ -255,7 +225,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 });
             </script>
 
-            <input type="hidden" name="admin" id="admin" value="<?= $dados_usuario['id_usuario'] ?? '' ?>">
             <?= csrfCampo() ?>
             
             <div class="d-grid gap-2">

@@ -58,6 +58,24 @@ $total_admins   = (int) $pdo->query("SELECT COUNT(*) FROM usuario WHERE status =
 
     <?php require_once __DIR__ . '/../../components/alert.php'; ?>
 
+    <?php
+    // Senha de usuário recém-cadastrado quando o e-mail não pôde ser enviado.
+    // Aparece uma vez só: sai da sessão aqui mesmo.
+    $senha_temporaria = $_SESSION['senha_temporaria'] ?? null;
+    unset($_SESSION['senha_temporaria']);
+    if ($senha_temporaria): ?>
+        <div class="alert alert-warning" role="alert">
+            <h5 class="alert-heading"><i class="bi bi-key me-1" aria-hidden="true"></i> Usuário cadastrado — anote a senha temporária</h5>
+            <p class="mb-2">
+                O e-mail não está configurado ou não pôde ser enviado, então entregue esta senha a
+                <strong><?= htmlspecialchars($senha_temporaria['nome']) ?></strong>
+                (<?= htmlspecialchars($senha_temporaria['email']) ?>) pessoalmente:
+            </p>
+            <p class="fs-4 fw-bold font-monospace mb-2 user-select-all"><?= htmlspecialchars($senha_temporaria['senha']) ?></p>
+            <p class="small mb-0">Ela não será mostrada de novo. A troca é obrigatória no primeiro acesso.</p>
+        </div>
+    <?php endif; ?>
+
     <!-- Indicadores -->
     <div class="row g-3 mb-4">
         <div class="col-md-4 col-6">

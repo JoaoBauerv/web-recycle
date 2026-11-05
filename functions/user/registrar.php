@@ -2,13 +2,14 @@
 require_once(__DIR__ . '/../../components/middleware.php');
 require_once(__DIR__ . '/../../components/permissoes.php');
 require_once(__DIR__ . '/../funcoes.php');
+require_once(__DIR__ . '/senha_lib.php');
 
 exigirPermissao('usuario.gerenciar', $url_base);
 
-// A tela de cadastro entrega os dados pela sessão (a senha não pode trafegar na
-// URL) e já validou o token CSRF antes de redirecionar para cá. Nada é lido de
-// $_REQUEST: o fallback que existia aqui deixava qualquer requisição escolher o
-// próprio valor de 'permissao' e se cadastrar como Admin.
+// A tela de cadastro entrega os dados pela sessão e já validou o token CSRF
+// antes de redirecionar para cá. Nada é lido de $_REQUEST: o fallback que
+// existia aqui deixava qualquer requisição escolher o próprio valor de
+// 'permissao' e se cadastrar como Admin.
 $entrada = $_SESSION['novo_usuario'] ?? [];
 unset($_SESSION['novo_usuario']);
 
@@ -17,98 +18,54 @@ if (!$entrada) {
     exit;
 }
 
-function dadoCadastro(array $entrada, string $campo, string $padrao = '')
-{
-    return $entrada[$campo] ?? $padrao;
-}
-
-$nomeCompleto = ucwords(strtolower(dadoCadastro($entrada, 'nome_completo')));
-$usuario = dadoCadastro($entrada, 'usuario');
-$email = dadoCadastro($entrada, 'email');
-$senha = dadoCadastro($entrada, 'senha');
-$foto = dadoCadastro($entrada, 'foto_nome');
-$data = dadoCadastro($entrada, 'data');
-
-// Quem cria é sempre o Admin logado, conferido acima.
-$admin = $_SESSION['id_usuario'];
+$nomeCompleto = nomeProprio($entrada['nome_completo'] ?? '');
+$usuario      = $entrada['usuario'] ?? '';
+$email        = $entrada['email'] ?? '';
+$foto         = $entrada['foto_nome'] ?? '';
+$data         = $entrada['data'] ?? '';
 
 // Perfil não é escolhido no cadastro: todo usuário nasce como 'Usuario' e a
 // promoção para Admin passa pela tela de edição, que é auditada à parte.
-$permissao = 'Usuario';
-$precisa_alterar_senha = 1;
+//
+// A senha é gerada aqui. Antes vinha de um campo escondido do formulário com o
+// valor fixo 123456 — igual para todo usuário novo, conhecida por qualquer um,
+// e válida até o primeiro login.
+$senha = gerarSenhaAleatoria(12);
 
-
-
-// $nome_final_arquivo = $usuario . '_' . $foto;
-// $url_arquivo =  $nome_final_arquivo;
-// var_dump($_REQUEST['foto_nome']);
-// exit;
-
-// var_dump($usuario);
-// var_dump($_SESSION['foto_nome']);
-// var_dump($nome_final_arquivo);
-
-// Grava no banco
 try {
-    $sql = "INSERT INTO usuario (nome, email, senha, foto, usuario, data_nascimento, permissao, precisa_alterar_senha) 
-            VALUES (:nome, :email, :senha, :foto, :usuario, :data, :permissao, :precisa_alterar_senha)";
-    $stmt = $pdo->prepare($sql);
-
-    $dados = array(
-        ':nome' => $nomeCompleto,
-        ':email' => $email,
-        ':senha' => password_hash($senha, PASSWORD_DEFAULT),
-        ':foto' => $foto,
+    $stmt = $pdo->prepare("INSERT INTO usuario (nome, email, senha, foto, usuario, data_nascimento, permissao, precisa_alterar_senha)
+                           VALUES (:nome, :email, :senha, :foto, :usuario, :data, 'Usuario', 1)
+                           RETURNING id_usuario");
+    $stmt->execute([
+        ':nome'    => $nomeCompleto,
+        ':email'   => $email,
+        ':senha'   => password_hash($senha, PASSWORD_DEFAULT),
+        ':foto'    => $foto,
         ':usuario' => $usuario,
-        ':data' => $data,
-        ':permissao' => $permissao,
-        ':precisa_alterar_senha' => $precisa_alterar_senha
-    );
+        ':data'    => $data,
+    ]);
+    $id_cadastrado = (int) $stmt->fetchColumn();
 
-    // Verifica se foi enviado via POST (admin logado cadastrando outro)
+    registraMovimentacao($_SESSION['id_usuario'], $id_cadastrado, 'Usuario criado por admin: ' . $_SESSION['id_usuario'], 'Cadastro Usuario', $pdo);
 
-    if ($stmt->execute($dados)) {
-        $sql = "SELECT * FROM usuario ORDER BY id_usuario DESC LIMIT 1";
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute();
-        $id_cadastrado = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        // Antes criavam-se aqui uma linha vazia em 'endereco' e outra em
-        // 'documento' para todo usuário novo. 'documento' não existe mais, e o
-        // endereço só ganha linha quando alguém de fato preenche o formulário —
-        // é a tela de edição que chama enderecoSalvar() e devolve o
-        // usuario.id_endereco.
-
-        // if($id_cadastrado['id_usuario'] === 1){
-        //     $sql = "UPDATE usuario SET permissao = 'Admin' WHERE id_usuario = :id_cadastrado";
-        //     $stmt = $pdo->prepare($sql);
-        //     $stmt->bindValue(':id_cadastrado', $id_cadastrado['id_usuario'], PDO::PARAM_STR);
-        //     $stmt->execute();
-            
-        // }
-        
-        registraMovimentacao($admin, $id_cadastrado['id_usuario'], 'Usuario criado por admin: ' . $admin, 'Cadastro Usuario', $pdo);
-
-        header("Location: $url_base/usuarios?msgSucesso=Cadastro realizado com sucesso!");
-    } else {
-        header("Location: $url_base/usuarios/novo?msgErro=Erro ao executar o cadastro.");
+    if (enviarEmailSenha($email, $nomeCompleto, $usuario, $senha, 'novo')) {
+        header("Location: $url_base/usuarios?msgSucesso=" . urlencode("Usuário cadastrado. A senha temporária foi enviada para $email."));
+        exit;
     }
+
+    // Sem e-mail configurado (ou com falha no envio), a senha só existe aqui.
+    // Ela é mostrada uma vez ao Admin pela sessão — nunca pela URL, que fica no
+    // histórico do navegador e no log do servidor — e some na próxima tela.
+    $_SESSION['senha_temporaria'] = [
+        'nome'  => $nomeCompleto,
+        'email' => $email,
+        'senha' => $senha,
+    ];
+    header("Location: $url_base/usuarios");
+    exit;
 
 } catch (Exception $e) {
-    // Rollback da transação
-    if ($pdo->inTransaction()) {
-        $pdo->rollBack();
-    }
-    
-    // Log do erro real
-    $_SESSION['msg_erro'] = 'Erro ao cadastrar usuário' . $e->getMessage();
-    
-    // Mensagem genérica para o usuário
-    
-    header("Location: $url_base/usuarios/novo?");
+    error_log('Erro ao cadastrar usuário: ' . $e->getMessage());
+    header("Location: $url_base/usuarios/novo?msgErro=" . urlencode('Não foi possível cadastrar o usuário. Confira se o e-mail já não está em uso.'));
     exit;
 }
-
-exit;
-
-?>
