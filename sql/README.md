@@ -17,15 +17,19 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0000_baseline_schema.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_padronizar_nomenclatura.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_endereco_unico_e_documento.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_remove_colunas_sem_uso.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_tipo.sql
 
 # 3. seed único: os dados de referência e o administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
+
+# 4. (opcional) dados de demonstração -- nunca em produção
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
 ```
 
-São cinco arquivos, e **um só de dados**. A ordem importa: o seed usa os nomes de
+São seis arquivos obrigatórios, e **um só de dados**. A ordem importa: o seed usa os nomes de
 tabela e coluna já padronizados, então ele é o **último** passo.
 
-Os cinco arquivos estão em UTF-8. A baseline e o seed declaram a codificação no
+Os arquivos estão em UTF-8. A baseline e o seed declaram a codificação no
 topo (`SET client_encoding TO 'UTF8'`), então não é preciso ajustar o terminal —
 sem isso o psql assumiria a codificação do cliente, que no Windows em português
 é WIN1252, e abortaria na categoria `Água`. As duas migrations de 14/10 que têm
@@ -123,7 +127,9 @@ seed leva os 33 ativos.
 | `2026-10-14_padronizar_nomenclatura.sql` | Tira o prefixo `tb_` das tabelas e padroniza as PKs como `id_<entidade>` |
 | `2026-10-14_endereco_unico_e_documento.sql` | Unifica o endereço numa tabela só, remove `documento` (o CPF/CNPJ vira coluna da entidade) e `public.produtos` |
 | `2026-10-14_remove_colunas_sem_uso.sql` | Remove 8 colunas: deriváveis por `COUNT`, auditoria que `registro_movimento` já guarda, e uma nunca escrita nem lida |
+| `2026-11-04_registro_movimento_tipo.sql` | Aumenta `registro_movimento.tipo` para `varchar(40)`: o rótulo `Relacionamento Material` (23 caracteres) não cabia em 20 e quebrava a tela de relacionamentos |
 | `0001_seed_inicial.sql` | **O seed único.** Dados de referência e o administrador |
+| `0002_seed_demo.sql` | **Opcional.** Massa de demonstração em todas as tabelas — ver abaixo |
 | `_arquivo/2026-*.sql` | As 8 migrations anteriores a 14/10/2026 — **registro histórico**, já incorporadas na baseline e fora da instalação |
 
 As contagens acima e as da seção seguinte somam PK, UNIQUE, FK e CHECK. O
@@ -185,6 +191,43 @@ validar relatórios. Nunca foram versionados — são volumosos, descartáveis e
 pressupõem um banco já povoado — e em 30/10/2026 saíram do diretório do projeto
 para `C:\backups\web-recycle\sql\`. Para instalação nova, só o
 `0001_seed_inicial.sql` é necessário.
+
+### `0002_seed_demo.sql` — massa de demonstração versionada
+
+**Opcional, nunca em produção.** Preenche todas as tabelas com dados fictícios
+coerentes entre si, para apresentar o sistema ou testar telas e relatórios. Roda
+depois do seed inicial:
+
+```bash
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
+```
+
+| Tabela | Linhas | O que entra |
+|---|---|---|
+| `usuario` | +3 | operador (`Usuario`), gerente (`Admin`) e um inativo |
+| `clientes` / `fornecedores` | 8 / 4 | catadores, cooperativas e sucateiros; indústrias recicladoras |
+| `endereco` | 13 | dos usuários, clientes e fornecedores |
+| `pesagem` / `pesagem_material` | 32 / 62 | compras dos últimos 75 dias, uma cancelada |
+| `vendas` / `vendas_itens` | 9 / 17 | manuais e importadas, uma cancelada |
+| `estoque_movimentacoes` | 83 | compras, vendas, estornos, uma perda e um ajuste |
+| `importacao_*`, `material_relacao` | 1 / 3 / 4 | um modelo de planilha; importações concluída, com avisos e com erro |
+| `contas_pagar` / `_parcelas` | 9 / 15 | pagas, vencidas, a vencer, parcelada e cancelada |
+| `evento` / `registro_movimento` | 5 / 79 | agenda e trilha de auditoria |
+
+Usuários de demonstração, todos com a senha `admin@123` e **sem** troca
+obrigatória: `fernanda.oliveira@example.com` (Admin) e
+`carlos.ramos@example.com` (Usuario).
+
+- **Datas relativas a `CURRENT_DATE`**: em qualquer dia em que rodar, o painel
+  mostra compras recentes e contas vencidas e a vencer.
+- **Estoque coerente**: o movimento é aplicado em ordem cronológica pelas mesmas
+  regras do PHP, então `saldo_apos` é real e `material.qt_estoque` bate com a
+  trilha. O arquivo confere isso no fim e aborta se divergir.
+- **Dados fictícios**: CPF e CNPJ gerados com dígito verificador válido, e-mails
+  em `example.com`. Também define `estoque_minimo` em quatro materiais, para o
+  alerta de estoque baixo aparecer.
+- **Só em banco recém-instalado**: aborta sem gravar nada se já houver cliente,
+  compra ou venda. Para recomeçar, recrie o banco e rode a instalação de novo.
 
 ## Backup
 

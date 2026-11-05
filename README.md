@@ -164,9 +164,13 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0000_baseline_schema.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_padronizar_nomenclatura.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_endereco_unico_e_documento.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_remove_colunas_sem_uso.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_tipo.sql
 
 # 3. seed único: dados de referência e usuário administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
+
+# 4. (opcional) dados de demonstração -- nunca em produção
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
 ```
 
 A ordem importa: o seed usa os nomes já padronizados, então é o **último** passo.
