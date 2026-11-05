@@ -54,8 +54,8 @@ switch ($_REQUEST['acao'] ?? '') {
             }
 
         } catch (Exception $e) {
-            $_SESSION['msg_erro'] = 'Erro ao cadastrar fornecedor: ' . $e->getMessage();
-            header("Location: $url_base/fornecedores/novo?msgErro=" . urlencode($e->getMessage()));
+            error_log('Erro ao cadastrar fornecedor: ' . $e->getMessage());
+            header("Location: $url_base/fornecedores/novo?msgErro=" . urlencode('Não foi possível concluir a operação. Confira os dados e tente novamente.'));
             exit;
         }
 
@@ -113,8 +113,8 @@ switch ($_REQUEST['acao'] ?? '') {
             }
 
         } catch (Exception $e) {
-            $_SESSION['msg_erro'] = 'Erro ao editar fornecedor: ' . $e->getMessage();
-            header("Location: $url_base/fornecedores?msgErro=" . urlencode($e->getMessage()));
+            error_log('Erro ao editar fornecedor: ' . $e->getMessage());
+            header("Location: $url_base/fornecedores?msgErro=" . urlencode('Não foi possível concluir a operação. Confira os dados e tente novamente.'));
             exit;
         }
 
@@ -141,8 +141,8 @@ switch ($_REQUEST['acao'] ?? '') {
             header("Location: $url_base/fornecedores?msgSucesso=Fornecedor excluído com sucesso!");
 
         } catch (Exception $e) {
-            $_SESSION['msg_erro'] = 'Erro ao excluir fornecedor: ' . $e->getMessage();
-            header("Location: $url_base/fornecedores?msgErro=" . urlencode($e->getMessage()));
+            error_log('Erro ao excluir fornecedor: ' . $e->getMessage());
+            header("Location: $url_base/fornecedores?msgErro=" . urlencode('Não foi possível concluir a operação. Confira os dados e tente novamente.'));
             exit;
         }
 

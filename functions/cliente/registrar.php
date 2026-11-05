@@ -57,8 +57,8 @@ switch ($_REQUEST['acao'] ?? '') {
             }
 
         } catch (Exception $e) {
-            $_SESSION['msg_erro'] = 'Erro ao cadastrar cliente: ' . $e->getMessage();
-            header("Location: $url_base/clientes/novo?msgErro=" . urlencode($e->getMessage()));
+            error_log('Erro ao cadastrar cliente: ' . $e->getMessage());
+            header("Location: $url_base/clientes/novo?msgErro=" . urlencode('Não foi possível concluir a operação. Confira os dados e tente novamente.'));
             exit;
         }
 
@@ -120,8 +120,8 @@ switch ($_REQUEST['acao'] ?? '') {
             }
 
         } catch (Exception $e) {
-            $_SESSION['msg_erro'] = 'Erro ao editar cliente: ' . $e->getMessage();
-            header("Location: $url_base/clientes?msgErro=" . urlencode($e->getMessage()));
+            error_log('Erro ao editar cliente: ' . $e->getMessage());
+            header("Location: $url_base/clientes?msgErro=" . urlencode('Não foi possível concluir a operação. Confira os dados e tente novamente.'));
             exit;
         }
 
@@ -148,8 +148,8 @@ switch ($_REQUEST['acao'] ?? '') {
             header("Location: $url_base/clientes?msgSucesso=Cliente excluído com sucesso!");
 
         } catch (Exception $e) {
-            $_SESSION['msg_erro'] = 'Erro ao excluir cliente: ' . $e->getMessage();
-            header("Location: $url_base/clientes?msgErro=" . urlencode($e->getMessage()));
+            error_log('Erro ao excluir cliente: ' . $e->getMessage());
+            header("Location: $url_base/clientes?msgErro=" . urlencode('Não foi possível concluir a operação. Confira os dados e tente novamente.'));
             exit;
         }
 
