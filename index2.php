@@ -126,11 +126,11 @@ $arquivo_conteudo = __DIR__ . '/views/' . $config['arquivo'] . '.php';
 $router_managed = true;
 ?>
 <!DOCTYPE html>
-<html lang="en" data-bs-theme="auto">
+<html lang="pt-BR" data-bs-theme="auto">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Reciclagem</title>
+    <title><?= htmlspecialchars($_ENV['APP_NAME'] ?? 'Reciclagem', ENT_QUOTES, 'UTF-8') ?></title>
 
     <!-- CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />

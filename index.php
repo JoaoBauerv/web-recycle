@@ -660,8 +660,6 @@ require 'banco.php';
                 header.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
             }
         });
-
-        console.log('ReciclaFácil - Sistema carregado!');
     </script>
 </body>
 </html>
