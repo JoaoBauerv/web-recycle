@@ -166,6 +166,7 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_endereco_unico_e_documen
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_remove_colunas_sem_uso.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_tipo.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_descricao.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-05_remove_recorrencia_despesa.sql
 
 # 3. seed único: dados de referência e usuário administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql

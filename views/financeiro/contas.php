@@ -58,7 +58,7 @@ if ($f_min !== null)     { $where[] = "pa.valor >= :vmin";          $params[':vm
 if ($f_max !== null)     { $where[] = "pa.valor <= :vmax";          $params[':vmax'] = $f_max; }
 
 $sql = "SELECT pa.*, c.descricao, c.favorecido, c.id_conta, c.status AS status_conta,
-               c.recorrente, cat.nome AS categoria, cat.tipo AS categoria_tipo,
+               cat.nome AS categoria, cat.tipo AS categoria_tipo,
                cc.nome AS centro, u.nome AS funcionario,
                up.nome AS pagou_nome, $situacao_sql AS situacao,
                " . financeiroTotalParcelasSql('pa') . "
@@ -266,9 +266,6 @@ $usuarios   = $pdo->query("SELECT id_usuario, nome FROM usuario WHERE status = 1
                                 </td>
                                 <td>
                                     <?= htmlspecialchars($p['descricao']) ?>
-                                    <?php if ($p['recorrente'] === true || $p['recorrente'] === 't'): ?>
-                                        <i class="bi bi-arrow-repeat text-muted ms-1" title="Despesa recorrente" aria-label="recorrente"></i>
-                                    <?php endif; ?>
                                     <small class="text-muted d-block">#<?= (int) $p['id_conta'] ?></small>
                                 </td>
                                 <td>
@@ -436,9 +433,12 @@ $usuarios   = $pdo->query("SELECT id_usuario, nome FROM usuario WHERE status = 1
 
                     <div class="row g-3">
                         <div class="col-md-3">
-                            <label for="parcelas_form" class="form-label">Parcelas</label>
-                            <input type="number" name="parcelas" id="parcelas_form" class="form-control"
-                                   min="1" max="120" value="1">
+                            <label for="parcelas_form" class="form-label">Nº de parcelas</label>
+                            <div class="input-group">
+                                <input type="number" name="parcelas" id="parcelas_form" class="form-control"
+                                       min="1" max="120" value="1">
+                                <span class="input-group-text">x</span>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label for="periodo_form" class="form-label">Intervalo</label>
@@ -455,40 +455,10 @@ $usuarios   = $pdo->query("SELECT id_usuario, nome FROM usuario WHERE status = 1
                         </div>
                     </div>
                     <p class="small text-muted mt-2 mb-0" id="previa-parcelas"></p>
-
-                    <hr>
-                    <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" name="recorrente" id="recorrente_form" value="1">
-                        <label class="form-check-label" for="recorrente_form">
-                            Despesa recorrente
-                            <small class="text-muted d-block">
-                                Registra a periodicidade. A geração automática das próximas contas é etapa seguinte.
-                            </small>
-                        </label>
-                    </div>
-
-                    <div class="row g-3" id="bloco-recorrencia" hidden>
-                        <div class="col-md-3">
-                            <label for="rec_periodo" class="form-label">Periodicidade</label>
-                            <select name="recorrencia_periodo" id="rec_periodo" class="form-select">
-                                <?php foreach (FINANCEIRO_PERIODOS as $v => $r): ?>
-                                    <option value="<?= $v ?>" <?= $v === 'mensal' ? 'selected' : '' ?>><?= $r ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label for="rec_dia" class="form-label">Dia do vencimento</label>
-                            <input type="number" name="recorrencia_dia" id="rec_dia" class="form-control" min="1" max="31">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="rec_inicio" class="form-label">Início</label>
-                            <input type="date" name="recorrencia_inicio" id="rec_inicio" class="form-control">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="rec_fim" class="form-label">Fim</label>
-                            <input type="date" name="recorrencia_fim" id="rec_fim" class="form-control">
-                        </div>
-                    </div>
+                    <p class="small text-muted mt-1 mb-0">
+                        Despesa que se repete (aluguel, internet, salário) é lançada com o número de
+                        parcelas que cobre o período — por exemplo, 12x mensal para um ano.
+                    </p>
 
                     <div class="mt-3">
                         <label for="obs_form" class="form-label">Observações</label>
@@ -629,10 +599,6 @@ $(function () {
         const opcao = this.options[this.selectedIndex];
         const eFuncionario = opcao && opcao.getAttribute('data-tipo') === 'funcionario';
         document.getElementById('bloco-funcionario').hidden = !eFuncionario;
-    });
-
-    $('#recorrente_form').on('change', function () {
-        document.getElementById('bloco-recorrencia').hidden = !this.checked;
     });
 
     // Prévia do parcelamento: confere o valor antes de salvar.

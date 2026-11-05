@@ -18,7 +18,7 @@ const FINANCEIRO_FORMAS = [
     'outro'       => 'Outro',
 ];
 
-/** Periodicidades de despesa recorrente. */
+/** Intervalo entre as parcelas de uma despesa. */
 const FINANCEIRO_PERIODOS = [
     'semanal'   => 'Semanal',
     'quinzenal' => 'Quinzenal',

@@ -20,7 +20,7 @@
 --   importacao_modelo       1   mapeamento de planilha de um fornecedor
 --   importacao_historico    3   concluida, concluida com avisos e com erro
 --   material_relacao        4   nomes/codigos externos -> material do catalogo
---   contas_pagar / parcelas 9   pagas, vencidas, a vencer, parcelada, cancelada
+--   contas_pagar / parcelas 9/39 pagas, vencidas, a vencer, parcelada, cancelada
 --   evento                  5   agenda
 --   registro_movimento     79   trilha de auditoria de tudo o que foi lancado
 --
@@ -282,11 +282,25 @@ BEGIN
     PERFORM pg_temp.auditar(p_user, p_user, format('Venda #%s cancelada: %s', p_id, p_motivo), 'Cancelamento Venda', p_data);
 END $f$;
 
+-- N parcelas mensais iguais, no formato que pg_temp.conta() recebe. As que
+-- vencem antes de hoje entram como pagas no próprio vencimento; as demais,
+-- pendentes. É assim que o sistema lança despesa que se repete (aluguel,
+-- salário): um parcelamento que cobre o período.
+CREATE FUNCTION pg_temp.mensais(p_qtd int, p_valor numeric, p_primeiro_venc int, p_forma text) RETURNS jsonb
+LANGUAGE sql AS $f$
+    SELECT jsonb_agg(
+               CASE WHEN venc < 0
+                    THEN jsonb_build_object('v', p_valor, 'venc', venc, 'pg', venc, 'f', p_forma)
+                    ELSE jsonb_build_object('v', p_valor, 'venc', venc, 'f', p_forma) END
+               ORDER BY i)
+      FROM (SELECT i, (CURRENT_DATE + p_primeiro_venc + (i * interval '1 month'))::date - CURRENT_DATE AS venc
+              FROM generate_series(0, p_qtd - 1) i) s;
+$f$;
+
 -- Conta a pagar. Parcelas: [{"v": valor, "venc": dias a partir de hoje (negativo = passado),
 --                            "pg": dia do pagamento ou null, "f": forma de pagamento}]
 CREATE FUNCTION pg_temp.conta(p_admin int, p_desc text, p_categoria text, p_centro text, p_favorecido text,
                               p_func int, p_emissao int, p_parcelas jsonb,
-                              p_periodo text DEFAULT NULL, p_dia int DEFAULT NULL,
                               p_obs text DEFAULT NULL, p_cancelada boolean DEFAULT false) RETURNS int
 LANGUAGE plpgsql AS $f$
 DECLARE v_id int; v_total numeric; it jsonb; n int := 0;
@@ -294,14 +308,11 @@ BEGIN
     SELECT SUM((e->>'v')::numeric) INTO v_total FROM jsonb_array_elements(p_parcelas) e;
 
     INSERT INTO contas_pagar (descricao, id_categoria, id_centro, favorecido, id_usuario_func, valor_total,
-                              data_emissao, observacoes, recorrente, recorrencia_periodo, recorrencia_dia,
-                              recorrencia_inicio, status, data_cadastro)
+                              data_emissao, observacoes, status, data_cadastro)
     VALUES (p_desc,
             (SELECT id_categoria FROM despesa_categoria WHERE nome = p_categoria AND status = 1),
             (SELECT id_centro FROM centro_custo WHERE nome = p_centro AND status = 1),
             p_favorecido, p_func, v_total, CURRENT_DATE + p_emissao, p_obs,
-            p_periodo IS NOT NULL, p_periodo, p_dia,
-            CASE WHEN p_periodo IS NOT NULL THEN CURRENT_DATE + p_emissao END,
             CASE WHEN p_cancelada THEN 'cancelada' ELSE 'ativa' END,
             pg_temp.ts(-p_emissao, '08:30'))
     RETURNING id_conta INTO v_id;
@@ -598,24 +609,23 @@ BEGIN
      WHERE m.id_material = u.id_material;
 
     -- ---------------------------------------------------------- contas a pagar
-    PERFORM pg_temp.conta(u_admin, 'Aluguel do galpão', 'Aluguel', 'Administrativo', 'Imobiliária Horizonte', NULL, -60,
-        '[{"v":3500,"venc":-50,"pg":-50,"f":"transferencia"},{"v":3500,"venc":-20,"pg":-21,"f":"transferencia"},{"v":3500,"venc":10,"f":"transferencia"}]',
-        'mensal', 10, 'Contrato de 24 meses, reajuste anual pelo IGP-M.');
+    -- Despesas que se repetem: lançadas como parcelamento que cobre o período.
+    PERFORM pg_temp.conta(u_admin, 'Aluguel do galpão (12 meses)', 'Aluguel', 'Administrativo', 'Imobiliária Horizonte', NULL, -60,
+        pg_temp.mensais(12, 3500, -50, 'transferencia'),
+        'Contrato de 24 meses, reajuste anual pelo IGP-M.');
 
     PERFORM pg_temp.conta(u_admin, 'Energia elétrica', 'Energia elétrica', 'Operacional', 'Companhia de Energia', NULL, -12,
         '[{"v":1280.45,"venc":-3,"f":"boleto"}]');
 
-    PERFORM pg_temp.conta(u_admin, 'Salário Fernanda Oliveira', 'Funcionários', 'Recursos Humanos', 'Fernanda Oliveira', u_fin, -40,
-        '[{"v":2400,"venc":-30,"pg":-30,"f":"pix"},{"v":2400,"venc":2,"f":"pix"}]',
-        'mensal', 5);
+    PERFORM pg_temp.conta(u_admin, 'Salário Fernanda Oliveira (semestre)', 'Funcionários', 'Recursos Humanos', 'Fernanda Oliveira', u_fin, -40,
+        pg_temp.mensais(6, 2400, -30, 'pix'));
 
     PERFORM pg_temp.conta(u_admin, 'Balança rodoviária nova', 'Equipamentos', 'Operacional', 'Balanças Precisão Ltda', NULL, -45,
         '[{"v":1600,"venc":-40,"pg":-40,"f":"boleto"},{"v":1600,"venc":-10,"f":"boleto"},{"v":1600,"venc":20,"f":"boleto"}]',
         p_obs => 'Parcelado em 3x sem juros.');
 
-    PERFORM pg_temp.conta(u_admin, 'Internet fibra', 'Internet', 'Administrativo', 'Provedor NetSul', NULL, -20,
-        '[{"v":149.90,"venc":-15,"pg":-15,"f":"debito_auto"}]',
-        'mensal', 15);
+    PERFORM pg_temp.conta(u_admin, 'Internet fibra (12 meses)', 'Internet', 'Administrativo', 'Provedor NetSul', NULL, -20,
+        pg_temp.mensais(12, 149.90, -15, 'debito_auto'));
 
     PERFORM pg_temp.conta(u_admin, 'Diesel do caminhão', 'Combustível', 'Logística', 'Posto Rota 101', NULL, -6,
         '[{"v":620,"venc":-6,"pg":-6,"f":"dinheiro"}]');

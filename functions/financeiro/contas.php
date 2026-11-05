@@ -52,12 +52,6 @@ switch ($acao) {
         $primeiro_vc = financeiroData($_POST['primeiro_vencimento'] ?? '');
         $forma       = $_POST['forma_pagamento'] ?? '';
 
-        $recorrente  = !empty($_POST['recorrente']);
-        $rec_periodo = $_POST['recorrencia_periodo'] ?? null;
-        $rec_dia     = (int) ($_POST['recorrencia_dia'] ?? 0) ?: null;
-        $rec_inicio  = financeiroData($_POST['recorrencia_inicio'] ?? '');
-        $rec_fim     = financeiroData($_POST['recorrencia_fim'] ?? '');
-
         if ($descricao === '')      { contasVoltar($tela, 'Erro', 'Informe a descrição da despesa.'); }
         if (!$id_categoria)         { contasVoltar($tela, 'Erro', 'Selecione a categoria.'); }
         if ($valor_total === null || $valor_total <= 0) { contasVoltar($tela, 'Erro', 'Informe um valor maior que zero.'); }
@@ -65,9 +59,7 @@ switch ($acao) {
         if (!$primeiro_vc)          { contasVoltar($tela, 'Erro', 'Informe a data do primeiro vencimento.'); }
         if ($parcelas > 120)        { contasVoltar($tela, 'Erro', 'No máximo 120 parcelas.'); }
         if ($forma !== '' && !isset(FINANCEIRO_FORMAS[$forma])) { contasVoltar($tela, 'Erro', 'Forma de pagamento inválida.'); }
-        if ($recorrente && !isset(FINANCEIRO_PERIODOS[$rec_periodo])) {
-            contasVoltar($tela, 'Erro', 'Selecione a periodicidade da recorrência.');
-        }
+        if (!isset(FINANCEIRO_PERIODOS[$periodo])) { contasVoltar($tela, 'Erro', 'Selecione o intervalo entre as parcelas.'); }
 
         try {
             $pdo->beginTransaction();
@@ -82,19 +74,12 @@ switch ($acao) {
                 $pdo->prepare("UPDATE contas_pagar
                                SET descricao = :d, id_categoria = :cat, id_centro = :cc,
                                    favorecido = :fav, id_usuario_func = :func,
-                                   data_emissao = :em, observacoes = :obs,
-                                   recorrente = :rec, recorrencia_periodo = :rp,
-                                   recorrencia_dia = :rd, recorrencia_inicio = :ri, recorrencia_fim = :rf
+                                   data_emissao = :em, observacoes = :obs
                                WHERE id_conta = :id AND status = 'ativa'")
                     ->execute([
                         ':d' => $descricao, ':cat' => $id_categoria, ':cc' => $id_centro,
                         ':fav' => $favorecido ?: null, ':func' => $id_func,
                         ':em' => $emissao, ':obs' => $observacoes ?: null,
-                        ':rec' => $recorrente ? 'true' : 'false',
-                        ':rp' => $recorrente ? $rec_periodo : null,
-                        ':rd' => $recorrente ? $rec_dia : null,
-                        ':ri' => $recorrente ? $rec_inicio : null,
-                        ':rf' => $recorrente ? $rec_fim : null,
                         ':id' => $id_conta,
                     ]);
 
@@ -118,19 +103,13 @@ switch ($acao) {
             // logo abaixo: a conta não repete essa informação em coluna própria.
             $stmt = $pdo->prepare("INSERT INTO contas_pagar
                     (descricao, id_categoria, id_centro, favorecido, id_usuario_func, valor_total,
-                     data_emissao, observacoes, recorrente, recorrencia_periodo, recorrencia_dia,
-                     recorrencia_inicio, recorrencia_fim)
-                   VALUES (:d,:cat,:cc,:fav,:func,:v,:em,:obs,:rec,:rp,:rd,:ri,:rf)
+                     data_emissao, observacoes)
+                   VALUES (:d,:cat,:cc,:fav,:func,:v,:em,:obs)
                    RETURNING id_conta");
             $stmt->execute([
                 ':d' => $descricao, ':cat' => $id_categoria, ':cc' => $id_centro,
                 ':fav' => $favorecido ?: null, ':func' => $id_func, ':v' => $valor_total,
                 ':em' => $emissao, ':obs' => $observacoes ?: null,
-                ':rec' => $recorrente ? 'true' : 'false',
-                ':rp' => $recorrente ? $rec_periodo : null,
-                ':rd' => $recorrente ? $rec_dia : null,
-                ':ri' => $recorrente ? ($rec_inicio ?: $emissao) : null,
-                ':rf' => $recorrente ? $rec_fim : null,
             ]);
             $id_conta = (int) $stmt->fetchColumn();
 

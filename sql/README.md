@@ -19,6 +19,7 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_endereco_unico_e_documen
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-10-14_remove_colunas_sem_uso.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_tipo.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-04_registro_movimento_descricao.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/2026-11-05_remove_recorrencia_despesa.sql
 
 # 3. seed único: os dados de referência e o administrador
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
@@ -27,7 +28,7 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
 ```
 
-São sete arquivos obrigatórios, e **um só de dados**. A ordem importa: o seed usa os nomes de
+São oito arquivos obrigatórios, e **um só de dados**. A ordem importa: o seed usa os nomes de
 tabela e coluna já padronizados, então ele é o **último** passo.
 
 Os arquivos estão em UTF-8. A baseline e o seed declaram a codificação no
@@ -130,6 +131,7 @@ seed leva os 33 ativos.
 | `2026-10-14_remove_colunas_sem_uso.sql` | Remove 8 colunas: deriváveis por `COUNT`, auditoria que `registro_movimento` já guarda, e uma nunca escrita nem lida |
 | `2026-11-04_registro_movimento_tipo.sql` | Aumenta `registro_movimento.tipo` para `varchar(40)`: o rótulo `Relacionamento Material` (23 caracteres) não cabia em 20 e quebrava a tela de relacionamentos |
 | `2026-11-04_registro_movimento_descricao.sql` | Aumenta `registro_movimento.descricao` para `varchar(255)`: descrições de despesa e motivos de cancelamento estouravam 100 caracteres depois da operação já gravada |
+| `2026-11-05_remove_recorrencia_despesa.sql` | Remove as colunas de recorrência de `contas_pagar`: eram gravadas e nunca usadas. Despesa que se repete é lançada como parcelamento (12x mensal, por exemplo) |
 | `0001_seed_inicial.sql` | **O seed único.** Dados de referência e o administrador |
 | `0002_seed_demo.sql` | **Opcional.** Massa de demonstração em todas as tabelas — ver abaixo |
 | `_arquivo/2026-*.sql` | As 8 migrations anteriores a 14/10/2026 — **registro histórico**, já incorporadas na baseline e fora da instalação |
@@ -183,8 +185,9 @@ divergir — a de endereço compara campo por campo antes de derrubar coluna, e 
 de remoção recalcula cada valor derivável a partir da origem.
 
 Instalar do zero por este caminho produz **exatamente** o mesmo schema que
-migrar um banco existente: 19 tabelas, 180 colunas, 69 constraints (19 PK,
-3 UNIQUE, 28 FK e 19 CHECK) e 26 índices próprios.
+migrar um banco existente: 19 tabelas, 175 colunas, 68 constraints (19 PK,
+3 UNIQUE, 28 FK e 18 CHECK) e 26 índices próprios — contagem depois da
+migration de 05/11/2026, que tirou as 5 colunas de recorrência e o CHECK delas.
 
 ## Massas de demonstração
 
@@ -213,7 +216,7 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
 | `vendas` / `vendas_itens` | 9 / 17 | manuais e importadas, uma cancelada |
 | `estoque_movimentacoes` | 83 | compras, vendas, estornos, uma perda e um ajuste |
 | `importacao_*`, `material_relacao` | 1 / 3 / 4 | um modelo de planilha; importações concluída, com avisos e com erro |
-| `contas_pagar` / `_parcelas` | 9 / 15 | pagas, vencidas, a vencer, parcelada e cancelada |
+| `contas_pagar` / `_parcelas` | 9 / 39 | pagas, vencidas, a vencer, parcelada (aluguel e internet em 12x) e cancelada |
 | `evento` / `registro_movimento` | 5 / 79 | agenda e trilha de auditoria |
 
 Usuários de demonstração, todos com a senha `admin@123` e **sem** troca
