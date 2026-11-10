@@ -186,10 +186,6 @@ function validarCPF($cpf) {
 }
 
 function processarUploadFoto($arquivo, $usuario) {
-    // Este arquivo fica em functions/, então um único ".." chega na raiz do projeto.
-    // Sem realpath(): se o diretório ainda não existir, realpath() devolve false e o
-    // caminho degenera para a raiz do disco, fazendo o mkdir abaixo nunca ser usado.
-    $uploadDir = __DIR__ . '/../images/user/';
     $allowedTypes = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png', 
@@ -219,28 +215,22 @@ function processarUploadFoto($arquivo, $usuario) {
             throw new Exception('Arquivo não é uma imagem válida');
         }
         
-        if (!is_dir($uploadDir)) {
-            if (!mkdir($uploadDir, 0755, true)) {
-                throw new Exception('Erro ao criar diretório de upload');
-            }
-        }
-        
-        if (!is_writable($uploadDir)) {
-            throw new Exception('Diretório sem permissão de escrita');
-        }
-        
+        // A foto vai para a tabela `arquivo` (components/arquivo.php), não para
+        // images/user/: na Vercel o disco é somente leitura. Quem a entrega de
+        // volta em /images/user/<nome> é functions/user/foto.php.
+        global $pdo;
+        require_once __DIR__ . '/../components/arquivo.php';
+
         $extensao = $allowedTypes[$mimeType];
         $nomeArquivo =  $usuario . '_' . time() . '_' . uniqid() . '.' . $extensao;
-        $caminhoCompleto = $uploadDir . $nomeArquivo;
-        
-        if (!move_uploaded_file($arquivo['tmp_name'], $caminhoCompleto)) {
+
+        if (!is_uploaded_file($arquivo['tmp_name']) || !arquivoSalvar($pdo, 'user/' . $nomeArquivo, $arquivo['tmp_name'], $mimeType)) {
             throw new Exception('Erro ao salvar arquivo no servidor');
         }
-        
+
         return [
             'success' => true,
             'filename' => $nomeArquivo,
-            'path' => $caminhoCompleto
         ];
         
     } catch (Exception $e) {

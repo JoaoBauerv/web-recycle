@@ -48,7 +48,12 @@ arquivos são aplicados com a URL direta que o `neon init` grava no `.env`:
 ```bash
 psql -v ON_ERROR_STOP=1 -f sql/0000_baseline_schema.sql "$DATABASE_URL_UNPOOLED"
 psql -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql    "$DATABASE_URL_UNPOOLED"
+psql -v ON_ERROR_STOP=1 -f sql/0004_sessao_e_arquivo.sql "$DATABASE_URL_UNPOOLED"
 ```
+
+O `0004` cria as tabelas `sessao` e `arquivo`, que a versão hospedada na Vercel
+precisa: lá o disco é somente leitura, e cada requisição pode cair numa
+instância diferente.
 
 No psql do Windows as opções vêm **antes** da URL. Com `DATABASE_URL_UNPOOLED`
 preenchida, o `banco.php` conecta no Neon e ignora as `DB_*`.

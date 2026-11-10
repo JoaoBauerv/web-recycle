@@ -23,29 +23,21 @@ if (!$nome) {
     exit('Esta venda não tem comprovante importado.');
 }
 
-// basename() impede que um valor manipulado no banco escape da pasta (../).
-$caminho = __DIR__ . '/../../uploads/comprovantes_venda/' . basename($nome);
+// O conteúdo fica na tabela `arquivo` (components/arquivo.php). basename()
+// impede que um valor manipulado no banco aponte para outro prefixo.
+require_once __DIR__ . '/../../components/arquivo.php';
+$nome = basename($nome);
+$arquivo = arquivoLer($pdo, 'comprovante_venda/' . $nome);
 
-if (!is_file($caminho)) {
+if ($arquivo === null) {
     http_response_code(404);
     exit('Arquivo do comprovante não encontrado no servidor.');
 }
 
-$extensao = strtolower(pathinfo($caminho, PATHINFO_EXTENSION));
-$tipos = [
-    'pdf'  => 'application/pdf',
-    'jpg'  => 'image/jpeg',
-    'jpeg' => 'image/jpeg',
-    'png'  => 'image/png',
-    'webp' => 'image/webp',
-];
+$extensao = strtolower(pathinfo($nome, PATHINFO_EXTENSION));
 
-$baixar = isset($_GET['baixar']);
-
-header('Content-Type: ' . ($tipos[$extensao] ?? 'application/octet-stream'));
-header('Content-Disposition: ' . ($baixar ? 'attachment' : 'inline')
-    . '; filename="comprovante_venda_' . $id_venda . '.' . $extensao . '"');
-header('Content-Length: ' . filesize($caminho));
-header('X-Content-Type-Options: nosniff');
-
-readfile($caminho);
+arquivoEnviar(
+    $arquivo,
+    isset($_GET['baixar']) ? 'attachment' : 'inline',
+    'comprovante_venda_' . $id_venda . '.' . $extensao
+);

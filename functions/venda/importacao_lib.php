@@ -24,6 +24,15 @@ const IMPORTACAO_EXTENSOES   = ['xlsx', 'xls', 'csv', 'ods'];
  */
 function importacaoLerPlanilha(string $caminho): array
 {
+    // Na Vercel a etapa seguinte da importação pode cair numa instância cujo
+    // /tmp não tem a planilha: a cópia guardada no banco (tmp/<nome>, gravada
+    // no envio) é restaurada no mesmo caminho antes da leitura.
+    global $pdo;
+    if (!is_file($caminho) && $pdo instanceof PDO) {
+        require_once __DIR__ . '/../../components/arquivo.php';
+        arquivoGarantirLocal($pdo, 'tmp/' . basename($caminho), $caminho);
+    }
+
     $leitor = IOFactory::createReaderForFile($caminho);
     $leitor->setReadDataOnly(true);   // estilos e fórmulas não interessam e pesam
 

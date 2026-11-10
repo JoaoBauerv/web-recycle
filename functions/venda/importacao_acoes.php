@@ -15,6 +15,7 @@ require_once(__DIR__ . '/../../vendor/autoload.php');
 require_once(__DIR__ . '/../funcoes.php');
 require_once(__DIR__ . '/importacao_lib.php');
 require_once(__DIR__ . '/venda_lib.php');
+require_once(__DIR__ . '/../../components/arquivo.php');
 
 exigirPermissao('venda.importar', $url_base);
 
@@ -29,9 +30,13 @@ function importacaoVoltar(string $tela, string $tipo, string $mensagem): void
 /** Apaga o arquivo temporário e zera o estado da importação em andamento. */
 function importacaoLimpar(): void
 {
+    global $pdo;
     $arquivo = $_SESSION['importacao']['arquivo_tmp'] ?? null;
     if ($arquivo && is_file($arquivo)) {
         unlink($arquivo);
+    }
+    if ($arquivo) {
+        arquivoApagar($pdo, 'tmp/' . basename($arquivo));
     }
     unset($_SESSION['importacao']);
 }
@@ -105,6 +110,13 @@ switch ($acao) {
                 $mapa = $detectado['mapa'];
                 $linha_cabecalho = $detectado['linha'];
             }
+        }
+
+        // Cópia no banco: a próxima etapa pode rodar numa instância da Vercel
+        // que não tem este /tmp (importacaoLerPlanilha restaura a partir dela).
+        if (!arquivoSalvar($pdo, 'tmp/' . basename($destino), $destino, 'application/octet-stream')) {
+            unlink($destino);
+            importacaoVoltar($tela, 'Erro', 'Não foi possível guardar o arquivo para leitura.');
         }
 
         $stmt = $pdo->prepare("INSERT INTO importacao_historico (arquivo, id_modelo, id_usuario, status)

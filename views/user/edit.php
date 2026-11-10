@@ -190,7 +190,9 @@ $success = $_SESSION['msg_sucesso'] ?? '';
                                     // $url_base é uma URL (http://...), não um caminho de disco: concatená-la
                                     // com DOCUMENT_ROOT gerava um caminho inexistente, e o file_exists()
                                     // sempre falhava — por isso a foto real nunca aparecia.
-                                    $foto = !empty($usuario['foto']) && is_file(__DIR__ . '/../../images/user/' . $usuario['foto'])
+                                    // A foto enviada mora na tabela `arquivo`, não no disco.
+                                    require_once __DIR__ . '/../../components/arquivo.php';
+                                    $foto = !empty($usuario['foto']) && arquivoExiste($pdo, 'user/' . $usuario['foto'])
                                         ? $usuario['foto']
                                         : 'padrao.png';
                                     ?>

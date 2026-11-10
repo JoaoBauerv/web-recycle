@@ -1,0 +1,25 @@
+# O que NÃO sobe para a Vercel. Tudo o que sobe vai junto para a função PHP e,
+# o que não for .php, também é servido como arquivo estático.
+
+# Credenciais e estado local
+.env
+.env.*
+!.env.example
+.neon
+.claude
+
+# Instalados no build: o Composer roda na Vercel (vendor/ do Windows não serve)
+vendor
+node_modules
+
+# Material de projeto e banco, que o sistema não usa para rodar
+sql
+docs
+design-system
+balanca-agent
+*.md
+
+# Arquivos enviados ficam no banco (tabela arquivo); só o avatar padrão sobe
+uploads
+images/user/*
+!images/user/padrao.png

@@ -18,6 +18,10 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
+# Fotos de perfil enviadas moram no banco (tabela arquivo): o que não existe em
+# images/user/ é entregue por functions/user/foto.php.
+RewriteRule ^images/user/([^/]+)$ functions/user/foto.php?nome=$1 [L]
+
 # /pagina  ou  /pagina/acao   =>  index2.php?pagina=pagina/acao
 # (preserva querystring existente, ex: /clientes/editar?id=5)
 RewriteRule ^([a-zA-Z0-9_\-]+(/[a-zA-Z0-9_\-]+)?)/?$ index2.php?pagina=$1 [QSA,L]

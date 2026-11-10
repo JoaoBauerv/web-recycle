@@ -2,10 +2,21 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
+// Na máquina local as variáveis vêm do .env; na Vercel não há .env, e elas
+// chegam como variáveis de ambiente do processo (cadastradas no painel). O
+// safeLoad não falha sem o arquivo, e o getenv() completa o $_ENV, que é onde
+// o resto do sistema lê.
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+$dotenv->safeLoad();
+$_ENV += getenv();
 
-$url_base = $_ENV['URL_BASE'];
+$url_base = rtrim($_ENV['URL_BASE'] ?? '', '/');
+
+// Na Vercel o PHP roda atrás de um proxy: a conexão chega em HTTP e o HTTPS do
+// visitante só aparece no X-Forwarded-Proto.
+if (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
 
 // Cookie de sessão: HttpOnly impede que JavaScript leia o identificador (um
 // XSS não consegue roubar a sessão), SameSite=Lax impede que outro site o
@@ -71,3 +82,51 @@ $pdo = (function (): PDO {
         exit('Sistema temporariamente indisponível: não foi possível conectar ao banco de dados. Avise o administrador.');
     }
 })();
+
+// Sessões no banco, na tabela `sessao` (sql/0004_sessao_e_arquivo.sql). Na
+// Vercel cada requisição pode cair numa instância diferente, e um arquivo de
+// sessão gravado numa delas não existe na outra: o login se perderia a cada
+// clique. Registrado aqui porque todo session_start() do sistema vem depois
+// de incluir este arquivo.
+if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+    session_set_save_handler(new class($pdo) implements SessionHandlerInterface {
+        public function __construct(private PDO $pdo) {}
+
+        public function open(string $path, string $name): bool { return true; }
+        public function close(): bool { return true; }
+
+        public function read(string $id): string|false
+        {
+            $stmt = $this->pdo->prepare('SELECT dados FROM sessao WHERE id = ?');
+            $stmt->execute([$id]);
+            return (string) $stmt->fetchColumn();
+        }
+
+        public function write(string $id, string $data): bool
+        {
+            try {
+                return $this->pdo->prepare(
+                    'INSERT INTO sessao (id, dados, atualizado_em) VALUES (?, ?, now())
+                     ON CONFLICT (id) DO UPDATE SET dados = EXCLUDED.dados, atualizado_em = now()'
+                )->execute([$id, $data]);
+            } catch (PDOException $e) {
+                // Uma transação que a página deixou quebrada aborta este
+                // INSERT; registra e segue, em vez de estourar no shutdown.
+                error_log('Falha ao gravar a sessão: ' . $e->getMessage());
+                return false;
+            }
+        }
+
+        public function destroy(string $id): bool
+        {
+            return $this->pdo->prepare('DELETE FROM sessao WHERE id = ?')->execute([$id]);
+        }
+
+        public function gc(int $max_lifetime): int|false
+        {
+            $stmt = $this->pdo->prepare("DELETE FROM sessao WHERE atualizado_em < now() - make_interval(secs => ?)");
+            $stmt->execute([$max_lifetime]);
+            return $stmt->rowCount();
+        }
+    }, true);
+}

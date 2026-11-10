@@ -231,18 +231,19 @@ mais comum de instalação.
 
 Reinicie o Apache depois de alterar.
 
-### 6. Permissão de escrita em duas pastas
+### 6. Tabelas de sessão e de arquivos
 
-O sistema grava arquivos em:
-
-- `images/user/` — fotos de perfil dos usuários
-- `uploads/comprovantes_venda/` — comprovantes enviados pelos parceiros
-
-No Windows com XAMPP isso normalmente já funciona. Em Linux:
+Nesta branch (`neon`) as sessões e os arquivos enviados (fotos de perfil,
+comprovantes de venda, planilha de importação) ficam no banco, e não em disco.
+Depois do seed, rode:
 
 ```bash
-chmod -R 775 images/user uploads/comprovantes_venda
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0004_sessao_e_arquivo.sql
 ```
+
+Fotos que já estavam em `images/user/` ou comprovantes em
+`uploads/comprovantes_venda/` de uma instalação anterior não são lidos: o
+sistema procura tudo na tabela `arquivo`.
 
 ### 7. Primeiro acesso
 
@@ -254,6 +255,31 @@ Abra <http://localhost/web-recycle/views/user/login.php> e entre com:
 | senha | `admin@123` |
 
 O sistema **exige a troca da senha neste primeiro acesso**. Veja a seção seguinte.
+
+### Deploy na Vercel (banco no Neon)
+
+A Vercel não roda PHP por padrão. O `vercel.json` usa o runtime da comunidade
+`vercel-php` (PHP 8.3) e manda todo pedido dinâmico para `api/index.php`, que
+faz o papel do Apache e do `.htaccess`: executa o `.php` pedido, aplica a
+regra `/pagina/acao` → `index2.php` e bloqueia `sql/`, `vendor/`, `.env` e os
+demais arquivos internos. CSS, JS e imagens a Vercel serve direto. O Composer
+roda no build, e o `.vercelignore` impede que o `vendor/` local e o `.env`
+subam.
+
+O disco da Vercel é somente leitura, e cada requisição pode cair numa instância
+diferente. Por isso as sessões e os arquivos enviados ficam no banco (passo 6).
+
+Cadastre em *Settings → Environment Variables* do projeto na Vercel:
+
+| Variável | Valor |
+|---|---|
+| `DATABASE_URL_UNPOOLED` | a URL direta do Neon (a mesma do `.env`) |
+| `URL_BASE` | o endereço do projeto, ex.: `https://web-recycle.vercel.app` (sem barra no fim) |
+| `APP_NAME`, `APP_ENV`, `BALANCA_API_URL`, `MAIL_*` | os mesmos valores do `.env` |
+
+A extensão `gd` não existe no runtime da Vercel. O PhpSpreadsheet a declara
+como obrigatória, mas só a usa para imagens dentro da planilha, por isso o
+`composer.json` declara a extensão em `config.platform`.
 
 ---
 

@@ -3,6 +3,7 @@ require_once (__DIR__ . '/../../components/middleware.php');
 require_once (__DIR__ . '/../../components/permissoes.php');
 require_once(__DIR__ . '/../../banco.php');
 require_once(__DIR__ . '/../funcoes.php');
+require_once(__DIR__ . '/../../components/arquivo.php');
 require_once(__DIR__ . '/../../components/endereco.php');
 
 // Este endpoint grava usuario.permissao. Só exigir login não basta: a rota
@@ -130,10 +131,7 @@ try {
             
             // Remover foto antiga se existir
             if ($fotoAtual && $fotoAtual !== $novaFoto) {
-                $caminhoFotoAntiga = __DIR__ . '/../../images/user/' . $fotoAtual;
-                if (file_exists($caminhoFotoAntiga)) {
-                    unlink($caminhoFotoAntiga);
-                }
+                arquivoApagar($pdo, 'user/' . $fotoAtual);
             }
         } else {
             throw new Exception('Erro no upload da foto: ' . $resultadoUpload['error']);

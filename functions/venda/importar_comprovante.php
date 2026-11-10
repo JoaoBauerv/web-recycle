@@ -8,6 +8,9 @@
 require_once(__DIR__ . '/../../components/middleware.php');
 require_once(__DIR__ . '/../../components/permissoes.php');
 require_once __DIR__ . '/../funcoes.php';
+// O arquivo fica na tabela `arquivo`, com o prefixo comprovante_venda/; a
+// coluna vendas.comprovante_arquivo guarda só o nome.
+require_once __DIR__ . '/../../components/arquivo.php';
 
 exigirPermissao('venda.comprovante_anexar', $url_base);
 
@@ -53,10 +56,7 @@ if ((($_POST['acao'] ?? '') === 'remover' || !empty($venda['comprovante_arquivo'
 // ---------------------------------------------------------------- remoção
 if (($_POST['acao'] ?? '') === 'remover') {
     if (!empty($venda['comprovante_arquivo'])) {
-        $caminho = __DIR__ . '/../../uploads/comprovantes_venda/' . $venda['comprovante_arquivo'];
-        if (is_file($caminho)) {
-            unlink($caminho);
-        }
+        arquivoApagar($pdo, 'comprovante_venda/' . $venda['comprovante_arquivo']);
     }
 
     $pdo->prepare("UPDATE vendas SET comprovante_arquivo = NULL, comprovante_importado_em = NULL WHERE id_venda = ?")
@@ -103,27 +103,17 @@ if (!isset(COMPROVANTE_TIPOS[$mime])) {
     importacaoErro($destino, 'Formato não aceito. Envie PDF, JPG, PNG ou WebP.');
 }
 
-$pasta = __DIR__ . '/../../uploads/comprovantes_venda/';
-if (!is_dir($pasta) && !mkdir($pasta, 0755, true)) {
-    importacaoErro($destino, 'Não foi possível criar a pasta de comprovantes.');
-}
-if (!is_writable($pasta)) {
-    importacaoErro($destino, 'A pasta de comprovantes não tem permissão de escrita.');
-}
-
-// Nome gerado pelo sistema: o nome enviado pelo usuário nunca vira caminho.
+// Nome gerado pelo sistema: o nome enviado pelo usuário nunca vira chave.
 $nome_arquivo = sprintf('venda_%d_%s.%s', $id_venda, bin2hex(random_bytes(8)), COMPROVANTE_TIPOS[$mime]);
 
-if (!move_uploaded_file($arquivo['tmp_name'], $pasta . $nome_arquivo)) {
+if (!is_uploaded_file($arquivo['tmp_name'])
+    || !arquivoSalvar($pdo, 'comprovante_venda/' . $nome_arquivo, $arquivo['tmp_name'], $mime)) {
     importacaoErro($destino, 'Não foi possível salvar o arquivo no servidor.');
 }
 
-// Substituição: remove o anterior para não deixar arquivo solto na pasta.
+// Substituição: remove o anterior para não deixar arquivo solto no banco.
 if (!empty($venda['comprovante_arquivo'])) {
-    $antigo = $pasta . $venda['comprovante_arquivo'];
-    if (is_file($antigo)) {
-        unlink($antigo);
-    }
+    arquivoApagar($pdo, 'comprovante_venda/' . $venda['comprovante_arquivo']);
 }
 
 $pdo->prepare("UPDATE vendas SET comprovante_arquivo = :arquivo, comprovante_importado_em = NOW() WHERE id_venda = :id")
