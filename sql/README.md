@@ -22,7 +22,12 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
 #    ou dois anos de operação, para testar relatórios com volume:
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0003_seed_massa.sql
+#    ou o piloto de um ferro-velho, de 01/08 a 07/11/2026:
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0004_seed_piloto.sql
 ```
+
+Para apagar e refazer tudo isso de uma vez, veja
+[`recriar_banco.ps1`](#recriar_bancops1--reset).
 
 São **dois arquivos obrigatórios**: a estrutura e o seed. Desde 05/11/2026 a
 baseline já é o schema final — não há migration para aplicar depois dela (ver
@@ -125,7 +130,9 @@ seed leva os 33 ativos.
 | `0001_seed_inicial.sql` | **O seed único.** Dados de referência e o administrador |
 | `0002_seed_demo.sql` | **Opcional.** Massa pequena de demonstração em todas as tabelas — ver abaixo |
 | `0003_seed_massa.sql` | **Opcional, alternativa à 0002.** Dois anos de operação simulada, para testar volume — ver abaixo |
-| `seed_funcoes.sql` | Funções comuns às duas seeds; incluído por elas, não se roda sozinho |
+| `0004_seed_piloto.sql` | **Opcional, alternativa à 0002 e à 0003.** Piloto de um ferro-velho de 01/08 a 07/11/2026, em datas fixas — ver abaixo |
+| `seed_funcoes.sql` | Funções comuns às seeds; incluído por elas, não se roda sozinho |
+| `recriar_banco.ps1` | **Reset:** apaga e recria um banco com a estrutura, o seed e uma das massas |
 | `_arquivo/*.sql` | As 15 migrations já incorporadas na baseline — **histórico**, fora da instalação |
 
 As contagens somam PK, UNIQUE, FK e CHECK. O PostgreSQL 17 e superiores também
@@ -277,9 +284,90 @@ Usuários: os mesmos da 0002 (`fernanda.oliveira@example.com` Admin,
 `carlos.ramos@example.com`) mais `juliana.prado@example.com` e
 `marcos.vieira@example.com`, todos com a senha `admin@123`.
 
+### `0004_seed_piloto.sql` — o piloto de um ferro-velho
+
+**Opcional, nunca em produção, e alternativa à 0002 e à 0003.** Simula o
+sistema em uso num ferro-velho de pequeno/médio porte de **01/08/2026 a
+07/11/2026**, para a demonstração do TCC. Leva cerca de 2 segundos:
+
+```bash
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0004_seed_piloto.sql
+```
+
+Ao contrário da 0002 e da 0003, as **datas são fixas**: rodar em qualquer dia
+gera exatamente a mesma massa (`setseed()` e datas absolutas). Conferido:
+duas instalações do zero produzem compras, vendas e trilha de estoque
+idênticas.
+
+| Tabela | Linhas (aprox.) | O que entra |
+|---|---|---|
+| `usuario` | +3 | dono (Admin), operador de balança/pátio e atendente de caixa |
+| `clientes` | 48 | quem vende ao ferro-velho: 40 pessoas físicas (catadores, carroceiros, moradores) e 8 empresas (oficinas, serralherias, obras, eletricistas); 12 PF e 3 PJ chegam ao longo do piloto |
+| `fornecedores` | 5 | quem compra do ferro-velho: fundição/siderúrgica, recicladora de alumínio, aparista de papel, recicladora de plástico e comprador de baterias |
+| `pesagem` / `pesagem_material` | 1.841 / 2.999 | compras de segunda a sábado, 30 canceladas |
+| `vendas` / `vendas_itens` | 32 / 106 | vendas em lote, 1 a 3 por semana, 2 canceladas, ~1/3 a prazo |
+| `estoque_movimentacoes` | 3.163 | compras, vendas e estornos |
+| `contas_pagar` / `_parcelas` | 31 / 70 | aluguel, salários, energia, água, Simples, diesel, manutenção, balança parcelada |
+| `registro_movimento` | 2.225 | auditoria, inclusive ~200 edições de preço |
+
+O que a simulação reproduz:
+
+- **Movimento de ferro-velho**: 15 a 40 compras por dia útil, menos no sábado
+  (só de manhã), nada aos domingos e nos feriados de 07/09, 12/10 e 02/11.
+  Horário das 7h às 17h30 com pico entre 8h e 10h. O volume cresce de ~17
+  compras/dia em agosto para ~30 no fim do piloto.
+- **Quem traz o quê**: pessoa física entrega de 5 a 80 kg; empresa, de 200 kg
+  a 2 t. Uns 8 catadores vêm quase todo dia. Ferro, papelão e latinha
+  dominam; cobre e bronze aparecem menos, mas valem muito mais.
+- **Preços de mercado**: compra a 70–85% do preço de venda, com oscilação
+  semanal (metais oscilam juntos), lançada toda segunda como edição do
+  material, com a mesma auditoria da tela. A implantação, em 31/07, troca
+  os preços do catálogo antigo pelos de mercado.
+- **Vendas por lote**: cada comprador leva o grupo dele quando o estoque passa
+  do lote mínimo (8 t de metais, 3,5 t de papel, 1 t de alumínio, 700 kg de
+  plástico e de bateria), de 90% a 100% do saldo. Nunca vende mais do que há.
+- **Financeiro**: salários pagos no 5º dia útil, uma conta paga com atraso e
+  juros, uma vencida em aberto, uma despesa cancelada. O que vence até
+  07/11/2026 está pago, o resto fica pendente.
+
+O schema não tem **caixa** (abertura e fechamento), **forma de pagamento da
+compra** nem **contas a receber**. A massa não inventa essas coisas: o prazo
+das vendas vai em `vendas.observacoes` (`A prazo: boleto em 15 dias,
+vencimento 04/11/2026.`).
+
+Os materiais do piloto, com os nomes do catálogo: ferro/sucata mista =
+`Sucata`, cobre mel = `Cobre Vermelho`, bronze/latão = `Metal`, alumínio
+bloco = `Duro`, latinha = `Lata`, inox = `Inox Panela`, fio de cobre
+encapado = `Fio Capa`, PET = `Pet Branca`/`Pet Verde`, além de `Cobre Misto`,
+`Perfil`, `Panela`, `Papelão`, `Papel Branco` e `Bateria`.
+
+No fim, além das conferências da 0003 (saldo igual à trilha e `saldo_apos`
+em ordem cronológica), confere que **nenhum saldo ficou negativo em momento
+algum** e que tudo está dentro do período. Depois imprime um resumo: compras,
+vendas, kg por material, faturamento, custo do material vendido (ao custo
+médio de compra), margem bruta e os 5 materiais mais movimentados.
+
+Usuários, todos com a senha `admin@123` e sem troca obrigatória:
+`rogerio.antunes@example.com` (Admin, dono), `diego.lemos@example.com`
+(operador) e `patricia.fagundes@example.com` (atendente).
+
+### `recriar_banco.ps1` — reset
+
+Apaga o banco indicado, cria de novo e roda a baseline, o seed inicial e a
+massa escolhida (`piloto`, que é o padrão, `demo`, `massa` ou `nenhuma`). É
+**destrutivo**: sem `-Confirmar`, só mostra o que faria. Lê a conexão do `.env`
+e acha o `psql` no PATH ou em `C:\Program Files\PostgreSQL`.
+
+```powershell
+powershell -File sql/recriar_banco.ps1 -Banco reciclagem -Confirmar
+powershell -File sql/recriar_banco.ps1 -Banco reciclagem -Massa nenhuma -Confirmar
+```
+
+Avisa quando o banco é o `DB_NAME` do `.env`, o que o sistema está usando.
+
 ### `seed_funcoes.sql`
 
-Funções auxiliares comuns às duas seeds (compra, venda, estorno, movimentação
+Funções auxiliares comuns às seeds (compra, venda, estorno, movimentação
 de estoque, conta a pagar, geração de CPF/CNPJ). **Não se roda sozinho**: cada
 seed o inclui com `\ir seed_funcoes.sql`, por isso as seeds precisam ser
 executadas pelo `psql`.
