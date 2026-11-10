@@ -33,3 +33,8 @@
 # que bloqueia a pasta é versionado, os arquivos nunca.
 /uploads/comprovantes_venda/*
 !/uploads/comprovantes_venda/.htaccess
+
+# Dumps do banco (pg_dump) feitos antes de recriar o banco com uma massa de
+# demonstração. Carregam dado pessoal real e nunca entram no Git. O .htaccess
+# também bloqueia a pasta para a web.
+/backups/
