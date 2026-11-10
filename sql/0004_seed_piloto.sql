@@ -35,6 +35,12 @@
 --       C alto giro, baixo valor (lata, PET, papelao, papel): 8-15%
 --     Oscilacao semanal (toda segunda, auditada como edicao do material);
 --     metais oscilam juntos. Preco especial sem tirar o markup da faixa.
+--   - Precos em degraus, como no balcao: A R$ 1,00 (>= R$ 10/kg) ou R$ 0,50;
+--     B R$ 0,10; C R$ 0,50 (>= R$ 5/kg) ou R$ 0,10; abaixo de R$ 1,00/kg,
+--     R$ 0,05. Vale para compra, venda, especial e oscilacao.
+--   - Valor pago na compra arredondado no balcao (ate R$ 100, para R$ 0,50;
+--     acima, para o real): so nesta massa. Os itens ficam peso x preco, o
+--     total do documento e o valor pago, e a diferenca vai para a auditoria.
 --   - Triagem antes de cada lote: o que entrou desde a triagem anterior perde a
 --     quebra do material (A 3-10%, B 3-8%, C 1-3%), lancada como 'perda' por
 --     ajuste manual, como na tela de estoque. Vendido < comprado.
@@ -66,7 +72,9 @@
 --   negativo aborta. Os eventos de cada dia sao gravados em ordem de horario.
 --   No fim confere: saldo = trilha, saldo_apos = soma acumulada cronologica,
 --   nenhum saldo negativo em momento algum, markup de cada classe e quebra de
---   cada material dentro da faixa, vendido < comprado; e imprime um resumo.
+--   cada material dentro da faixa, vendido < comprado, precos no degrau,
+--   total de compra pela regra do balcao, resultado entre 4% e 8% do
+--   faturamento; e imprime um resumo.
 --
 -- REPRODUTIVEL
 --   setseed() fixa o sorteio e as datas sao absolutas: rodar de novo gera
@@ -133,36 +141,94 @@ CREATE TEMP TABLE _mat (
     ult_triagem timestamp DEFAULT TIMESTAMP '2026-07-31 23:59'
 ) ON COMMIT DROP;
 
+-- Precos em degraus, como no balcao (ver pg_temp.degrau):
+--   A: R$ 1,00 a partir de R$ 10/kg, R$ 0,50 abaixo   B: R$ 0,10
+--   C: R$ 0,50 a partir de R$ 5/kg,  R$ 0,10 abaixo
+--   qualquer classe abaixo de R$ 1,00/kg: R$ 0,05
 --                     classe  compra   venda  quebra  (markup)
 INSERT INTO _mat (nome, classe, compra_base, venda_base, quebra, fpf, pf_min, pf_max, grupo, vmin) VALUES
     ('Cobre Vermelho', 'A', 50.00, 70.00, 0.035,  2,  0.3,  6, 'metais',     10),   -- 40,0%; cobre mel, limpo
-    ('Cobre Misto',    'A', 42.00, 58.00, 0.060,  3,  0.5,  8, 'metais',     15),   -- 38,1%; solda, verniz
-    ('Fio Capa',       'A', 18.00, 25.00, 0.085,  4,  1.0, 15, 'metais',     30),   -- 38,9%; capa e terminais
-    ('Metal',          'A', 30.00, 41.00, 0.050,  3,  0.5, 10, 'metais',     20),   -- 36,7%; bronze/latao com ferro
-    ('Inox Panela',    'A',  5.00,  6.80, 0.040,  2,  1.0, 15, 'metais',     40),   -- 36,0%; cabos e alcas
-    ('Duro',           'A',  6.50,  8.90, 0.070,  2,  3.0, 25, 'aluminio',   50),   -- 36,9%; oleo e terra do bloco
-    ('Perfil',         'A',  9.00, 12.40, 0.040,  4,  2.0, 20, 'aluminio',   50),   -- 37,8%; borracha, parafuso
+    ('Cobre Misto',    'A', 42.00, 59.00, 0.060,  3,  0.5,  8, 'metais',     15),   -- 40,5%; solda, verniz
+    ('Fio Capa',       'A', 18.00, 26.00, 0.085,  4,  1.0, 15, 'metais',     30),   -- 44,4%; capa e terminais
+    ('Metal',          'A', 30.00, 42.00, 0.050,  3,  0.5, 10, 'metais',     20),   -- 40,0%; bronze/latao com ferro
+    ('Inox Panela',    'A',  5.00,  7.00, 0.040,  2,  1.0, 15, 'metais',     40),   -- 40,0%; cabos e alcas
+    ('Duro',           'A',  6.50,  9.00, 0.070,  2,  3.0, 25, 'aluminio',   50),   -- 38,5%; oleo e terra do bloco
+    ('Perfil',         'A',  9.00, 13.00, 0.040,  4,  2.0, 20, 'aluminio',   50),   -- 44,4%; borracha, parafuso
     ('Panela',         'A',  8.00, 11.00, 0.050,  5,  1.0, 12, 'aluminio',   30),   -- 37,5%; cabos de baquelite
-    ('Bateria',        'A',  3.00,  4.10, 0.045,  3, 12.0, 45, 'bateria',   100),   -- 36,7%; acido escorrido
-    ('Sucata',         'B',  0.85,  1.07, 0.060, 30, 10.0, 80, 'metais',   1000),   -- 25,9%; terra, pecas mistas
+    ('Bateria',        'A',  3.00,  4.00, 0.045,  3, 12.0, 45, 'bateria',   100),   -- 33,3%; acido escorrido
+    ('Sucata',         'B',  0.80,  1.00, 0.060, 30, 10.0, 80, 'metais',   1000),   -- 25,0%; terra, pecas mistas
     ('Lata',           'C',  8.00,  9.00, 0.020, 22,  2.0, 25, 'aluminio',  100),   -- 12,5%; areia, liquido
     ('Pet Branca',     'C',  2.40,  2.70, 0.025, 10,  3.0, 30, 'plastico',  100),   -- 12,5%; tampa, rotulo
-    ('Pet Verde',      'C',  1.90,  2.13, 0.025,  4,  3.0, 25, 'plastico',   60),   -- 12,1%
-    ('Papelão',        'C',  0.55,  0.62, 0.020, 28,  8.0, 70, 'papel',     500),   -- 12,7%; umidade, fita
-    ('Papel Branco',   'C',  0.70,  0.79, 0.015,  6,  5.0, 40, 'papel',     150);   -- 12,9%
+    ('Pet Verde',      'C',  1.90,  2.10, 0.025,  4,  3.0, 25, 'plastico',   60),   -- 10,5%
+    ('Papelão',        'C',  0.50,  0.55, 0.020, 28,  8.0, 70, 'papel',     500),   -- 10,0%; umidade, fita
+    ('Papel Branco',   'C',  0.80,  0.90, 0.015,  6,  5.0, 40, 'papel',     150);   -- 12,5%
 
 UPDATE _mat t SET id = m.id_material FROM material m WHERE m.nm_material = t.nome;
+
+-- Degrau de preco por kg da classe, pela faixa do proprio preco. Abaixo de
+-- R$ 1,00/kg, qualquer classe anda de R$ 0,05.
+CREATE FUNCTION pg_temp.degrau(p_classe text, p_preco numeric) RETURNS numeric
+LANGUAGE sql IMMUTABLE AS $f$
+    SELECT CASE WHEN p_preco < 1 THEN 0.05 ELSE
+           CASE p_classe
+               WHEN 'A' THEN CASE WHEN p_preco >= 10 THEN 1.00 ELSE 0.50 END
+               WHEN 'B' THEN 0.10
+               ELSE          CASE WHEN p_preco >= 5 THEN 0.50 ELSE 0.10 END END END
+$f$;
+
+-- Preco levado ao degrau mais proximo.
+CREATE FUNCTION pg_temp.arred(p_classe text, p_preco numeric) RETURNS numeric
+LANGUAGE sql IMMUTABLE AS $f$
+    SELECT round(round(p_preco / pg_temp.degrau(p_classe, p_preco)) * pg_temp.degrau(p_classe, p_preco), 2)
+$f$;
+
+-- Preco no degrau? (conferencia)
+CREATE FUNCTION pg_temp.no_degrau(p_classe text, p_preco numeric) RETURNS boolean
+LANGUAGE sql IMMUTABLE AS $f$
+    SELECT p_preco > 0 AND mod(p_preco, pg_temp.degrau(p_classe, p_preco)) = 0
+$f$;
+
+-- Preco especial: o fator da classe levado ao degrau, recuando degrau a degrau
+-- enquanto tirar o markup da faixa; no limite, igual ao preco normal.
+CREATE FUNCTION pg_temp.especial(p_classe text, p_compra numeric, p_venda numeric) RETURNS numeric
+LANGUAGE plpgsql AS $f$
+DECLARE c record; e numeric;
+BEGIN
+    SELECT * INTO c FROM _classe WHERE classe = p_classe;
+    e := pg_temp.arred(p_classe, p_compra * c.esp);
+    WHILE e > p_compra AND (p_venda - e) / e < c.markup_min LOOP
+        e := e - pg_temp.degrau(p_classe, e - 0.01);
+    END LOOP;
+    RETURN GREATEST(e, p_compra);
+END $f$;
+
+-- Valor pago no balcao: ate R$ 100, o R$ 0,50 mais proximo; acima, o real inteiro.
+CREATE FUNCTION pg_temp.balcao(p_valor numeric) RETURNS numeric
+LANGUAGE sql IMMUTABLE AS $f$
+    SELECT CASE WHEN p_valor <= 100 THEN round(p_valor * 2) / 2 ELSE round(p_valor) END::numeric(10,2)
+$f$;
+
+DO $$
+BEGIN
+    -- Precos-base no degrau da classe.
+    IF EXISTS (SELECT 1 FROM _mat WHERE NOT pg_temp.no_degrau(classe, compra_base) OR NOT pg_temp.no_degrau(classe, venda_base)) THEN
+        RAISE EXCEPTION 'preco-base fora do degrau: %',
+            (SELECT string_agg(nome, ', ') FROM _mat WHERE NOT pg_temp.no_degrau(classe, compra_base) OR NOT pg_temp.no_degrau(classe, venda_base));
+    END IF;
+END $$;
 
 DO $$
 BEGIN
     -- O preco-base, inclusive o especial, precisa nascer dentro da faixa da classe.
     IF EXISTS (SELECT 1 FROM _mat t JOIN _classe c USING (classe)
-                WHERE (t.venda_base - t.compra_base * c.esp) / (t.compra_base * c.esp) < c.markup_min
+                WHERE (t.venda_base - pg_temp.especial(t.classe, t.compra_base, t.venda_base))
+                        / pg_temp.especial(t.classe, t.compra_base, t.venda_base) < c.markup_min
                    OR (t.venda_base - t.compra_base) / t.compra_base > c.markup_max
                    OR t.quebra NOT BETWEEN c.quebra_min AND c.quebra_max) THEN
         RAISE EXCEPTION 'preco-base ou quebra fora da faixa da classe: %',
             (SELECT string_agg(t.nome, ', ') FROM _mat t JOIN _classe c USING (classe)
-              WHERE (t.venda_base - t.compra_base * c.esp) / (t.compra_base * c.esp) < c.markup_min
+              WHERE (t.venda_base - pg_temp.especial(t.classe, t.compra_base, t.venda_base))
+                      / pg_temp.especial(t.classe, t.compra_base, t.venda_base) < c.markup_min
                  OR (t.venda_base - t.compra_base) / t.compra_base > c.markup_max
                  OR t.quebra NOT BETWEEN c.quebra_min AND c.quebra_max);
     END IF;
@@ -261,8 +327,8 @@ BEGIN
         novo := LEAST(1.10, GREATEST(0.90, 1 + (novo - 1) * 0.85));
         UPDATE _mat SET idx = novo WHERE id = r.id;
 
-        nc := round(r.compra_base * novo, 2);
-        ne := round(r.compra_base * r.esp * novo, 2);
+        nc := pg_temp.arred(r.classe, r.compra_base * novo);
+        ne := pg_temp.especial(r.classe, nc, pg_temp.arred(r.classe, r.venda_base * novo));
         IF nc <> r.pc OR ne IS DISTINCT FROM r.pe THEN
             UPDATE material SET preco_compra = nc, preco_especial = ne WHERE id_material = r.id;
             PERFORM pg_temp.auditar(pg_temp.id('dono'), pg_temp.id('dono'),
@@ -279,6 +345,7 @@ LANGUAGE plpgsql AS $f$
 DECLARE
     c record; r record; n int; i int; b numeric; t numeric; soma numeric := 0; fator numeric := 1;
     lim_min numeric; lim_max numeric; nomes text[] := '{}'; brutos numeric[] := '{}'; itens jsonb := '[]';
+    v_id int; v_exato numeric; v_pago numeric; v_peso numeric;
 BEGIN
     SELECT * INTO c FROM _cli WHERE id = p_cli;
 
@@ -313,7 +380,22 @@ BEGIN
         itens := itens || jsonb_build_object('m', nomes[i], 'b', b, 't', t);
     END LOOP;
 
-    RETURN pg_temp.compra(p_cli, p_t, pg_temp.quem_pesa(), itens);
+    v_id := pg_temp.compra(p_cli, p_t, pg_temp.quem_pesa(), itens);
+
+    -- Pagamento no balcao arredondado (so na massa de demonstracao: o sistema
+    -- grava a soma exata dos itens). Os itens continuam peso x preco; o total
+    -- do documento e o valor pago, e a diferenca fica no texto da auditoria.
+    SELECT total_valor, total_peso INTO v_exato, v_peso FROM pesagem WHERE id_pesagem = v_id;
+    v_pago := pg_temp.balcao(v_exato);
+    IF v_pago <> v_exato THEN
+        UPDATE pesagem SET total_valor = v_pago WHERE id_pesagem = v_id;
+        UPDATE registro_movimento
+           SET descricao = format('Compra #%s registrada: R$ %s (%s kg); itens somam R$ %s, arredondado no balcão (%s%s)',
+                                  v_id, pg_temp.num(v_pago), pg_temp.num(v_peso), pg_temp.num(v_exato),
+                                  CASE WHEN v_pago > v_exato THEN '+' ELSE '−' END, pg_temp.num(abs(v_pago - v_exato)))
+         WHERE tipo = 'Registro Compra' AND descricao LIKE format('Compra #%s registrada:%%', v_id);
+    END IF;
+    RETURN v_id;
 END $f$;
 
 -- Comprador da proxima venda: o grupo com mais estoque em relacao ao lote, se
@@ -384,7 +466,7 @@ BEGIN
                         ELSE floor(m.qt_estoque * (0.90 + 0.10 * random())::numeric * 10) / 10 END AS qtd,
                    CASE WHEN m.qt_estoque > 500 THEN round((8 + random() * 22)::numeric, 1)
                         ELSE round((random() * 3)::numeric, 1) END AS tara,
-                   round(t.venda_base * t.idx * (0.98 + 0.04 * random())::numeric, 2) AS preco
+                   pg_temp.arred(t.classe, t.venda_base * t.idx) AS preco
               FROM _mat t JOIN material m ON m.id_material = t.id
              WHERE t.grupo = g.grupo AND COALESCE(m.qt_estoque, 0) >= t.vmin
              ORDER BY t.id) s;
@@ -548,7 +630,7 @@ BEGIN
     END LOOP;
 
     -- Precos de mercado no catalogo (o dono revisou a tabela antiga antes de comecar).
-    FOR r IN SELECT t.id, t.compra_base, t.venda_base, round(t.compra_base * c.esp, 2) AS esp,
+    FOR r IN SELECT t.id, t.compra_base, t.venda_base, pg_temp.especial(t.classe, t.compra_base, t.venda_base) AS esp,
                     m.preco_compra AS pc, m.preco_especial AS pe
                FROM _mat t JOIN _classe c USING (classe) JOIN material m ON m.id_material = t.id ORDER BY t.id LOOP
         UPDATE material SET preco_compra = r.compra_base, preco_especial = r.esp, preco_venda = r.venda_base
@@ -868,8 +950,29 @@ SELECT t.id, t.nome, t.classe,
                FROM vendas_itens JOIN vendas USING (id_venda) WHERE status = 'concluida' GROUP BY 1) v ON v.id_material = t.id;
 
 DO $$
-DECLARE r record;
+DECLARE r record; n int;
 BEGIN
+    -- 6a. todo preco praticado e de catalogo no degrau da classe
+    SELECT COUNT(*) INTO n FROM (
+        SELECT t.classe, pm.preco_un AS p FROM pesagem_material pm JOIN _mat t ON t.id = pm.id_material
+        UNION ALL
+        SELECT t.classe, vi.preco_un FROM vendas_itens vi JOIN _mat t ON t.id = vi.id_material
+        UNION ALL
+        SELECT t.classe, x.p FROM _mat t JOIN material m ON m.id_material = t.id,
+               LATERAL (VALUES (m.preco_compra), (m.preco_especial), (m.preco_venda)) x(p)) z
+     WHERE NOT pg_temp.no_degrau(classe, p);
+    IF n > 0 THEN RAISE EXCEPTION '% preço(s) fora do degrau da classe', n; END IF;
+
+    -- 6b. total de cada compra = soma dos itens arredondada no balcao
+    SELECT COUNT(*) INTO n
+      FROM pesagem p
+      JOIN (SELECT id_pesagem, round(SUM(peso_material * preco_un), 2) AS itens FROM pesagem_material GROUP BY 1) i USING (id_pesagem)
+     WHERE p.total_valor <> pg_temp.balcao(i.itens);
+    IF n > 0 THEN RAISE EXCEPTION '% compra(s) com total fora da regra do balcão', n; END IF;
+
+    -- 6c. resultado operacional positivo e modesto: 4% a 8% do faturamento
+    -- (conferido no resumo, que tem o calculo completo)
+
     -- 6. markup realizado de cada classe dentro da faixa
     FOR r IN SELECT c.classe, c.markup_min, c.markup_max,
                     (SUM(x.receita) - SUM(x.vendido * x.custo_medio)) / SUM(x.vendido * x.custo_medio) AS markup
@@ -922,6 +1025,12 @@ BEGIN
     RAISE NOTICE 'Compras: % ativas + % canceladas | % kg | R$ %', n_c, n_cc, pg_temp.num(kg_c), pg_temp.num(custo);
     RAISE NOTICE 'Vendas:  % concluídas + % canceladas | % kg | % a prazo (R$ %)',
         n_v, n_vc, pg_temp.num(kg_v), n_prazo, pg_temp.num(COALESCE(v_prazo, 0));
+    RAISE NOTICE 'Pago no balcão: R$ %  | itens (peso x preço): R$ %  | arredondamento: R$ %',
+        (SELECT pg_temp.num(SUM(total_valor)) FROM pesagem WHERE status = 'ativa'),
+        (SELECT pg_temp.num(SUM(pm.peso_material * pm.preco_un)) FROM pesagem_material pm JOIN pesagem p USING (id_pesagem) WHERE p.status = 'ativa'),
+        (SELECT pg_temp.num(SUM(p.total_valor) - SUM(i.itens))
+           FROM pesagem p JOIN (SELECT id_pesagem, SUM(peso_material * preco_un) itens FROM pesagem_material GROUP BY 1) i USING (id_pesagem)
+          WHERE p.status = 'ativa');
     RAISE NOTICE 'Quebra na triagem: % kg', pg_temp.num(kg_p);
     RAISE NOTICE 'Compras por dia útil (seg-sex): mín % / média % / máx %; sábado: média %',
         (SELECT MIN(n) FROM (SELECT data_pesagem::date d, COUNT(*) n FROM pesagem GROUP BY 1) x WHERE extract(dow FROM d) BETWEEN 1 AND 5),
@@ -957,6 +1066,25 @@ BEGIN
     END LOOP;
 
     RAISE NOTICE '';
+    RAISE NOTICE 'Preços por kg (base em 31/07; praticados = menor e maior do piloto)';
+    RAISE NOTICE '% % % % % % % %', rpad('Material', 15), 'C', lpad('compra', 7), lpad('venda', 7), lpad('markup', 7),
+        lpad('especial', 8), lpad('compra praticada', 17), lpad('venda praticada', 16);
+    FOR r IN SELECT t.nome, t.classe, t.compra_base, t.venda_base,
+                    pg_temp.especial(t.classe, t.compra_base, t.venda_base) AS esp,
+                    (SELECT MIN(preco_un) FROM pesagem_material WHERE id_material = t.id) AS cmin,
+                    (SELECT MAX(preco_un) FROM pesagem_material WHERE id_material = t.id) AS cmax,
+                    (SELECT MIN(preco_un) FROM vendas_itens WHERE id_material = t.id) AS vmin,
+                    (SELECT MAX(preco_un) FROM vendas_itens WHERE id_material = t.id) AS vmax
+               FROM _mat t ORDER BY t.classe, t.compra_base DESC LOOP
+        RAISE NOTICE '% % % % % % % %', rpad(r.nome, 15), r.classe, lpad(pg_temp.num(r.compra_base), 7),
+            lpad(pg_temp.num(r.venda_base), 7),
+            lpad(pg_temp.num((r.venda_base - r.compra_base) / r.compra_base * 100) || '%', 7),
+            lpad(pg_temp.num(r.esp), 8),
+            lpad(pg_temp.num(r.cmin) || ' a ' || pg_temp.num(r.cmax), 17),
+            lpad(COALESCE(pg_temp.num(r.vmin) || ' a ' || pg_temp.num(r.vmax), '-'), 16);
+    END LOOP;
+
+    RAISE NOTICE '';
     RAISE NOTICE 'Faturamento (vendas):                    R$ %', lpad(pg_temp.num(fat), 12);
     RAISE NOTICE '- Custo do material vendido (CMV):       R$ %', lpad(pg_temp.num(cmv), 12);
     RAISE NOTICE '= Margem bruta:                          R$ %  (markup %, margem s/ venda %)', lpad(pg_temp.num(bruta), 12),
@@ -967,6 +1095,12 @@ BEGIN
     RAISE NOTICE '- Despesas com vencimento no período:    R$ %', lpad(pg_temp.num(desp), 12);
     RAISE NOTICE '= Resultado operacional:                 R$ %  (% do faturamento)', lpad(pg_temp.num(bruta - quebra_rs - desp), 12),
         pg_temp.num((bruta - quebra_rs - desp) / fat * 100) || '%';
+
+    -- Resultado positivo e modesto: entre 4% e 8% do faturamento.
+    IF (bruta - quebra_rs - desp) / fat NOT BETWEEN 0.04 AND 0.08 THEN
+        RAISE EXCEPTION 'resultado operacional de % do faturamento, fora de 4%% a 8%%',
+            pg_temp.num((bruta - quebra_rs - desp) / fat * 100) || '%';
+    END IF;
 
     RAISE NOTICE '';
     RAISE NOTICE 'Despesas por categoria (vencimento no período):';
@@ -997,7 +1131,8 @@ BEGIN
 
     RAISE NOTICE '';
     RAISE NOTICE 'Conferido: saldo = trilha, saldo_apos cronológico, estoque nunca negativo,';
-    RAISE NOTICE 'markup de cada classe e quebra de cada material dentro da faixa, vendido < comprado.';
+    RAISE NOTICE 'markup de cada classe e quebra de cada material dentro da faixa, vendido < comprado,';
+    RAISE NOTICE 'preços no degrau da classe, total de compra arredondado no balcão, resultado entre 4%% e 8%%.';
 END $$;
 
 COMMIT;

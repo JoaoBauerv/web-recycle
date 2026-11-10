@@ -304,11 +304,11 @@ idênticas.
 | `usuario` | +3 | dono (Admin), operador de balança/pátio e atendente de caixa |
 | `clientes` | 48 | quem vende ao ferro-velho: 40 pessoas físicas (catadores, carroceiros, moradores) e 8 empresas (oficinas, serralherias, obras, eletricistas); 12 PF e 3 PJ chegam ao longo do piloto |
 | `fornecedores` | 5 | quem compra do ferro-velho: fundição/siderúrgica, recicladora de alumínio, aparista de papel, recicladora de plástico e comprador de baterias |
-| `pesagem` / `pesagem_material` | 1.816 / 2.992 | compras de segunda a sábado, 26 canceladas |
-| `vendas` / `vendas_itens` | 30 / 98 | vendas em lote, 1 a 3 por semana, 1 cancelada, ~1/4 a prazo |
-| `estoque_movimentacoes` | 3.239 | compras, vendas, estornos e 98 perdas de triagem |
+| `pesagem` / `pesagem_material` | 1.846 / 3.019 | compras de segunda a sábado, 38 canceladas; total pago arredondado no balcão |
+| `vendas` / `vendas_itens` | 32 / 102 | vendas em lote, 1 a 3 por semana, 3 canceladas, 6 a prazo |
+| `estoque_movimentacoes` | 3.298 | compras, vendas, estornos e 101 perdas de triagem |
 | `contas_pagar` / `_parcelas` | 42 / 82 | aluguel, 3 salários e FGTS, energia, água, telefone, internet, Simples, diesel, manutenção do caminhão e da balança, balança parcelada |
-| `registro_movimento` | 2.318 | auditoria, inclusive ~200 edições de preço e as perdas |
+| `registro_movimento` | 2.206 | auditoria, inclusive as edições de preço, as perdas e o arredondamento de cada compra |
 
 O que a simulação reproduz:
 
@@ -329,12 +329,38 @@ O que a simulação reproduz:
   | C — alto giro, baixo valor | Lata, Pet Branca, Pet Verde, Papelão, Papel Branco | 8–15% | 1–3% |
 
   Exemplo: cobre comprado a R$ 50 e vendido a R$ 70 (markup de 40%, margem
-  de 28,6%); latinha a R$ 8 e R$ 9 (12,5% e 11,1%). O preço especial
-  (empresas e dois catadores antigos) paga 4%, 3% ou 2% a mais conforme a
-  classe, sem tirar o markup da faixa. Oscilação semanal (metais oscilam
-  juntos), lançada toda segunda como edição do material, com a mesma
-  auditoria da tela. A implantação, em 31/07, troca os preços do catálogo
-  antigo pelos de mercado.
+  de 28,6%); latinha a R$ 8 e R$ 9 (12,5% e 11,1%). Oscilação semanal
+  (metais oscilam juntos), lançada toda segunda como edição do material, com
+  a mesma auditoria da tela. A implantação, em 31/07, troca os preços do
+  catálogo antigo pelos de mercado.
+- **Preços em degraus, como no balcão**: nada de R$ 10,07/kg. Compra, venda,
+  preço especial e a oscilação semanal andam no degrau da classe:
+
+  | Classe | Degrau |
+  |---|---|
+  | A a partir de R$ 10/kg | R$ 1,00 |
+  | A abaixo de R$ 10/kg | R$ 0,50 |
+  | B | R$ 0,10 |
+  | C a partir de R$ 5/kg | R$ 0,50 |
+  | C abaixo de R$ 5/kg | R$ 0,10 |
+  | qualquer classe abaixo de R$ 1,00/kg | R$ 0,05 |
+
+  O preço especial (empresas e dois catadores antigos) é o normal mais 4%,
+  3% ou 2% conforme a classe, levado ao degrau e recuado enquanto tirar o
+  markup da faixa: na prática só os cobres, o fio, o metal e o perfil têm
+  preço especial acima do normal; nos demais, um degrau a mais já sairia da
+  faixa. O degrau de R$ 0,05 abaixo de R$ 1,00/kg é o que permite o papelão
+  a R$ 0,50 na compra e R$ 0,55 na venda (markup de 10%).
+- **Valor pago no balcão arredondado**: até R$ 100, para o R$ 0,50 mais
+  próximo; acima, para o real inteiro. **Só na massa de demonstração**: o
+  sistema grava a soma exata dos itens. Os itens continuam peso × preço; o
+  total do documento (`pesagem.total_valor`) é o valor pago, e a diferença
+  fica no texto da auditoria da compra (`itens somam R$ 38,16, arredondado
+  no balcão (−0,16)`). As telas que leem o total do documento — lista de
+  compras, detalhe (cartão e linha de total), comprovante, painel e a coluna
+  "Valor total (compra)" do relatório — mostram o valor redondo; as que
+  somam os itens — linhas do detalhe e sua coluna de %, cartões e resumos do
+  Relatório de Compras, Margem e Relatório Financeiro — mostram centavos.
 - **Quebra na triagem**: 40 a 70 minutos antes de cada carregamento, o que
   entrou de cada material do lote desde a triagem anterior perde a quebra do
   material (umidade, terra, capa, solda, ácido), lançada como **perda** por
@@ -366,9 +392,13 @@ No fim, além das conferências da 0003 (saldo igual à trilha e `saldo_apos`
 em ordem cronológica), confere que **nenhum saldo ficou negativo em momento
 algum**, que tudo está dentro do período, que o **markup realizado de cada
 classe** e a **quebra de cada material** ficaram dentro da faixa, e que cada
-material vendeu menos do que comprou. Depois imprime um resumo: compras,
+material vendeu menos do que comprou, que todo preço praticado e de
+catálogo está no degrau da classe, que o total de cada compra é a soma dos
+itens arredondada pela regra do balcão, e que o resultado operacional fica
+entre 4% e 8% do faturamento. Depois imprime um resumo: compras,
 vendas, por material o comprado, a quebra, o vendido, o custo e o preço
-médios, o markup e a margem; por classe, o markup, a margem e a quebra; e o
+médios, o markup e a margem; por classe, o markup, a margem e a quebra; a
+tabela de preços (base, especial e a faixa praticada de compra e venda); e o
 resultado: faturamento − custo do material vendido (ao custo médio de
 compra) = margem bruta − quebra − despesas do período = resultado
 operacional, além dos 5 materiais mais movimentados.
