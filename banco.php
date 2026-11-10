@@ -27,14 +27,40 @@ if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
 // variáveis globais: antes $usuario e $senha (do banco) vazavam para todo
 // arquivo que incluísse este, e esses mesmos nomes são usados para outras
 // coisas no resto do sistema.
+//
+// Com DATABASE_URL_UNPOOLED (ou DATABASE_URL) no .env -- o que o `neon init`
+// grava --, a conexão vai para o Neon; sem elas, cai nas variáveis DB_* de um
+// PostgreSQL local. A URL direta (unpooled) vem primeiro porque o pooler do
+// Neon trabalha em modo transação e não preserva o SET search_path abaixo
+// entre uma transação e outra.
 $pdo = (function (): PDO {
     try {
-        $pdo = new PDO(
-            sprintf('pgsql:host=%s;port=%s;dbname=%s', $_ENV['DB_HOST'], $_ENV['DB_PORT'], $_ENV['DB_NAME']),
-            $_ENV['DB_USER'],
-            $_ENV['DB_PASS'],
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-        );
+        $url = $_ENV['DATABASE_URL_UNPOOLED'] ?? $_ENV['DATABASE_URL'] ?? '';
+        if ($url !== '') {
+            $p = parse_url($url);
+            parse_str($p['query'] ?? '', $query);
+            $dsn = sprintf(
+                'pgsql:host=%s;port=%d;dbname=%s;sslmode=%s',
+                $p['host'],
+                $p['port'] ?? 5432,
+                ltrim($p['path'] ?? '', '/'),
+                $query['sslmode'] ?? 'require'
+            );
+            // O libpq que acompanha o PHP do XAMPP é antigo e não envia SNI,
+            // que o Neon usa para saber qual endpoint atender; sem SNI, o ID
+            // do endpoint (primeiro pedaço do host) vai em `options`.
+            if (str_ends_with($p['host'], '.neon.tech')) {
+                $endpoint = preg_replace('/-pooler$/', '', explode('.', $p['host'])[0]);
+                $dsn .= ";options='endpoint=$endpoint'";
+            }
+            $user = rawurldecode($p['user'] ?? '');
+            $pass = rawurldecode($p['pass'] ?? '');
+        } else {
+            $dsn  = sprintf('pgsql:host=%s;port=%s;dbname=%s', $_ENV['DB_HOST'], $_ENV['DB_PORT'], $_ENV['DB_NAME']);
+            $user = $_ENV['DB_USER'];
+            $pass = $_ENV['DB_PASS'];
+        }
+        $pdo = new PDO($dsn, $user, $pass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
         $pdo->exec("SET search_path TO reciclagem");
         return $pdo;
     } catch (PDOException $e) {

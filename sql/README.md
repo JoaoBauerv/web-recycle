@@ -40,6 +40,19 @@ exatamente os mesmos dados e os mesmos comentários de tabela e de coluna.
 Depois, copie `.env.example` para `.env` e preencha `DB_HOST`, `DB_PORT`,
 `DB_NAME`, `DB_USER`, `DB_PASS` e `URL_BASE`.
 
+### No Neon
+
+O banco também roda no Neon (projeto `gentle-heart-58184220`). Os mesmos dois
+arquivos são aplicados com a URL direta que o `neon init` grava no `.env`:
+
+```bash
+psql -v ON_ERROR_STOP=1 -f sql/0000_baseline_schema.sql "$DATABASE_URL_UNPOOLED"
+psql -v ON_ERROR_STOP=1 -f sql/0001_seed_inicial.sql    "$DATABASE_URL_UNPOOLED"
+```
+
+No psql do Windows as opções vêm **antes** da URL. Com `DATABASE_URL_UNPOOLED`
+preenchida, o `banco.php` conecta no Neon e ignora as `DB_*`.
+
 ### Conferência
 
 Ao final, o banco tem 19 tabelas e apenas quatro delas com conteúdo:
