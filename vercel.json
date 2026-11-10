@@ -12,6 +12,7 @@
     { "src": "/(composer\\.(json|lock)|package(-lock)?\\.json|neon\\.ts|vercel\\.json)", "status": 404 },
     { "src": "/.*\\.md", "status": 404 },
     { "src": "/.*\\.php", "dest": "/api/index.php" },
+    { "src": "/(.*/)?", "dest": "/api/index.php" },
     { "handle": "filesystem" },
     { "src": "/.*", "dest": "/api/index.php" }
   ]
