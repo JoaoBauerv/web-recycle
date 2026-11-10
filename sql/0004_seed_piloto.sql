@@ -29,17 +29,26 @@
 --     quase todo dia) e 8 empresas (PJ, 200 kg a 2 t; oficina, serralheria,
 --     obra, eletricista), algumas chegando ao longo do piloto.
 --   - Ferro, papelao e latinha dominam; cobre e bronze menos frequentes e caros.
---   - Precos de mercado com compra a 70-85% da venda e oscilacao semanal (toda
---     segunda, auditada como edicao do material). Metais oscilam juntos.
+--   - Precos de mercado por classe (markup = (venda - compra) / compra):
+--       A alto valor, baixo giro (cobres, fio, metal, inox, aluminios, bateria): 30-45%
+--       B ferro, volume com impureza: 20-30%
+--       C alto giro, baixo valor (lata, PET, papelao, papel): 8-15%
+--     Oscilacao semanal (toda segunda, auditada como edicao do material);
+--     metais oscilam juntos. Preco especial sem tirar o markup da faixa.
+--   - Triagem antes de cada lote: o que entrou desde a triagem anterior perde a
+--     quebra do material (A 3-10%, B 3-8%, C 1-3%), lancada como 'perda' por
+--     ajuste manual, como na tela de estoque. Vendido < comprado.
 --   - Vendas em lote as tercas, quintas e sextas (no maximo 3 por semana) para
 --     5 compradores, quando o estoque do grupo passa do lote minimo. Vende de
 --     90% a 100% do que ha, nunca mais. Parte a prazo (boleto em 15 dias ou
 --     transferencia em 7), registrada em vendas.observacoes.
 --   - ~1,5% das compras e 1 a 2 vendas canceladas, com estorno do estoque.
 --   - Financeiro do periodo em contas_pagar: aluguel, honorarios, internet,
---     salarios, energia, agua, Simples (4% das vendas), diesel, manutencao,
---     uma balanca parcelada, uma conta paga com atraso, uma vencida em aberto
---     e uma despesa cancelada. Pago = vencimento ate 07/11/2026.
+--     telefone, 3 salarios e FGTS, energia, agua, Simples (4% das vendas),
+--     diesel e manutencao do caminhao, aferição da balanca, manutencao da
+--     prensa, uma balanca parcelada, uma conta paga com atraso, a de agua de
+--     setembro vencida em aberto e uma despesa cancelada. Pago = vencimento
+--     ate 07/11/2026.
 --
 -- O QUE O SCHEMA NAO TEM (e a massa nao inventa)
 --   Caixa (abertura/fechamento), forma de pagamento da compra e contas a
@@ -56,7 +65,8 @@
 --   Usa as funcoes de seed_funcoes.sql, que aplicam as regras do PHP; saldo
 --   negativo aborta. Os eventos de cada dia sao gravados em ordem de horario.
 --   No fim confere: saldo = trilha, saldo_apos = soma acumulada cronologica,
---   nenhum saldo negativo em momento algum, e imprime um resumo.
+--   nenhum saldo negativo em momento algum, markup de cada classe e quebra de
+--   cada material dentro da faixa, vendido < comprado; e imprime um resumo.
 --
 -- REPRODUTIVEL
 --   setseed() fixa o sorteio e as datas sao absolutas: rodar de novo gera
@@ -98,32 +108,65 @@ SELECT setseed(0.2026);
 -- Tabelas de trabalho (somem no COMMIT)
 -- ---------------------------------------------------------------------------
 
--- Materiais do piloto: preco-base de compra e de venda (R$/kg), frequencia e
--- faixa de peso por item na entrega de pessoa fisica, grupo de comprador,
--- minimo para entrar numa venda e indice de preco da semana.
+-- Classes de preco. Definicoes usadas em todo o arquivo:
+--   markup             = (venda - compra) / compra
+--   margem sobre venda = (venda - compra) / venda
+-- A: alto valor, baixo giro: a diferenca paga despesa e a quebra da triagem.
+-- B: ferro, volume com impureza (terra, pecas misturadas).
+-- C: alto giro, baixo valor: o lucro vem do volume.
+-- esp = fator do preco especial (empresas e catadores antigos) sobre a compra:
+-- melhor para o cliente, mas sem tirar o markup da faixa da classe.
+CREATE TEMP TABLE _classe (classe text, markup_min numeric, markup_max numeric,
+                           quebra_min numeric, quebra_max numeric, esp numeric, descricao text) ON COMMIT DROP;
+INSERT INTO _classe VALUES
+    ('A', 0.30, 0.45, 0.03, 0.10, 1.04, 'alto valor, baixo giro'),
+    ('B', 0.20, 0.30, 0.03, 0.08, 1.03, 'volume com impureza'),
+    ('C', 0.08, 0.15, 0.01, 0.03, 1.02, 'alto giro, baixo valor');
+
+-- Materiais do piloto: classe, preco-base de compra e de venda (R$/kg, mercado
+-- de 2026), quebra na triagem, frequencia e faixa de peso por item na entrega
+-- de pessoa fisica, grupo de comprador, minimo para entrar numa venda, indice
+-- de preco da semana e o momento da ultima triagem.
 CREATE TEMP TABLE _mat (
-    id int, nome text, compra_base numeric, venda_base numeric,
-    fpf numeric, pf_min numeric, pf_max numeric, grupo text, vmin numeric, idx numeric DEFAULT 1
+    id int, nome text, classe text, compra_base numeric, venda_base numeric, quebra numeric,
+    fpf numeric, pf_min numeric, pf_max numeric, grupo text, vmin numeric, idx numeric DEFAULT 1,
+    ult_triagem timestamp DEFAULT TIMESTAMP '2026-07-31 23:59'
 ) ON COMMIT DROP;
 
-INSERT INTO _mat (nome, compra_base, venda_base, fpf, pf_min, pf_max, grupo, vmin) VALUES
-    ('Sucata',          0.80,  1.05, 30, 10.0, 80, 'metais',   1000),
-    ('Papelão',         0.45,  0.62, 28,  8.0, 70, 'papel',     500),
-    ('Lata',            6.50,  8.00, 22,  2.0, 25, 'aluminio',  100),
-    ('Pet Branca',      2.20,  2.90, 10,  3.0, 30, 'plastico',  100),
-    ('Papel Branco',    0.55,  0.75,  6,  5.0, 40, 'papel',     150),
-    ('Panela',          7.50,  9.20,  5,  1.0, 12, 'aluminio',   30),
-    ('Perfil',          8.50, 10.30,  4,  2.0, 20, 'aluminio',   50),
-    ('Pet Verde',       1.80,  2.40,  4,  3.0, 25, 'plastico',   60),
-    ('Fio Capa',       14.00, 17.50,  4,  1.0, 15, 'metais',     30),
-    ('Cobre Misto',    36.00, 44.00,  3,  0.5,  8, 'metais',     15),
-    ('Metal',          26.00, 32.00,  3,  0.5, 10, 'metais',     20),
-    ('Bateria',         3.20,  4.20,  3, 12.0, 45, 'bateria',   100),
-    ('Cobre Vermelho', 42.00, 50.00,  2,  0.3,  6, 'metais',     10),
-    ('Duro',            6.00,  7.60,  2,  3.0, 25, 'aluminio',   50),
-    ('Inox Panela',     4.50,  6.00,  2,  1.0, 15, 'metais',     40);
+--                     classe  compra   venda  quebra  (markup)
+INSERT INTO _mat (nome, classe, compra_base, venda_base, quebra, fpf, pf_min, pf_max, grupo, vmin) VALUES
+    ('Cobre Vermelho', 'A', 50.00, 70.00, 0.035,  2,  0.3,  6, 'metais',     10),   -- 40,0%; cobre mel, limpo
+    ('Cobre Misto',    'A', 42.00, 58.00, 0.060,  3,  0.5,  8, 'metais',     15),   -- 38,1%; solda, verniz
+    ('Fio Capa',       'A', 18.00, 25.00, 0.085,  4,  1.0, 15, 'metais',     30),   -- 38,9%; capa e terminais
+    ('Metal',          'A', 30.00, 41.00, 0.050,  3,  0.5, 10, 'metais',     20),   -- 36,7%; bronze/latao com ferro
+    ('Inox Panela',    'A',  5.00,  6.80, 0.040,  2,  1.0, 15, 'metais',     40),   -- 36,0%; cabos e alcas
+    ('Duro',           'A',  6.50,  8.90, 0.070,  2,  3.0, 25, 'aluminio',   50),   -- 36,9%; oleo e terra do bloco
+    ('Perfil',         'A',  9.00, 12.40, 0.040,  4,  2.0, 20, 'aluminio',   50),   -- 37,8%; borracha, parafuso
+    ('Panela',         'A',  8.00, 11.00, 0.050,  5,  1.0, 12, 'aluminio',   30),   -- 37,5%; cabos de baquelite
+    ('Bateria',        'A',  3.00,  4.10, 0.045,  3, 12.0, 45, 'bateria',   100),   -- 36,7%; acido escorrido
+    ('Sucata',         'B',  0.85,  1.07, 0.060, 30, 10.0, 80, 'metais',   1000),   -- 25,9%; terra, pecas mistas
+    ('Lata',           'C',  8.00,  9.00, 0.020, 22,  2.0, 25, 'aluminio',  100),   -- 12,5%; areia, liquido
+    ('Pet Branca',     'C',  2.40,  2.70, 0.025, 10,  3.0, 30, 'plastico',  100),   -- 12,5%; tampa, rotulo
+    ('Pet Verde',      'C',  1.90,  2.13, 0.025,  4,  3.0, 25, 'plastico',   60),   -- 12,1%
+    ('Papelão',        'C',  0.55,  0.62, 0.020, 28,  8.0, 70, 'papel',     500),   -- 12,7%; umidade, fita
+    ('Papel Branco',   'C',  0.70,  0.79, 0.015,  6,  5.0, 40, 'papel',     150);   -- 12,9%
 
 UPDATE _mat t SET id = m.id_material FROM material m WHERE m.nm_material = t.nome;
+
+DO $$
+BEGIN
+    -- O preco-base, inclusive o especial, precisa nascer dentro da faixa da classe.
+    IF EXISTS (SELECT 1 FROM _mat t JOIN _classe c USING (classe)
+                WHERE (t.venda_base - t.compra_base * c.esp) / (t.compra_base * c.esp) < c.markup_min
+                   OR (t.venda_base - t.compra_base) / t.compra_base > c.markup_max
+                   OR t.quebra NOT BETWEEN c.quebra_min AND c.quebra_max) THEN
+        RAISE EXCEPTION 'preco-base ou quebra fora da faixa da classe: %',
+            (SELECT string_agg(t.nome, ', ') FROM _mat t JOIN _classe c USING (classe)
+              WHERE (t.venda_base - t.compra_base * c.esp) / (t.compra_base * c.esp) < c.markup_min
+                 OR (t.venda_base - t.compra_base) / t.compra_base > c.markup_max
+                 OR t.quebra NOT BETWEEN c.quebra_min AND c.quebra_max);
+    END IF;
+END $$;
 
 DO $$
 BEGIN
@@ -211,15 +254,15 @@ LANGUAGE plpgsql AS $f$
 DECLARE
     r record; comum numeric := ((random() - 0.5) * 0.05)::numeric; novo numeric; nc numeric; ne numeric;
 BEGIN
-    FOR r IN SELECT t.*, m.preco_compra AS pc, m.preco_especial AS pe
-               FROM _mat t JOIN material m ON m.id_material = t.id ORDER BY t.id LOOP
+    FOR r IN SELECT t.*, c.esp, m.preco_compra AS pc, m.preco_especial AS pe
+               FROM _mat t JOIN _classe c USING (classe) JOIN material m ON m.id_material = t.id ORDER BY t.id LOOP
         novo := r.idx * (1 + CASE WHEN r.grupo IN ('metais', 'aluminio') THEN comum * 0.6 ELSE 0 END
                            + ((random() - 0.5) * 0.04)::numeric);
         novo := LEAST(1.10, GREATEST(0.90, 1 + (novo - 1) * 0.85));
         UPDATE _mat SET idx = novo WHERE id = r.id;
 
         nc := round(r.compra_base * novo, 2);
-        ne := round(r.compra_base * 1.05 * novo, 2);
+        ne := round(r.compra_base * r.esp * novo, 2);
         IF nc <> r.pc OR ne IS DISTINCT FROM r.pe THEN
             UPDATE material SET preco_compra = nc, preco_especial = ne WHERE id_material = r.id;
             PERFORM pg_temp.auditar(pg_temp.id('dono'), pg_temp.id('dono'),
@@ -273,23 +316,66 @@ BEGIN
     RETURN pg_temp.compra(p_cli, p_t, pg_temp.quem_pesa(), itens);
 END $f$;
 
--- Uma venda: o grupo com mais estoque em relacao ao lote, se passou do lote
--- e a semana ainda nao teve 3 vendas. Vende 90-100% do saldo de cada material.
-CREATE FUNCTION pg_temp.piloto_venda(p_t timestamp) RETURNS int
-LANGUAGE plpgsql AS $f$
-DECLARE g record; itens jsonb; v_id int; obs text; usr int;
-BEGIN
-    IF pg_temp.id('vendas_semana') >= 3 THEN RETURN NULL; END IF;
-
-    SELECT f.*, s.total INTO g
+-- Comprador da proxima venda: o grupo com mais estoque em relacao ao lote, se
+-- passou do lote e a semana ainda nao teve 3 vendas.
+CREATE FUNCTION pg_temp.piloto_escolher_comprador() RETURNS int
+LANGUAGE sql AS $f$
+    SELECT f.id
       FROM _forn f
       JOIN LATERAL (SELECT SUM(m.qt_estoque) AS total
                       FROM _mat t JOIN material m ON m.id_material = t.id
                      WHERE t.grupo = f.grupo AND COALESCE(m.qt_estoque, 0) >= t.vmin) s ON true
-     WHERE s.total >= f.lote
+     WHERE s.total >= f.lote AND pg_temp.id('vendas_semana') < 3
      ORDER BY s.total / f.lote DESC, f.id
-     LIMIT 1;
-    IF NOT FOUND THEN RETURN NULL; END IF;
+     LIMIT 1
+$f$;
+
+-- Triagem antes do lote (40 a 70 min antes do carregamento): o que entrou de
+-- cada material do grupo desde a ultima triagem perde a quebra do material
+-- (umidade, impureza, capa, embalagem), lancada como 'perda' por ajuste manual,
+-- com o mesmo texto de functions/estoque/ajustar.php. Nunca mais que o saldo.
+CREATE FUNCTION pg_temp.piloto_triagem(p_forn int, p_t timestamp) RETURNS void
+LANGUAGE plpgsql AS $f$
+DECLARE r record; v_entrou numeric; v_perda numeric; v_saldo numeric; v_motivo text; adm int := pg_temp.id('dono');
+BEGIN
+    FOR r IN SELECT t.*, m.qt_estoque, m.nm_material, m.unidade_medida
+               FROM _mat t JOIN material m ON m.id_material = t.id
+              WHERE t.grupo = (SELECT grupo FROM _forn WHERE id = p_forn) AND COALESCE(m.qt_estoque, 0) > 0
+              ORDER BY t.id LOOP
+        SELECT COALESCE(SUM(pm.peso_material), 0) INTO v_entrou
+          FROM pesagem_material pm JOIN pesagem p USING (id_pesagem)
+         WHERE pm.id_material = r.id AND p.status = 'ativa'
+           AND p.data_pesagem > r.ult_triagem AND p.data_pesagem <= p_t;
+        UPDATE _mat SET ult_triagem = p_t WHERE id = r.id;
+
+        v_perda := LEAST(round(v_entrou * r.quebra * (0.85 + 0.30 * random())::numeric, 1), r.qt_estoque);
+        CONTINUE WHEN v_perda < 0.1;
+
+        v_motivo := CASE
+            WHEN r.nome = 'Sucata'     THEN 'triagem do lote: terra, peças misturadas e não metálicos'
+            WHEN r.nome = 'Fio Capa'   THEN 'triagem do lote: capa, terminais e emendas'
+            WHEN r.grupo = 'metais'    THEN 'triagem do lote: impurezas, solda e ferro agregado'
+            WHEN r.nome = 'Lata'       THEN 'triagem do lote: areia e líquido nas latas'
+            WHEN r.grupo = 'aluminio'  THEN 'triagem do lote: ferro agregado, borracha e sujeira'
+            WHEN r.grupo = 'papel'     THEN 'triagem do lote: umidade, fita e contaminação'
+            WHEN r.grupo = 'plastico'  THEN 'triagem do lote: tampas, rótulos e resíduo'
+            ELSE                            'triagem do lote: ácido escorrido e caixas quebradas' END;
+
+        v_saldo := pg_temp.mov(r.id, 'perda', v_perda, 'ajuste_manual', NULL, adm, 'Perda: ' || v_motivo, p_t);
+        PERFORM pg_temp.auditar(adm, adm,
+            format('Perda de %s %s em %s (saldo %s -> %s). Motivo: %s', pg_temp.num(v_perda), r.unidade_medida,
+                   r.nm_material, pg_temp.num(r.qt_estoque), pg_temp.num(v_saldo), v_motivo),
+            'Ajuste Estoque', p_t);
+    END LOOP;
+END $f$;
+
+-- Uma venda do grupo do comprador escolhido na triagem: 90-100% do saldo de
+-- cada material, nunca mais do que ha.
+CREATE FUNCTION pg_temp.piloto_venda(p_forn int, p_t timestamp) RETURNS int
+LANGUAGE plpgsql AS $f$
+DECLARE g record; itens jsonb; v_id int; obs text; usr int;
+BEGIN
+    SELECT * INTO g FROM _forn WHERE id = p_forn;
 
     SELECT jsonb_agg(jsonb_build_object('m', nome, 'b', qtd + tara, 't', tara, 'p', preco) ORDER BY nome)
       INTO itens
@@ -302,6 +388,7 @@ BEGIN
               FROM _mat t JOIN material m ON m.id_material = t.id
              WHERE t.grupo = g.grupo AND COALESCE(m.qt_estoque, 0) >= t.vmin
              ORDER BY t.id) s;
+    IF itens IS NULL THEN RETURN NULL; END IF;
 
     IF random() < g.prazo_pct THEN
         obs := format('A prazo: %s em %s dias, vencimento %s.', g.forma_prazo, g.prazo_dias,
@@ -461,15 +548,14 @@ BEGIN
     END LOOP;
 
     -- Precos de mercado no catalogo (o dono revisou a tabela antiga antes de comecar).
-    FOR r IN SELECT t.id, t.compra_base, t.venda_base, m.preco_compra AS pc, m.preco_especial AS pe
-               FROM _mat t JOIN material m ON m.id_material = t.id ORDER BY t.id LOOP
-        UPDATE material SET preco_compra = r.compra_base, preco_especial = round(r.compra_base * 1.05, 2),
-                            preco_venda = r.venda_base
+    FOR r IN SELECT t.id, t.compra_base, t.venda_base, round(t.compra_base * c.esp, 2) AS esp,
+                    m.preco_compra AS pc, m.preco_especial AS pe
+               FROM _mat t JOIN _classe c USING (classe) JOIN material m ON m.id_material = t.id ORDER BY t.id LOOP
+        UPDATE material SET preco_compra = r.compra_base, preco_especial = r.esp, preco_venda = r.venda_base
          WHERE id_material = r.id;
-        IF r.pc <> r.compra_base OR r.pe IS DISTINCT FROM round(r.compra_base * 1.05, 2) THEN
+        IF r.pc <> r.compra_base OR r.pe IS DISTINCT FROM r.esp THEN
             PERFORM pg_temp.auditar(pg_temp.id('dono'), pg_temp.id('dono'),
-                format('Material #%s editado: %s', r.id,
-                       pg_temp.mudancas(r.pc, r.compra_base, r.pe, round(r.compra_base * 1.05, 2))),
+                format('Material #%s editado: %s', r.id, pg_temp.mudancas(r.pc, r.compra_base, r.pe, r.esp)),
                 'Material editado', implantacao + interval '9 hours');
         END IF;
     END LOOP;
@@ -543,7 +629,9 @@ BEGIN
         IF dow IN (2, 4, 5) THEN
             FOREACH slot IN ARRAY ARRAY[time '10:00', time '14:00'] LOOP
                 t := pg_temp.momento(dia, extract(epoch FROM slot) + 5400 * random());
-                INSERT INTO _ev (t, kind) VALUES (t, 'venda') RETURNING seq INTO s;
+                INSERT INTO _ev (t, kind) VALUES (t - make_interval(secs => 2400 + floor(random() * 1800)), 'triagem')
+                RETURNING seq INTO s;
+                INSERT INTO _ev (t, kind, ref) VALUES (t, 'venda', s) RETURNING seq INTO s;
                 IF random() < 0.07 THEN
                     INSERT INTO _ev (t, kind, ref) VALUES (t + make_interval(secs => 1800 + floor(random() * 3600)), 'cancela_venda', s);
                 END IF;
@@ -555,8 +643,19 @@ BEGIN
             IF ev.kind = 'compra' THEN
                 UPDATE _ev SET result = pg_temp.piloto_compra(ev.cli, ev.t) WHERE seq = ev.seq;
 
+            ELSIF ev.kind = 'triagem' THEN
+                -- Decide o comprador do lote e tira a quebra antes do carregamento.
+                v_ref := pg_temp.piloto_escolher_comprador();
+                IF v_ref IS NOT NULL THEN
+                    PERFORM pg_temp.piloto_triagem(v_ref, ev.t);
+                    UPDATE _ev SET result = v_ref WHERE seq = ev.seq;
+                END IF;
+
             ELSIF ev.kind = 'venda' THEN
-                UPDATE _ev SET result = pg_temp.piloto_venda(ev.t) WHERE seq = ev.seq;
+                SELECT result INTO v_ref FROM _ev WHERE seq = ev.ref;
+                IF v_ref IS NOT NULL THEN
+                    UPDATE _ev SET result = pg_temp.piloto_venda(v_ref, ev.t) WHERE seq = ev.seq;
+                END IF;
 
             ELSIF ev.kind = 'cancela_compra' THEN
                 SELECT result INTO v_ref FROM _ev WHERE seq = ev.ref;
@@ -625,6 +724,23 @@ BEGIN
         PERFORM pg_temp.conta(adm, 'Salário Patrícia Fagundes — ' || to_char(mes, 'MM/YYYY'), 'Funcionários', 'Recursos Humanos',
             'Patrícia Fagundes', atd, prox - CURRENT_DATE,
             jsonb_build_array(pg_temp.parc(2150.00, prox + 4, 'pix', prox + 4)));
+        -- O terceiro funcionário não usa o sistema: sem vínculo com usuário.
+        PERFORM pg_temp.conta(adm, 'Salário Jonas Pereira (ajudante de pátio e motorista) — ' || to_char(mes, 'MM/YYYY'),
+            'Funcionários', 'Recursos Humanos', 'Jonas Pereira', NULL, prox - CURRENT_DATE,
+            jsonb_build_array(pg_temp.parc(2250.00, prox + 4, 'pix', prox + 4)));
+
+        -- FGTS: 8% da folha, vence dia 20 do mês seguinte (a contribuição
+        -- previdenciária patronal já está dentro do Simples, no comércio).
+        PERFORM pg_temp.conta(adm, 'FGTS — competência ' || to_char(mes, 'MM/YYYY'), 'Impostos', 'Recursos Humanos',
+            'Caixa Econômica Federal', NULL, prox + 4 - CURRENT_DATE,
+            jsonb_build_array(pg_temp.parc(round((2450 + 2150 + 2250) * 0.08, 2), prox + 19, 'boleto',
+                                           CASE WHEN prox + 19 <= DATE '2026-11-07' THEN prox + 18 END)));
+
+        -- Celular da empresa (atendimento e WhatsApp com os compradores).
+        PERFORM pg_temp.conta(adm, 'Telefone celular — ' || to_char(mes, 'MM/YYYY'), 'Telefone', 'Comercial',
+            'Operadora Fone Sul', NULL, prox - CURRENT_DATE,
+            jsonb_build_array(pg_temp.parc(79.90, prox + 9, 'debito_auto',
+                                           CASE WHEN prox + 9 <= DATE '2026-11-07' THEN prox + 9 END)));
 
         -- Energia (prensa e iluminação do pátio): conta de setembro paga com 6 dias de atraso e juros.
         v := round((1150 + random() * 300)::numeric, 2);
@@ -663,7 +779,17 @@ BEGIN
         END LOOP;
     END LOOP;
 
-    -- Manutenção.
+    -- Manutenção do caminhão de coleta.
+    PERFORM pg_temp.conta(adm, 'Revisão do caminhão de coleta (óleo, filtros e freios)', 'Manutenção', 'Logística',
+        'Mecânica Diesel Gravataí', NULL, DATE '2026-08-24' - CURRENT_DATE,
+        jsonb_build_array(pg_temp.parc(1480.00, DATE '2026-08-31', 'boleto', DATE '2026-08-31')));
+    PERFORM pg_temp.conta(adm, 'Troca de dois pneus traseiros do caminhão', 'Manutenção', 'Logística',
+        'Pneus Rota 290', NULL, DATE '2026-10-06' - CURRENT_DATE,
+        jsonb_build_array(pg_temp.parc(1290.00, DATE '2026-10-06', 'cartao', DATE '2026-10-06'),
+                          pg_temp.parc(1290.00, DATE '2026-11-06', 'cartao', DATE '2026-11-06')),
+        'Parcelado em 2x.');
+
+    -- Balança e prensa.
     PERFORM pg_temp.conta(adm, 'Aferição da balança rodoviária', 'Manutenção', 'Manutenção', 'Balanças Precisão Sul Ltda', NULL,
         DATE '2026-09-16' - CURRENT_DATE,
         jsonb_build_array(pg_temp.parc(980.00, DATE '2026-09-30', 'boleto', DATE '2026-09-29')));
@@ -721,13 +847,58 @@ BEGIN
     END IF;
 END $$;
 
+-- Resultado por material, base da conferencia de margem e quebra e do resumo.
+--   custo medio  = valor das compras ativas / kg comprado (como a tela de Margem)
+--   CMV          = kg vendido x custo medio
+--   quebra %     = kg perdido na triagem / kg comprado ate a ultima triagem
+CREATE TEMP TABLE _res ON COMMIT DROP AS
+SELECT t.id, t.nome, t.classe,
+       c.kg AS comprado, c.valor AS valor_compra, c.valor / c.kg AS custo_medio,
+       COALESCE((SELECT SUM(pm.peso_material) FROM pesagem_material pm JOIN pesagem p USING (id_pesagem)
+                  WHERE pm.id_material = t.id AND p.status = 'ativa' AND p.data_pesagem <= t.ult_triagem), 0) AS triado,
+       COALESCE((SELECT SUM(quantidade) FROM estoque_movimentacoes
+                  WHERE id_material = t.id AND tipo = 'perda'), 0) AS perda,
+       COALESCE(v.kg, 0) AS vendido, COALESCE(v.valor, 0) AS receita,
+       m.qt_estoque AS estoque
+  FROM _mat t
+  JOIN material m ON m.id_material = t.id
+  JOIN (SELECT id_material, SUM(peso_material) kg, SUM(peso_material * preco_un) valor
+          FROM pesagem_material JOIN pesagem USING (id_pesagem) WHERE status = 'ativa' GROUP BY 1) c ON c.id_material = t.id
+  LEFT JOIN (SELECT id_material, SUM(quantidade) kg, SUM(valor_total) valor
+               FROM vendas_itens JOIN vendas USING (id_venda) WHERE status = 'concluida' GROUP BY 1) v ON v.id_material = t.id;
+
+DO $$
+DECLARE r record;
+BEGIN
+    -- 6. markup realizado de cada classe dentro da faixa
+    FOR r IN SELECT c.classe, c.markup_min, c.markup_max,
+                    (SUM(x.receita) - SUM(x.vendido * x.custo_medio)) / SUM(x.vendido * x.custo_medio) AS markup
+               FROM _res x JOIN _classe c USING (classe) GROUP BY 1, 2, 3 LOOP
+        IF r.markup NOT BETWEEN r.markup_min AND r.markup_max THEN
+            RAISE EXCEPTION 'classe %: markup realizado de % fora da faixa', r.classe, round(r.markup * 100, 1) || '%';
+        END IF;
+    END LOOP;
+
+    -- 7. quebra de cada material dentro da faixa da classe, e vendido menor que o comprado
+    FOR r IN SELECT x.*, c.quebra_min, c.quebra_max FROM _res x JOIN _classe c USING (classe) LOOP
+        IF r.triado = 0 OR r.perda / r.triado NOT BETWEEN r.quebra_min AND r.quebra_max THEN
+            RAISE EXCEPTION '%: quebra de % fora da faixa da classe %', r.nome,
+                round(r.perda / NULLIF(r.triado, 0) * 100, 2) || '%', r.classe;
+        END IF;
+        IF r.vendido >= r.comprado THEN
+            RAISE EXCEPTION '%: vendido (%) não é menor que o comprado (%)', r.nome, r.vendido, r.comprado;
+        END IF;
+    END LOOP;
+END $$;
+
 -- ---------------------------------------------------------------------------
 -- Resumo
 -- ---------------------------------------------------------------------------
 DO $$
 DECLARE
-    r record; fat numeric; cmv numeric; custo numeric; n_c int; n_cc int; n_v int; n_vc int; n_prazo int; v_prazo numeric;
-    kg_c numeric; kg_v numeric; i int := 0;
+    r record; fat numeric; cmv numeric; custo numeric; quebra_rs numeric; desp numeric; bruta numeric;
+    n_c int; n_cc int; n_v int; n_vc int; n_prazo int; v_prazo numeric; kg_c numeric; kg_v numeric; kg_p numeric;
+    i int := 0;
 BEGIN
     SELECT COUNT(*) FILTER (WHERE status = 'ativa'), COUNT(*) FILTER (WHERE status = 'cancelada'),
            SUM(total_valor) FILTER (WHERE status = 'ativa'), SUM(total_peso) FILTER (WHERE status = 'ativa')
@@ -737,21 +908,21 @@ BEGIN
            COUNT(*) FILTER (WHERE status = 'concluida' AND observacoes LIKE 'A prazo%'),
            SUM(total_valor) FILTER (WHERE status = 'concluida' AND observacoes LIKE 'A prazo%')
       INTO n_v, n_vc, fat, kg_v, n_prazo, v_prazo FROM vendas;
+    SELECT SUM(vendido * custo_medio), SUM(perda * custo_medio), SUM(perda) INTO cmv, quebra_rs, kg_p FROM _res;
+    bruta := fat - cmv;
 
-    -- CMV: kg vendido de cada material ao custo medio de compra dele no piloto.
-    SELECT SUM(v.kg * c.valor / c.kg) INTO cmv
-      FROM (SELECT id_material, SUM(peso_material) kg, SUM(peso_material * preco_un) valor
-              FROM pesagem_material JOIN pesagem USING (id_pesagem) WHERE status = 'ativa' GROUP BY 1) c
-      JOIN (SELECT id_material, SUM(quantidade) kg
-              FROM vendas_itens JOIN vendas USING (id_venda) WHERE status = 'concluida' GROUP BY 1) v USING (id_material);
+    -- Despesas pelo vencimento no periodo, sem as canceladas: o mesmo criterio do Relatorio Financeiro.
+    SELECT COALESCE(SUM(pa.valor), 0) INTO desp
+      FROM contas_pagar_parcelas pa JOIN contas_pagar c USING (id_conta)
+     WHERE c.status <> 'cancelada' AND pa.status <> 'cancelada'
+       AND pa.data_vencimento BETWEEN DATE '2026-08-01' AND DATE '2026-11-07';
 
     RAISE NOTICE '================ PILOTO 01/08/2026 a 07/11/2026 ================';
+    RAISE NOTICE 'markup = (venda - compra) / compra   |   margem sobre a venda = (venda - compra) / venda';
     RAISE NOTICE 'Compras: % ativas + % canceladas | % kg | R$ %', n_c, n_cc, pg_temp.num(kg_c), pg_temp.num(custo);
     RAISE NOTICE 'Vendas:  % concluídas + % canceladas | % kg | % a prazo (R$ %)',
         n_v, n_vc, pg_temp.num(kg_v), n_prazo, pg_temp.num(COALESCE(v_prazo, 0));
-    RAISE NOTICE 'Faturamento (vendas):        R$ %', pg_temp.num(fat);
-    RAISE NOTICE 'Custo do material vendido:   R$ %', pg_temp.num(cmv);
-    RAISE NOTICE 'Margem bruta:                R$ % (%)', pg_temp.num(fat - cmv), replace(round((fat - cmv) / fat * 100, 1)::text, '.', ',') || '%';
+    RAISE NOTICE 'Quebra na triagem: % kg', pg_temp.num(kg_p);
     RAISE NOTICE 'Compras por dia útil (seg-sex): mín % / média % / máx %; sábado: média %',
         (SELECT MIN(n) FROM (SELECT data_pesagem::date d, COUNT(*) n FROM pesagem GROUP BY 1) x WHERE extract(dow FROM d) BETWEEN 1 AND 5),
         (SELECT round(AVG(n), 1) FROM (SELECT data_pesagem::date d, COUNT(*) n FROM pesagem GROUP BY 1) x WHERE extract(dow FROM d) BETWEEN 1 AND 5),
@@ -760,21 +931,52 @@ BEGIN
     RAISE NOTICE 'Compras por mês: %',
         (SELECT string_agg(format('%s=%s', to_char(m, 'MM'), n), ' ' ORDER BY m)
            FROM (SELECT date_trunc('month', data_pesagem) m, COUNT(*) n FROM pesagem GROUP BY 1) x);
-    RAISE NOTICE '';
-    RAISE NOTICE '% % % % %', rpad('Material', 15), lpad('comprado kg', 12), lpad('vendido kg', 12),
-        lpad('estoque kg', 11), lpad('compra R$', 12);
 
-    FOR r IN
-        SELECT m.nm_material, c.kg AS ckg, COALESCE(v.kg, 0) AS vkg, m.qt_estoque, c.valor
-          FROM material m
-          JOIN (SELECT id_material, SUM(peso_material) kg, SUM(peso_material * preco_un) valor
-                  FROM pesagem_material JOIN pesagem USING (id_pesagem) WHERE status = 'ativa' GROUP BY 1) c USING (id_material)
-          LEFT JOIN (SELECT id_material, SUM(quantidade) kg
-                       FROM vendas_itens JOIN vendas USING (id_venda) WHERE status = 'concluida' GROUP BY 1) v USING (id_material)
-         ORDER BY c.kg DESC
-    LOOP
-        RAISE NOTICE '% % % % %', rpad(r.nm_material, 15), lpad(pg_temp.num(r.ckg), 12), lpad(pg_temp.num(r.vkg), 12),
-            lpad(pg_temp.num(r.qt_estoque), 11), lpad(pg_temp.num(r.valor), 12);
+    RAISE NOTICE '';
+    RAISE NOTICE '% % % % % % % % % %', rpad('Material', 15), 'C', lpad('comprado kg', 11), lpad('quebra kg', 9),
+        lpad('quebra', 6), lpad('vendido kg', 11), lpad('custo/kg', 8), lpad('venda/kg', 8), lpad('markup', 7), lpad('margem', 7);
+    FOR r IN SELECT * FROM _res ORDER BY classe, receita DESC LOOP
+        RAISE NOTICE '% % % % % % % % % %', rpad(r.nome, 15), r.classe, lpad(pg_temp.num(r.comprado), 11),
+            lpad(pg_temp.num(r.perda), 9), lpad(pg_temp.num(r.perda / r.triado * 100) || '%', 6),
+            lpad(pg_temp.num(r.vendido), 11), lpad(pg_temp.num(r.custo_medio), 8),
+            lpad(pg_temp.num(r.receita / NULLIF(r.vendido, 0)), 8),
+            lpad(pg_temp.num((r.receita / r.vendido - r.custo_medio) / r.custo_medio * 100) || '%', 7),
+            lpad(pg_temp.num((r.receita / r.vendido - r.custo_medio) / (r.receita / r.vendido) * 100) || '%', 7);
+    END LOOP;
+
+    RAISE NOTICE '';
+    FOR r IN SELECT x.classe, c.descricao, c.markup_min, c.markup_max, c.quebra_min, c.quebra_max,
+                    SUM(x.receita) AS receita, SUM(x.vendido * x.custo_medio) AS cmv,
+                    SUM(x.perda) / SUM(x.triado) AS quebra
+               FROM _res x JOIN _classe c USING (classe) GROUP BY 1, 2, 3, 4, 5, 6 ORDER BY 1 LOOP
+        RAISE NOTICE 'Classe % (%): markup % (faixa %-%), margem s/ venda %, quebra % (faixa %-%)',
+            r.classe, r.descricao,
+            pg_temp.num((r.receita - r.cmv) / r.cmv * 100) || '%', round(r.markup_min * 100), round(r.markup_max * 100) || '%',
+            pg_temp.num((r.receita - r.cmv) / r.receita * 100) || '%',
+            pg_temp.num(r.quebra * 100) || '%', round(r.quebra_min * 100), round(r.quebra_max * 100) || '%';
+    END LOOP;
+
+    RAISE NOTICE '';
+    RAISE NOTICE 'Faturamento (vendas):                    R$ %', lpad(pg_temp.num(fat), 12);
+    RAISE NOTICE '- Custo do material vendido (CMV):       R$ %', lpad(pg_temp.num(cmv), 12);
+    RAISE NOTICE '= Margem bruta:                          R$ %  (markup %, margem s/ venda %)', lpad(pg_temp.num(bruta), 12),
+        pg_temp.num(bruta / cmv * 100) || '%', pg_temp.num(bruta / fat * 100) || '%';
+    RAISE NOTICE '- Quebra na triagem (kg x custo médio):  R$ %', lpad(pg_temp.num(quebra_rs), 12);
+    RAISE NOTICE '= Margem após a quebra:                  R$ %  (% do faturamento)', lpad(pg_temp.num(bruta - quebra_rs), 12),
+        pg_temp.num((bruta - quebra_rs) / fat * 100) || '%';
+    RAISE NOTICE '- Despesas com vencimento no período:    R$ %', lpad(pg_temp.num(desp), 12);
+    RAISE NOTICE '= Resultado operacional:                 R$ %  (% do faturamento)', lpad(pg_temp.num(bruta - quebra_rs - desp), 12),
+        pg_temp.num((bruta - quebra_rs - desp) / fat * 100) || '%';
+
+    RAISE NOTICE '';
+    RAISE NOTICE 'Despesas por categoria (vencimento no período):';
+    FOR r IN SELECT dc.nome, SUM(pa.valor) AS total
+               FROM contas_pagar_parcelas pa JOIN contas_pagar c USING (id_conta)
+               JOIN despesa_categoria dc USING (id_categoria)
+              WHERE c.status <> 'cancelada' AND pa.status <> 'cancelada'
+                AND pa.data_vencimento BETWEEN DATE '2026-08-01' AND DATE '2026-11-07'
+              GROUP BY 1 ORDER BY 2 DESC LOOP
+        RAISE NOTICE '  % R$ %', rpad(r.nome, 17), lpad(pg_temp.num(r.total), 10);
     END LOOP;
 
     RAISE NOTICE '';
@@ -794,7 +996,8 @@ BEGIN
     END LOOP;
 
     RAISE NOTICE '';
-    RAISE NOTICE 'Conferido: saldo = trilha, saldo_apos cronológico, estoque nunca negativo.';
+    RAISE NOTICE 'Conferido: saldo = trilha, saldo_apos cronológico, estoque nunca negativo,';
+    RAISE NOTICE 'markup de cada classe e quebra de cada material dentro da faixa, vendido < comprado.';
 END $$;
 
 COMMIT;

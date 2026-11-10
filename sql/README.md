@@ -304,11 +304,11 @@ idênticas.
 | `usuario` | +3 | dono (Admin), operador de balança/pátio e atendente de caixa |
 | `clientes` | 48 | quem vende ao ferro-velho: 40 pessoas físicas (catadores, carroceiros, moradores) e 8 empresas (oficinas, serralherias, obras, eletricistas); 12 PF e 3 PJ chegam ao longo do piloto |
 | `fornecedores` | 5 | quem compra do ferro-velho: fundição/siderúrgica, recicladora de alumínio, aparista de papel, recicladora de plástico e comprador de baterias |
-| `pesagem` / `pesagem_material` | 1.841 / 2.999 | compras de segunda a sábado, 30 canceladas |
-| `vendas` / `vendas_itens` | 32 / 106 | vendas em lote, 1 a 3 por semana, 2 canceladas, ~1/3 a prazo |
-| `estoque_movimentacoes` | 3.163 | compras, vendas e estornos |
-| `contas_pagar` / `_parcelas` | 31 / 70 | aluguel, salários, energia, água, Simples, diesel, manutenção, balança parcelada |
-| `registro_movimento` | 2.225 | auditoria, inclusive ~200 edições de preço |
+| `pesagem` / `pesagem_material` | 1.816 / 2.992 | compras de segunda a sábado, 26 canceladas |
+| `vendas` / `vendas_itens` | 30 / 98 | vendas em lote, 1 a 3 por semana, 1 cancelada, ~1/4 a prazo |
+| `estoque_movimentacoes` | 3.239 | compras, vendas, estornos e 98 perdas de triagem |
+| `contas_pagar` / `_parcelas` | 42 / 82 | aluguel, 3 salários e FGTS, energia, água, telefone, internet, Simples, diesel, manutenção do caminhão e da balança, balança parcelada |
+| `registro_movimento` | 2.318 | auditoria, inclusive ~200 edições de preço e as perdas |
 
 O que a simulação reproduz:
 
@@ -319,16 +319,37 @@ O que a simulação reproduz:
 - **Quem traz o quê**: pessoa física entrega de 5 a 80 kg; empresa, de 200 kg
   a 2 t. Uns 8 catadores vêm quase todo dia. Ferro, papelão e latinha
   dominam; cobre e bronze aparecem menos, mas valem muito mais.
-- **Preços de mercado**: compra a 70–85% do preço de venda, com oscilação
-  semanal (metais oscilam juntos), lançada toda segunda como edição do
-  material, com a mesma auditoria da tela. A implantação, em 31/07, troca
-  os preços do catálogo antigo pelos de mercado.
+- **Preços de mercado por classe de material**, com
+  markup = (venda − compra) / compra e margem sobre a venda = (venda − compra) / venda:
+
+  | Classe | Materiais | Markup | Quebra |
+  |---|---|---|---|
+  | A — alto valor, baixo giro | Cobre Vermelho, Cobre Misto, Fio Capa, Metal, Inox Panela, Duro, Perfil, Panela, Bateria | 30–45% | 3–10% |
+  | B — volume com impureza | Sucata (ferro) | 20–30% | 3–8% |
+  | C — alto giro, baixo valor | Lata, Pet Branca, Pet Verde, Papelão, Papel Branco | 8–15% | 1–3% |
+
+  Exemplo: cobre comprado a R$ 50 e vendido a R$ 70 (markup de 40%, margem
+  de 28,6%); latinha a R$ 8 e R$ 9 (12,5% e 11,1%). O preço especial
+  (empresas e dois catadores antigos) paga 4%, 3% ou 2% a mais conforme a
+  classe, sem tirar o markup da faixa. Oscilação semanal (metais oscilam
+  juntos), lançada toda segunda como edição do material, com a mesma
+  auditoria da tela. A implantação, em 31/07, troca os preços do catálogo
+  antigo pelos de mercado.
+- **Quebra na triagem**: 40 a 70 minutos antes de cada carregamento, o que
+  entrou de cada material do lote desde a triagem anterior perde a quebra do
+  material (umidade, terra, capa, solda, ácido), lançada como **perda** por
+  ajuste manual, com o mesmo texto e a mesma auditoria da tela de estoque.
+  Por isso o peso vendido é sempre menor que o comprado.
 - **Vendas por lote**: cada comprador leva o grupo dele quando o estoque passa
   do lote mínimo (8 t de metais, 3,5 t de papel, 1 t de alumínio, 700 kg de
   plástico e de bateria), de 90% a 100% do saldo. Nunca vende mais do que há.
-- **Financeiro**: salários pagos no 5º dia útil, uma conta paga com atraso e
-  juros, uma vencida em aberto, uma despesa cancelada. O que vence até
-  07/11/2026 está pago, o resto fica pendente.
+- **Financeiro**: aluguel do pátio, 3 salários (operador, atendente e um
+  ajudante de pátio e motorista, que não usa o sistema) com FGTS, energia,
+  água, internet, telefone, contabilidade, Simples (4% das vendas), diesel e
+  manutenção do caminhão, aferição da balança e manutenção da prensa. Uma
+  conta paga com atraso e juros, a de água de setembro vencida em aberto e
+  uma despesa cancelada. O que vence até 07/11/2026 está pago, o resto fica
+  pendente.
 
 O schema não tem **caixa** (abertura e fechamento), **forma de pagamento da
 compra** nem **contas a receber**. A massa não inventa essas coisas: o prazo
@@ -343,9 +364,19 @@ encapado = `Fio Capa`, PET = `Pet Branca`/`Pet Verde`, além de `Cobre Misto`,
 
 No fim, além das conferências da 0003 (saldo igual à trilha e `saldo_apos`
 em ordem cronológica), confere que **nenhum saldo ficou negativo em momento
-algum** e que tudo está dentro do período. Depois imprime um resumo: compras,
-vendas, kg por material, faturamento, custo do material vendido (ao custo
-médio de compra), margem bruta e os 5 materiais mais movimentados.
+algum**, que tudo está dentro do período, que o **markup realizado de cada
+classe** e a **quebra de cada material** ficaram dentro da faixa, e que cada
+material vendeu menos do que comprou. Depois imprime um resumo: compras,
+vendas, por material o comprado, a quebra, o vendido, o custo e o preço
+médios, o markup e a margem; por classe, o markup, a margem e a quebra; e o
+resultado: faturamento − custo do material vendido (ao custo médio de
+compra) = margem bruta − quebra − despesas do período = resultado
+operacional, além dos 5 materiais mais movimentados.
+
+**As telas de Margem e de Relatório Financeiro não descontam a quebra.** Elas
+calculam o custo do vendido ao custo médio de compra, e a perda lançada no
+estoque não entra em conta nenhuma. Por isso o resultado delas é maior que o
+"resultado operacional" do resumo da seed, que desconta a quebra.
 
 Usuários, todos com a senha `admin@123` e sem troca obrigatória:
 `rogerio.antunes@example.com` (Admin, dono), `diego.lemos@example.com`
