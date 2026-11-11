@@ -19,6 +19,27 @@ $compras = $pdo->query("SELECT p.id_pesagem, p.total_peso, p.total_valor, p.data
                         ORDER BY p.data_pesagem DESC, p.id_pesagem DESC")->fetchAll(PDO::FETCH_ASSOC);
 
 $total_compras = count($compras);
+
+// As linhas vão para o navegador como dados, e o DataTables monta a tabela lá.
+// Escrever cada <tr> com os botões no HTML dava ~3,4 KB por compra: com o
+// piloto (1.846 compras) a página passava de 6 MB, acima do limite de 4,5 MB
+// de resposta da Vercel. Assim fica em ~0,2 KB por compra, e busca, ordenação
+// e paginação continuam no navegador, sobre todas as compras, como antes.
+$linhas = array_map(static function (array $c): array {
+    $ts = strtotime($c['data_pesagem']);
+    return [
+        'id'        => (int) $c['id_pesagem'],
+        'cliente'   => $c['cliente_nome'] ?: 'Cliente removido',
+        'ts'        => $ts,
+        'data'      => date('d/m/Y', $ts),
+        'hora'      => date('H:i', $ts),
+        'peso'      => (float) $c['total_peso'],
+        'peso_fmt'  => number_format((float) $c['total_peso'], 2, ',', '.'),
+        'valor'     => (float) $c['total_valor'],
+        'valor_fmt' => number_format((float) $c['total_valor'], 2, ',', '.'),
+        'cancelada' => ($c['status'] ?? 'ativa') === 'cancelada',
+    ];
+}, $compras);
 ?>
 
 <div class="container-fluid py-4" style="max-width: 1400px;">
@@ -66,63 +87,7 @@ $total_compras = count($compras);
                                 <th class="text-end pe-4">Ações</th>
                             </tr>
                         </thead>
-                        <tbody>
-                        <?php foreach ($compras as $c):
-                            $nome = $c['cliente_nome'] ?: 'Cliente removido';
-                            $cancelada = ($c['status'] ?? 'ativa') === 'cancelada';
-                        ?>
-                            <tr<?= $cancelada ? ' class="text-muted"' : '' ?>>
-                                <!-- data-order com o id puro: sem ele o DataTables ordena
-                                     esta coluna como texto, onde "#9" vem depois de "#10"
-                                     e o badge "Cancelada" ainda entra na comparação. -->
-                                <td class="ps-4 fw-semibold" data-order="<?= (int) $c['id_pesagem'] ?>">
-                                    #<?= (int) $c['id_pesagem'] ?>
-                                    <?php if ($cancelada): ?>
-                                        <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle ms-1">Cancelada</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?= htmlspecialchars($nome) ?></td>
-                                <td data-order="<?= strtotime($c['data_pesagem']) ?>">
-                                    <?= date('d/m/Y', strtotime($c['data_pesagem'])) ?>
-                                    <small class="text-muted d-block"><?= date('H:i', strtotime($c['data_pesagem'])) ?></small>
-                                </td>
-                                <td class="text-end" data-order="<?= (float) $c['total_peso'] ?>">
-                                    <?= number_format((float) $c['total_peso'], 2, ',', '.') ?> kg
-                                </td>
-                                <!-- Valor riscado quando cancelada: deixa claro na própria
-                                     linha que aquele número não entra nas somas. -->
-                                <td class="text-end fw-semibold<?= $cancelada ? ' text-decoration-line-through' : '' ?>"
-                                    style="<?= $cancelada ? '' : 'color: var(--color-accent);' ?>"
-                                    data-order="<?= (float) $c['total_valor'] ?>">
-                                    R$ <?= number_format((float) $c['total_valor'], 2, ',', '.') ?>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <a href="<?= $url_base ?>/compras/detalhe?id=<?= (int) $c['id_pesagem'] ?>"
-                                       class="btn btn-sm btn-outline-secondary"
-                                       aria-label="Ver detalhes da compra #<?= (int) $c['id_pesagem'] ?>">
-                                        <i class="bi bi-eye me-1" aria-hidden="true"></i> Detalhes
-                                    </a>
-                                    <?php if (!$cancelada): ?>
-                                        <!-- Exporta a compra no formato da importação de venda, para
-                                             que o parceiro que nos vendeu lance a operação no sistema
-                                             dele sem redigitar. Compra cancelada não aparece: o
-                                             material não mudou de mãos, então não vira venda de ninguém. -->
-                                        <a href="<?= $url_base ?>/functions/compra/exportar_planilha.php?id=<?= (int) $c['id_pesagem'] ?>"
-                                           class="btn btn-sm btn-outline-secondary"
-                                           title="Baixar planilha para o parceiro importar como venda"
-                                           aria-label="Exportar a compra #<?= (int) $c['id_pesagem'] ?> como planilha de venda">
-                                            <i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i> Exportar
-                                        </a>
-                                    <?php endif; ?>
-                                    <a href="<?= $url_base ?>/compras/comprovante?id=<?= (int) $c['id_pesagem'] ?>"
-                                       class="btn btn-sm btn-outline-secondary"
-                                       aria-label="Ver comprovante da compra #<?= (int) $c['id_pesagem'] ?>">
-                                        <i class="bi bi-receipt me-1" aria-hidden="true"></i> Comprovante
-                                    </a>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
@@ -146,7 +111,17 @@ $total_compras = count($compras);
 $(function () {
     if (!$('#comprasTable').length) return;
 
+    // JSON_HEX_*: um nome de cliente com tag de fechamento ou aspas não fecha este bloco.
+    var compras = <?= json_encode($linhas, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>;
+    var urlBase = <?= json_encode($url_base, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+    function esc(texto) {
+        return $('<div>').text(texto).html();
+    }
+
     $('#comprasTable').DataTable({
+        "data": compras,
+        "deferRender": true, // só monta o HTML das linhas da página visível
         "autoWidth": false, // sem isto o DataTables grava um width inline e a tabela encolhe
         "pageLength": 10,
         "lengthMenu": [10, 25, 50, 100],
@@ -158,9 +133,56 @@ $(function () {
         "dom": "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
                "<'row'<'col-sm-12'tr>>" +
                "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
-        "columnDefs": [
-            { "orderable": false, "targets": [5] },
-            { "className": "text-end", "targets": [3, 4] }
+        // Compra cancelada sai em cinza, como antes.
+        "createdRow": function (tr, c) {
+            if (c.cancelada) $(tr).addClass('text-muted');
+        },
+        "columns": [
+            // Ordena pelo id puro: como texto, "#9" viria depois de "#10" e o
+            // selo "Cancelada" entraria na comparação.
+            { "data": "id", "className": "ps-4 fw-semibold", "render": function (id, tipo, c) {
+                if (tipo !== 'display') return tipo === 'filter' ? '#' + id + (c.cancelada ? ' Cancelada' : '') : id;
+                return '#' + id + (c.cancelada
+                    ? ' <span class="badge bg-danger-subtle text-danger-emphasis border border-danger-subtle ms-1">Cancelada</span>'
+                    : '');
+            } },
+            { "data": "cliente", "render": function (nome, tipo) {
+                return tipo === 'display' ? esc(nome) : nome;
+            } },
+            { "data": "ts", "render": function (ts, tipo, c) {
+                if (tipo === 'display') return c.data + '<small class="text-muted d-block">' + c.hora + '</small>';
+                return tipo === 'filter' ? c.data + ' ' + c.hora : ts;
+            } },
+            { "data": "peso", "className": "text-end", "render": function (peso, tipo, c) {
+                return tipo === 'display' || tipo === 'filter' ? c.peso_fmt + ' kg' : peso;
+            } },
+            // Valor riscado quando cancelada: deixa claro na própria linha que
+            // aquele número não entra nas somas.
+            { "data": "valor", "className": "text-end fw-semibold", "render": function (valor, tipo, c) {
+                if (tipo === 'filter') return 'R$ ' + c.valor_fmt;
+                if (tipo !== 'display') return valor;
+                return c.cancelada
+                    ? '<span class="text-decoration-line-through">R$ ' + c.valor_fmt + '</span>'
+                    : '<span style="color: var(--color-accent);">R$ ' + c.valor_fmt + '</span>';
+            } },
+            { "data": null, "orderable": false, "searchable": false, "className": "text-end pe-4", "render": function (_, tipo, c) {
+                if (tipo !== 'display') return '';
+                var html =
+                    '<a href="' + urlBase + '/compras/detalhe?id=' + c.id + '" class="btn btn-sm btn-outline-secondary"' +
+                    ' aria-label="Ver detalhes da compra #' + c.id + '"><i class="bi bi-eye me-1" aria-hidden="true"></i> Detalhes</a> ';
+                // Exporta a compra no formato da importação de venda, para que o
+                // parceiro que nos vendeu lance a operação no sistema dele sem
+                // redigitar. Compra cancelada não aparece: o material não mudou
+                // de mãos, então não vira venda de ninguém.
+                if (!c.cancelada) {
+                    html += '<a href="' + urlBase + '/functions/compra/exportar_planilha.php?id=' + c.id + '" class="btn btn-sm btn-outline-secondary"' +
+                        ' title="Baixar planilha para o parceiro importar como venda"' +
+                        ' aria-label="Exportar a compra #' + c.id + ' como planilha de venda"><i class="bi bi-file-earmark-spreadsheet me-1" aria-hidden="true"></i> Exportar</a> ';
+                }
+                html += '<a href="' + urlBase + '/compras/comprovante?id=' + c.id + '" class="btn btn-sm btn-outline-secondary"' +
+                    ' aria-label="Ver comprovante da compra #' + c.id + '"><i class="bi bi-receipt me-1" aria-hidden="true"></i> Comprovante</a>';
+                return html;
+            } }
         ]
     });
 });
