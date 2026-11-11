@@ -4,11 +4,12 @@ RewriteEngine On
 # da regra que serve arquivo real, senão ela os entrega direto.
 #   .env, .git/, .gitignore  credenciais do banco e do SMTP, histórico do código
 #   sql/                     schema e seeds
+#   backups/                 dumps do banco: dado pessoal real
 #   vendor/, composer.*      bibliotecas e versões instaladas
 #   docs/, design-system/    material de projeto, não da aplicação
 #   *.md                     READMEs
 RewriteRule (^|/)\. - [F]
-RewriteRule ^(sql|vendor|docs|design-system)(/|$) - [F]
+RewriteRule ^(sql|backups|vendor|docs|design-system)(/|$) - [F]
 RewriteRule ^composer\.(json|lock)$ - [F]
 RewriteRule \.md$ - [F]
 

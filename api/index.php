@@ -21,7 +21,7 @@ $caminho = rawurldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) 
 $caminho = '/' . trim($caminho, '/');
 
 // As mesmas pastas que o .htaccess bloqueia, mais a própria api/.
-if (preg_match('#(^|/)\.|^/(sql|vendor|docs|design-system|api|node_modules)(/|$)|^/composer\.(json|lock)$|\.md$#i', $caminho)) {
+if (preg_match('#(^|/)\.|^/(sql|backups|vendor|docs|design-system|api|node_modules)(/|$)|^/composer\.(json|lock)$|\.md$#i', $caminho)) {
     http_response_code(404);
     exit('Não encontrado.');
 }

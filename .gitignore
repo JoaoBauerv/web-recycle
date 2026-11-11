@@ -38,3 +38,8 @@ node_modules/
 
 .vercel
 .env.local
+
+# Dumps do banco (pg_dump) feitos antes de recriar o banco com uma massa de
+# demonstração. Carregam dado pessoal real e nunca entram no Git. O .htaccess
+# também bloqueia a pasta para a web.
+/backups/

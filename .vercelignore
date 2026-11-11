@@ -14,6 +14,7 @@ node_modules
 
 # Material de projeto e banco, que o sistema não usa para rodar
 sql
+backups
 docs
 design-system
 balanca-agent

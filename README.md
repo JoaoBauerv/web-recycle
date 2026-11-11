@@ -238,7 +238,7 @@ comprovantes de venda, planilha de importação) ficam no banco, e não em disco
 Depois do seed, rode:
 
 ```bash
-psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0004_sessao_e_arquivo.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0005_sessao_e_arquivo.sql
 ```
 
 Fotos que já estavam em `images/user/` ou comprovantes em

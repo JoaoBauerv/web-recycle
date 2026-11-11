@@ -1,5 +1,5 @@
 --
--- 0004_sessao_e_arquivo.sql
+-- 0005_sessao_e_arquivo.sql
 --
 -- Duas tabelas que a versao do sistema hospedada na Vercel precisa, e que
 -- valem para qualquer instalacao da branch `neon`:
@@ -14,7 +14,7 @@
 --
 -- Roda depois de 0000_baseline_schema.sql e 0001_seed_inicial.sql:
 --
---   psql -v ON_ERROR_STOP=1 -f sql/0004_sessao_e_arquivo.sql "$DATABASE_URL_UNPOOLED"
+--   psql -v ON_ERROR_STOP=1 -f sql/0005_sessao_e_arquivo.sql "$DATABASE_URL_UNPOOLED"
 --
 -- Pode rodar de novo sem efeito: as tabelas so sao criadas se faltarem.
 --

@@ -83,7 +83,7 @@ $pdo = (function (): PDO {
     }
 })();
 
-// Sessões no banco, na tabela `sessao` (sql/0004_sessao_e_arquivo.sql). Na
+// Sessões no banco, na tabela `sessao` (sql/0005_sessao_e_arquivo.sql). Na
 // Vercel cada requisição pode cair numa instância diferente, e um arquivo de
 // sessão gravado numa delas não existe na outra: o login se perderia a cada
 // clique. Registrado aqui porque todo session_start() do sistema vem depois
