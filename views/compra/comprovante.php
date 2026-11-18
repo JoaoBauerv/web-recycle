@@ -172,7 +172,7 @@ $cliente_endereco = enderecoLinha($cliente);
             <div id="comprovante" class="recibo formato-a4">
 
                 <div class="recibo-header text-center">
-                    <img src="<?= $url_base ?>/images/logo.png" alt="Logo" class="recibo-logo">
+                    <img src="<?= $url_base ?>/images/logo.png?v=<?= @filemtime(__DIR__ . '/../../images/logo.png') ?>" alt="Logo" class="recibo-logo">
                     <h5 class="fw-bold mb-0 mt-2"><?= htmlspecialchars($_ENV['APP_NAME'] ?? '') ?></h5>
                     <?php if (!empty($_ENV['APP_END'])): ?>
                         <small class="text-muted d-block"><?= htmlspecialchars($_ENV['APP_END']) ?></small>
