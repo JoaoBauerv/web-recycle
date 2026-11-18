@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container-fluid min-vh-100 d-flex justify-content-center align-items-center">
     <div class="card shadow-lg p-4" style="width: 100%; max-width: 800px;">
         <div class="text-center mb-4">
-            <img src="<?=$url_base?>/images/logo.png" alt="<?= htmlspecialchars($_ENV['APP_NAME'] ?? 'Logo') ?>"
+            <img src="<?=$url_base?>/images/logo.png?v=<?= @filemtime(__DIR__ . '/../../images/logo.png') ?>" alt="<?= htmlspecialchars($_ENV['APP_NAME'] ?? 'Logo') ?>"
                  style="max-height: 64px;" class="mb-1">
             <h3 class="mt-2">Registrar Usuário</h3>
         </div>

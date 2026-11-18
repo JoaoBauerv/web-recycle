@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card border-0 shadow-sm p-4 p-md-5" style="width: 100%; max-width: 480px;">
 
             <div class="text-center mb-4">
-                <img src="<?=$url_base?>/images/logo.png" alt="<?= htmlspecialchars($_ENV['APP_NAME'] ?? 'Logo') ?>"
+                <img src="<?=$url_base?>/images/logo.png?v=<?= @filemtime(__DIR__ . '/../../images/logo.png') ?>" alt="<?= htmlspecialchars($_ENV['APP_NAME'] ?? 'Logo') ?>"
                      style="max-height: 64px;" class="mb-3">
                 <h1 class="h4 fw-bold mb-2">Alterar senha</h1>
                 <p class="text-muted small mb-0">
