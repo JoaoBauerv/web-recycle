@@ -1,6 +1,0 @@
-# Contagem de linguagens do GitHub (Linguist).
-# O FullCalendar é biblioteca de terceiros copiada para o repositório: sem esta
-# marcação, os ~1,7 MB de JavaScript dele contam como código do projeto e o
-# GitHub mostra o sistema como "JavaScript", embora ele seja quase todo PHP.
-js/calendario/** linguist-vendored
-js/calendario/custom.js -linguist-vendored
