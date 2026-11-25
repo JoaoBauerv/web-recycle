@@ -4,7 +4,7 @@ Tudo o que é necessário para recriar o banco em outra máquina.
 
 ## Instalação do zero
 
-Pré-requisitos: PostgreSQL 14 ou superior (instalação conferida no 16), e um
+Pré-requisitos: PostgreSQL 14 ou superior (instalação conferida no 16 e no 18), e um
 banco vazio já criado. O schema `reciclagem` é criado pelo primeiro arquivo —
 não precisa criá-lo à mão.
 
@@ -47,7 +47,7 @@ Depois, copie `.env.example` para `.env` e preencha `DB_HOST`, `DB_PORT`,
 
 ### Conferência
 
-Ao final, o banco tem 19 tabelas e apenas quatro delas com conteúdo:
+Ao final, o banco tem 20 tabelas e apenas quatro delas com conteúdo:
 
 ```bash
 psql -d reciclagem -c "SELECT relname, n_live_tup FROM pg_stat_user_tables
@@ -63,14 +63,26 @@ psql -d reciclagem -c "SELECT relname, n_live_tup FROM pg_stat_user_tables
 
 ### Primeiro acesso
 
-| | |
-|---|---|
-| e-mail | `admin@reciclagem.local` |
-| senha | `admin@123` |
+O login inicial **depende da massa instalada**. A senha é sempre `admin@123`,
+mas a 0004 renomeia o administrador do seed, então `admin@reciclagem.local`
+**não existe** num banco com o piloto — que é a massa padrão do
+[`recriar_banco.ps1`](#recriar_bancops1--reset).
 
-O sistema **exige a troca da senha no primeiro acesso** — o campo
-`usuario.precisa_alterar_senha` vem com `1` e bloqueia a navegação até a
-troca. Troque antes de usar.
+| Instalação | Administrador | Troca de senha no 1º acesso |
+|---|---|---|
+| só `0001` (produção, ou `-Massa nenhuma`) | `admin@reciclagem.local` | **sim** |
+| `0001` + `0002` (demo) ou `0003` (massa) | `admin@reciclagem.local`, e também `fernanda.oliveira@example.com` | sim no `admin@`; não na `fernanda` |
+| `0001` + `0004` (piloto, padrão do reset) | `joao.verzeletti@example.com` — é o mesmo usuário do seed, renomeado | não |
+
+Os demais usuários de cada massa estão na seção dela, mais abaixo.
+
+Na instalação de produção o sistema **exige a troca da senha no primeiro
+acesso** — o campo `usuario.precisa_alterar_senha` vem com `1` e bloqueia a
+navegação até a troca. Troque antes de usar. As massas de demonstração gravam
+`0` nos usuários que criam, e a 0004 também no administrador que ela renomeia.
+
+Conferido em 18/11/2026, instalando cada combinação num banco vazio com o
+`recriar_banco.ps1` e listando `usuario`.
 
 ## O que o seed único cria
 
@@ -126,14 +138,14 @@ seed leva os 33 ativos.
 
 | Arquivo | Papel |
 |---|---|
-| `0000_baseline_schema.sql` | **A estrutura, completa e final:** 19 tabelas, 175 colunas, 68 constraints (19 PK, 3 UNIQUE, 28 FK e 18 CHECK), 26 índices próprios e 24 comentários de tabela e coluna |
+| `0000_baseline_schema.sql` | **A estrutura, completa e final:** 20 tabelas, 179 colunas, 70 constraints (20 PK, 3 UNIQUE, 29 FK e 18 CHECK), 26 índices próprios e 27 comentários de tabela e coluna |
 | `0001_seed_inicial.sql` | **O seed único.** Dados de referência e o administrador |
 | `0002_seed_demo.sql` | **Opcional.** Massa pequena de demonstração em todas as tabelas — ver abaixo |
 | `0003_seed_massa.sql` | **Opcional, alternativa à 0002.** Dois anos de operação simulada, para testar volume — ver abaixo |
 | `0004_seed_piloto.sql` | **Opcional, alternativa à 0002 e à 0003.** Piloto de um ferro-velho de 01/08 a 07/11/2026, em datas fixas — ver abaixo |
 | `seed_funcoes.sql` | Funções comuns às seeds; incluído por elas, não se roda sozinho |
 | `recriar_banco.ps1` | **Reset:** apaga e recria um banco com a estrutura, o seed e uma das massas |
-| `_arquivo/*.sql` | As 15 migrations já incorporadas na baseline — **histórico**, fora da instalação |
+| `_arquivo/*.sql` | As 16 migrations já incorporadas na baseline — **histórico**, fora da instalação |
 
 As contagens somam PK, UNIQUE, FK e CHECK. O PostgreSQL 17 e superiores também
 registram cada `NOT NULL` em `pg_constraint`; esses ficam fora da conta.
@@ -153,6 +165,7 @@ O schema foi construído em três fases, e as migrations de cada uma estão em
 | | `2026-11-04_registro_movimento_descricao.sql` | `registro_movimento.descricao` para `varchar(255)`: descrições de despesa e motivos de cancelamento estouravam 100 caracteres depois da operação já gravada |
 | | `2026-11-05_remove_recorrencia_despesa.sql` | Remove as colunas de recorrência de `contas_pagar`, gravadas e nunca usadas |
 | | `2026-11-05_conta_cancelada_com_pagamento.sql` | Só dados: devolve a `ativa` as despesas canceladas que tinham parcela paga, que sumiam dos relatórios |
+| 18/11/2026 | `2026-11-18_configuracao_sistema.sql` | Cria `configuracao`, chave/valor da tela Configurações do sistema (integração da balança). Escrita à mão na baseline, no formato do `pg_dump` |
 
 Em 14/10/2026 o banco em produção foi exportado com `pg_dump --schema-only` e
 virou a primeira baseline; as migrations daquela data e as de novembro eram
@@ -176,17 +189,25 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/_arquivo/2026-11-04_registro_movime
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/_arquivo/2026-11-04_registro_movimento_descricao.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/_arquivo/2026-11-05_remove_recorrencia_despesa.sql
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/_arquivo/2026-11-05_conta_cancelada_com_pagamento.sql
+psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/_arquivo/2026-11-18_configuracao_sistema.sql
 ```
 
-Para saber em que ponto um banco está: se `registro_movimento.descricao` ainda
-tem 100 caracteres, faltam as de novembro; se ainda existe `tb_usuario`, faltam
-também as de 14/10.
+**Banco instalado entre 05/11 e 17/11/2026**, pela baseline anterior: falta só
+a última linha acima, a tabela `configuracao` da tela Configurações do sistema.
+Até rodá-la, o sistema segue lendo `BALANCA_API_URL` do `.env` e só o botão
+Salvar daquela tela acusa erro.
+
+Para saber em que ponto um banco está: se não existe a tabela `configuracao`,
+falta a de 18/11; se `registro_movimento.descricao` ainda tem 100 caracteres,
+faltam também as de 04 e 05/11; se ainda existe `tb_usuario`, faltam também as
+de 14/10.
 
 As migrations de 14/10 e a de recorrência **não** são idempotentes — uma
 segunda passada falha, porque tentaria renomear tabela que já tem o nome novo
 ou remover coluna que já saiu. É de propósito: numa migração de estrutura,
 falhar alto é melhor que seguir em silêncio sobre um banco em estado
-inesperado. As de 04/11 e a de despesas canceladas podem ser reaplicadas.
+inesperado. As de 04/11, a de despesas canceladas e a de 18/11 podem ser
+reaplicadas.
 
 As 8 migrations anteriores a 14/10/2026 só valem para o schema daquela época:
 7 delas mexem em `tb_material`, `tb_usuario` e outras tabelas que a
@@ -225,7 +246,9 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0002_seed_demo.sql
 
 Usuários de demonstração, todos com a senha `admin@123` e **sem** troca
 obrigatória: `fernanda.oliveira@example.com` (Admin) e
-`carlos.ramos@example.com` (Usuario).
+`carlos.ramos@example.com` (Usuario). O terceiro, `ricardo.alves@example.com`,
+está inativo e não entra. O administrador do seed (`admin@reciclagem.local`)
+continua como estava, ainda com a troca de senha obrigatória.
 
 - **Datas relativas a `CURRENT_DATE`**: em qualquer dia em que rodar, o painel
   mostra compras recentes e contas vencidas e a vencer.
@@ -242,7 +265,7 @@ obrigatória: `fernanda.oliveira@example.com` (Admin) e
 
 **Opcional, nunca em produção, e alternativa à 0002**: rode uma ou a outra (a
 0003 recusa banco que já tenha a 0002). Simula 730 dias de operação, dia a dia,
-para testar relatórios, filtros, paginação e desempenho. Leva cerca de 15
+para testar relatórios, filtros, paginação e desempenho. Leva cerca de 20
 segundos:
 
 ```bash
@@ -254,9 +277,9 @@ psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0003_seed_massa.sql
 | `clientes` / `fornecedores` | 60 / 9 | 6 cooperativas, 8 sucatarias e 46 catadores, que entram e saem ao longo do período (5 inativados); compradores por grupo de material |
 | `usuario` | +5 | gerente (Admin) e quatro operadores com períodos diferentes (um inativo) |
 | `pesagem` / `pesagem_material` | 6.400 / 13.300 | compras de segunda a sábado, ~100 canceladas |
-| `vendas` / `vendas_itens` | 1.000 / 2.400 | terças e sextas, por grupo; ~50 importadas por planilha, ~20 canceladas |
+| `vendas` / `vendas_itens` | 1.000 / 2.400 | terças e sextas, por grupo; ~40 importadas por planilha, ~20 canceladas |
 | `estoque_movimentacoes` | 16.000 | compras, vendas, estornos, perdas de inventário e sobras |
-| `contas_pagar` / `_parcelas` | 280 / 440 | 24 meses de despesas, com atrasos e juros, vencidas em aberto e cancelamentos |
+| `contas_pagar` / `_parcelas` | 275 / 430 | 24 meses de despesas, com atrasos e juros, vencidas em aberto e cancelamentos |
 | `registro_movimento` | 8.500 | auditoria de tudo, inclusive 8 reajustes de preço |
 
 O que a simulação reproduz:
@@ -281,14 +304,19 @@ extrato do estoque conta a história na ordem certa — e que nenhuma despesa
 cancelada tem parcela paga. `setseed()` torna a massa reproduzível.
 
 Usuários: os mesmos da 0002 (`fernanda.oliveira@example.com` Admin,
-`carlos.ramos@example.com`) mais `juliana.prado@example.com` e
-`marcos.vieira@example.com`, todos com a senha `admin@123`.
+`carlos.ramos@example.com` e `ricardo.alves@example.com`, inativo) mais
+`juliana.prado@example.com` e `marcos.vieira@example.com`, todos com a senha
+`admin@123` e sem troca obrigatória. Como na 0002, `admin@reciclagem.local`
+fica como o seed o deixou.
+
+As contagens acima são de uma instalação em 18/11/2026. Como as datas são
+relativas a `CURRENT_DATE`, elas variam um pouco conforme o dia em que se roda.
 
 ### `0004_seed_piloto.sql` — o piloto de um ferro-velho
 
 **Opcional, nunca em produção, e alternativa à 0002 e à 0003.** Simula o
 sistema em uso num ferro-velho de pequeno/médio porte de **01/08/2026 a
-07/11/2026**, para a demonstração do TCC. Leva cerca de 2 segundos:
+07/11/2026**, para a demonstração do TCC. Leva cerca de 10 segundos:
 
 ```bash
 psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0004_seed_piloto.sql
@@ -301,14 +329,14 @@ idênticas.
 
 | Tabela | Linhas (aprox.) | O que entra |
 |---|---|---|
-| `usuario` | +3 | dono (Admin), operador de balança/pátio e atendente de caixa |
+| `usuario` | +3 | dono (Admin), operador de balança/pátio e atendente de caixa; o administrador do seed é renomeado, não criado |
 | `clientes` | 48 | quem vende ao ferro-velho: 40 pessoas físicas (catadores, carroceiros, moradores) e 8 empresas (oficinas, serralherias, obras, eletricistas); 12 PF e 3 PJ chegam ao longo do piloto |
 | `fornecedores` | 5 | quem compra do ferro-velho: fundição/siderúrgica, recicladora de alumínio, aparista de papel, recicladora de plástico e comprador de baterias |
 | `pesagem` / `pesagem_material` | 1.846 / 3.019 | compras de segunda a sábado, 38 canceladas; total pago arredondado no balcão |
-| `vendas` / `vendas_itens` | 32 / 102 | vendas em lote, 1 a 3 por semana, 3 canceladas, 6 a prazo |
+| `vendas` / `vendas_itens` | 32 / 102 | vendas em lote às terças, quintas e sextas, até 3 por semana (a primeira em 18/08, quando o estoque forma lote), 3 canceladas, 6 a prazo |
 | `estoque_movimentacoes` | 3.298 | compras, vendas, estornos e 101 perdas de triagem |
 | `contas_pagar` / `_parcelas` | 42 / 82 | aluguel, 3 salários e FGTS, energia, água, telefone, internet, Simples, diesel, manutenção do caminhão e da balança, balança parcelada |
-| `registro_movimento` | 2.206 | auditoria, inclusive as edições de preço, as perdas e o arredondamento de cada compra |
+| `registro_movimento` | 2.208 | auditoria, inclusive as edições de preço, as perdas e o arredondamento de cada compra |
 
 O que a simulação reproduz:
 
@@ -409,8 +437,15 @@ estoque não entra em conta nenhuma. Por isso o resultado delas é maior que o
 "resultado operacional" do resumo da seed, que desconta a quebra.
 
 Usuários, todos com a senha `admin@123` e sem troca obrigatória:
-`rogerio.antunes@example.com` (Admin, dono), `diego.lemos@example.com`
-(operador) e `patricia.fagundes@example.com` (atendente).
+
+| E-mail | Perfil | Quem é |
+|---|---|---|
+| `joao.verzeletti@example.com` | Admin | o administrador do seed (`admin@reciclagem.local`), renomeado com o nome do autor do TCC; é o login dos prints e quem cadastra os funcionários |
+| `rogerio.antunes@example.com` | Admin | dono |
+| `diego.lemos@example.com` | Usuario | operador de balança/pátio |
+| `patricia.fagundes@example.com` | Usuario | atendente de caixa |
+
+Num banco com o piloto, **`admin@reciclagem.local` não existe mais**.
 
 ### `recriar_banco.ps1` — reset
 

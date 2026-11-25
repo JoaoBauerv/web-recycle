@@ -48,7 +48,7 @@
 --     5 compradores, quando o estoque do grupo passa do lote minimo. Vende de
 --     90% a 100% do que ha, nunca mais. Parte a prazo (boleto em 15 dias ou
 --     transferencia em 7), registrada em vendas.observacoes.
---   - ~1,5% das compras e 1 a 2 vendas canceladas, com estorno do estoque.
+--   - ~2% das compras (38) e 3 vendas canceladas, com estorno do estoque.
 --   - Financeiro do periodo em contas_pagar: aluguel, honorarios, internet,
 --     telefone, 3 salarios e FGTS, energia, agua, Simples (4% das vendas),
 --     diesel e manutencao do caminhao, aferição da balanca, manutencao da
@@ -81,6 +81,9 @@
 --   exatamente a mesma massa, em qualquer dia.
 --
 -- ACESSO (senha admin@123, sem troca obrigatoria)
+--   joao.verzeletti@example.com   Admin   (administrador inicial, com o nome
+--                                          do autor do TCC; e quem cadastra os
+--                                          funcionarios)
 --   rogerio.antunes@example.com   Admin   (dono)
 --   diego.lemos@example.com       Usuario (operador de balanca/patio)
 --   patricia.fagundes@example.com Usuario (atendente de caixa)
@@ -526,6 +529,18 @@ DECLARE
     cidades text[] := ARRAY['Gravataí','Gravataí','Gravataí','Cachoeirinha','Alvorada','Glorinha'];
 BEGIN
     SELECT id_usuario INTO u_inicial FROM usuario WHERE permissao = 'Admin' AND status = 1 ORDER BY id_usuario LIMIT 1;
+
+    -- O administrador inicial (0001) passa a ter o nome do autor do TCC, que
+    -- administra o sistema na empresa; e o login usado nos prints da demonstracao.
+    UPDATE usuario
+       SET nome = 'João Vitor Verzeletti', email = 'joao.verzeletti@example.com',
+           usuario = 'joao.verzeletti', senha = v_hash, precisa_alterar_senha = 0,
+           -- campos que a tela de edicao exige (sem eles a foto nao pode ser salva),
+           -- pela mesma regra dos demais usuarios, com i = 4
+           data_nascimento = DATE '1972-03-14' + 4 * 2311,
+           celular = '5199' || lpad((4 * 6151 % 10000000)::text, 7, '0'),
+           cpf_cnpj = pg_temp.cpf(lpad((4 * 271828183 % 900000000 + 100000000)::text, 9, '0'))
+     WHERE id_usuario = u_inicial;
 
     -- Usuarios: dono, operador de balanca/patio, atendente de caixa.
     FOR nome, doc, papel, i IN

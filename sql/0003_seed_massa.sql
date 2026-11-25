@@ -10,7 +10,7 @@
 --
 --   psql -d reciclagem -v ON_ERROR_STOP=1 -f sql/0003_seed_massa.sql
 --
--- Leva cerca de um a dois minutos.
+-- Leva cerca de 20 segundos.
 --
 -- O QUE A SIMULACAO FAZ
 --   Percorre os ultimos 730 dias, um a um, em ordem cronologica:
