@@ -1,7 +1,7 @@
 --
 -- 0000_baseline_schema.sql
 --
--- Estrutura COMPLETA e FINAL do banco: o schema 'reciclagem' com as 19
+-- Estrutura COMPLETA e FINAL do banco: o schema 'reciclagem' com as 20
 -- tabelas, constraints, indices, sequencias e comentarios, no estado em que o
 -- sistema espera encontrar. Uma instalacao nova roda este arquivo e depois o
 -- seed 0001_seed_inicial.sql -- nada mais:
@@ -22,6 +22,9 @@
 --   servem para ATUALIZAR um banco instalado antes de 05/11/2026 -- ver
 --   sql/README.md, secao "Atualizar um banco existente". Instalacao nova nao
 --   as usa.
+--
+--   Em 18/11/2026 a tabela configuracao foi acrescentada a mao, no mesmo
+--   formato do pg_dump (migration 2026-11-18_configuracao_sistema.sql).
 --
 -- COMPATIBILIDADE
 --   O pg_dump emite \restrict / \unrestrict, meta-comandos que so o psql de
@@ -143,6 +146,39 @@ CREATE SEQUENCE reciclagem.clientes_id_cliente_seq
 --
 
 ALTER SEQUENCE reciclagem.clientes_id_cliente_seq OWNED BY reciclagem.clientes.id_cliente;
+
+
+--
+-- Name: configuracao; Type: TABLE; Schema: reciclagem; Owner: -
+--
+
+CREATE TABLE reciclagem.configuracao (
+    chave character varying(60) NOT NULL,
+    valor text,
+    data_atualizacao timestamp without time zone DEFAULT now() NOT NULL,
+    id_usuario integer
+);
+
+
+--
+-- Name: TABLE configuracao; Type: COMMENT; Schema: reciclagem; Owner: -
+--
+
+COMMENT ON TABLE reciclagem.configuracao IS 'Parâmetros do sistema ajustados pelo Admin na tela Configurações do sistema. Uma linha por chave (ex.: balanca.url).';
+
+
+--
+-- Name: COLUMN configuracao.valor; Type: COMMENT; Schema: reciclagem; Owner: -
+--
+
+COMMENT ON COLUMN reciclagem.configuracao.valor IS 'Sempre texto; quem lê converte. Vazio desliga o item quando ele é opcional (ex.: balanca.rota_captura).';
+
+
+--
+-- Name: COLUMN configuracao.id_usuario; Type: COMMENT; Schema: reciclagem; Owner: -
+--
+
+COMMENT ON COLUMN reciclagem.configuracao.id_usuario IS 'Último Admin que alterou a chave.';
 
 
 --
@@ -1087,6 +1123,14 @@ ALTER TABLE ONLY reciclagem.clientes
 
 
 --
+-- Name: configuracao configuracao_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
+--
+
+ALTER TABLE ONLY reciclagem.configuracao
+    ADD CONSTRAINT configuracao_pkey PRIMARY KEY (chave);
+
+
+--
 -- Name: contas_pagar_parcelas contas_pagar_parcelas_pkey; Type: CONSTRAINT; Schema: reciclagem; Owner: -
 --
 
@@ -1426,6 +1470,14 @@ CREATE UNIQUE INDEX uq_relacao_nome ON reciclagem.material_relacao USING btree (
 --
 
 CREATE UNIQUE INDEX uq_venda_pedido_externo ON reciclagem.vendas USING btree (lower((pedido_externo)::text)) WHERE (pedido_externo IS NOT NULL);
+
+
+--
+-- Name: configuracao configuracao_id_usuario_fkey; Type: FK CONSTRAINT; Schema: reciclagem; Owner: -
+--
+
+ALTER TABLE ONLY reciclagem.configuracao
+    ADD CONSTRAINT configuracao_id_usuario_fkey FOREIGN KEY (id_usuario) REFERENCES reciclagem.usuario(id_usuario) ON DELETE SET NULL;
 
 
 --

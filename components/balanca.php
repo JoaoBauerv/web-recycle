@@ -13,21 +13,100 @@
  *     <input type="text" id="peso" name="peso">
  *     <?php balancaPainel('peso', 'tela de compra'); ?>
  *
- * A integração é ADITIVA por princípio: sem BALANCA_API_URL no .env, ou com o
- * agente fora do ar, nada é renderizado e a tela segue com o peso digitado à
- * mão. Nenhuma tela deve depender da balança para operar.
+ * A integração é ADITIVA por princípio: sem endereço do agente configurado, ou
+ * com o agente fora do ar, nada é renderizado e a tela segue com o peso
+ * digitado à mão. Nenhuma tela deve depender da balança para operar.
+ *
+ * DE ONDE VEM A CONFIGURAÇÃO
+ *   O Admin ajusta tudo em Configurações do sistema (rota /configuracoes), que
+ *   grava na tabela configuracao com as chaves balanca.*. Assim dá para usar
+ *   outro software de integração de balança: muda-se o endereço, as rotas e o
+ *   nome dos campos do JSON que ele devolve, sem mexer em código.
+ *
+ *   Enquanto o endereço nunca foi salvo pela tela, vale BALANCA_API_URL do
+ *   .env, como antes da tela existir. Depois de salvo, o banco manda — inclusive
+ *   se for salvo vazio, que desliga a balança.
  */
 
-/** Há agente de balança configurado neste ambiente? */
+require_once __DIR__ . '/configuracao.php';
+
+/**
+ * Valores de fábrica: os do agente do próprio projeto (balanca-agent), que
+ * responde em GET /peso com {sucesso, peso, unidade, estavel, erro}.
+ */
+const BALANCA_PADROES = [
+    'ativa'         => '1',
+    'url'           => '',
+    'rota_peso'     => '/peso',
+    'rota_captura'  => '/captura',
+    'campo_sucesso' => 'sucesso',
+    'campo_peso'    => 'peso',
+    'campo_estavel' => 'estavel',
+    'campo_unidade' => 'unidade',
+    'campo_erro'    => 'erro',
+    'intervalo'     => '1000',
+];
+
+/** Limites do intervalo de leitura, em ms. Abaixo disso sobrecarrega o agente. */
+const BALANCA_INTERVALO_MIN = 300;
+const BALANCA_INTERVALO_MAX = 10000;
+
+/**
+ * Configuração efetiva da balança: o que está salvo no banco, completado pelos
+ * padrões, com a URL do .env enquanto nenhuma foi salva.
+ */
+function balancaConfig(): array
+{
+    global $pdo;
+
+    $cfg = [];
+    foreach (BALANCA_PADROES as $nome => $padrao) {
+        $cfg[$nome] = $pdo instanceof PDO
+            ? configObter($pdo, 'balanca.' . $nome, $padrao)
+            : $padrao;
+    }
+
+    if (!($pdo instanceof PDO) || !configExiste($pdo, 'balanca.url')) {
+        $cfg['url'] = $_ENV['BALANCA_API_URL'] ?? '';
+    }
+
+    $cfg['url']       = rtrim(trim((string) $cfg['url']), '/');
+    $cfg['ativa']     = $cfg['ativa'] === '1';
+    $cfg['intervalo'] = max(BALANCA_INTERVALO_MIN, min(BALANCA_INTERVALO_MAX, (int) $cfg['intervalo']));
+
+    return $cfg;
+}
+
+/** Há agente de balança configurado e ligado neste ambiente? */
 function balancaDisponivel(): bool
 {
-    return !empty($_ENV['BALANCA_API_URL']);
+    $cfg = balancaConfig();
+    return $cfg['ativa'] && $cfg['url'] !== '';
 }
 
 /** URL do agente, sem barra final. Vazia quando não configurado. */
 function balancaUrl(): string
 {
-    return balancaDisponivel() ? rtrim($_ENV['BALANCA_API_URL'], '/') : '';
+    return balancaDisponivel() ? balancaConfig()['url'] : '';
+}
+
+/**
+ * O que o JavaScript precisa para conversar com o agente: rotas e o nome dos
+ * campos da resposta. Mesmo formato aceito por Balanca.conectar().
+ */
+function balancaOpcoesJs(array $cfg): array
+{
+    return [
+        'rotaPeso'    => $cfg['rota_peso'],
+        'rotaCaptura' => $cfg['rota_captura'],
+        'campos'      => [
+            'sucesso' => $cfg['campo_sucesso'],
+            'peso'    => $cfg['campo_peso'],
+            'estavel' => $cfg['campo_estavel'],
+            'unidade' => $cfg['campo_unidade'],
+            'erro'    => $cfg['campo_erro'],
+        ],
+    ];
 }
 
 /**
@@ -37,7 +116,8 @@ function balancaUrl(): string
  * @param string $origem        texto livre que identifica a tela, gravado no
  *                              log do agente a cada captura.
  * @param array  $opcoes        'casas' (decimais, padrão 2),
- *                              'intervalo' (ms entre leituras, padrão 1000),
+ *                              'intervalo' (ms entre leituras; padrão o da
+ *                              tela de configurações),
  *                              'classe' (classes extras no contêiner).
  */
 function balancaPainel(string $campo_destino, string $origem, array $opcoes = []): void
@@ -52,8 +132,9 @@ function balancaPainel(string $campo_destino, string $origem, array $opcoes = []
     $sequencia++;
     $id = 'balanca-' . $sequencia;
 
+    $cfg       = balancaConfig();
     $casas     = $opcoes['casas']     ?? 2;
-    $intervalo = $opcoes['intervalo'] ?? 1000;
+    $intervalo = $opcoes['intervalo'] ?? $cfg['intervalo'];
     $classe    = $opcoes['classe']    ?? '';
 
     // O script é emitido uma vez só, mesmo com vários painéis na página.
@@ -92,14 +173,14 @@ function balancaPainel(string $campo_destino, string $origem, array $opcoes = []
             // Guarda a referência para que a tela possa chamar .parar() se
             // precisar, por exemplo ao fechar um modal que contenha o painel.
             window.balancas = window.balancas || {};
-            window.balancas[<?= json_encode($id) ?>] = Balanca.conectar({
-                api:       <?= json_encode(balancaUrl()) ?>,
+            window.balancas[<?= json_encode($id) ?>] = Balanca.conectar(Object.assign({
+                api:       <?= json_encode($cfg['url']) ?>,
                 painel:    <?= json_encode($id) ?>,
                 campo:     <?= json_encode($campo_destino) ?>,
                 origem:    <?= json_encode($origem) ?>,
                 casas:     <?= (int) $casas ?>,
                 intervalo: <?= (int) $intervalo ?>
-            });
+            }, <?= json_encode(balancaOpcoesJs($cfg), JSON_UNESCAPED_SLASHES) ?>));
         }
 
         if (document.readyState === 'loading') {
