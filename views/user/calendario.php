@@ -8,10 +8,11 @@ require_once __DIR__ . '/../../components/csrf.php';
 
 <link href="<?=$url_base?>/css/calendario.css" rel="stylesheet">
 
-<script src='<?=$url_base?>/js/calendario/index.global.min.js'></script>
-<script src='<?=$url_base?>/js/calendario/core/locales/pt-br.global.min.js'></script>
+<!-- FullCalendar 6.1.19 vem da CDN, como Bootstrap e Select2 no index2.php. -->
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.19/index.global.min.js" integrity="sha384-LjuMvep2w70bTtVscyL+xkqhYr7Y0kTM4t5cwWMy0xOTfl5duHb7MnP6K3J3/4Mk" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.19/locales/pt-br.global.min.js" integrity="sha384-jTsaa6Tu0MsKK/4lgU+esphZfRvF2+PSp13s9p7EWbzb/x+TRatq/+XFW025i+JF" crossorigin="anonymous"></script>
 <script src='<?=$url_base?>/js/calendario/custom.js'></script>
-<script src='<?=$url_base?>/js/calendario/bootstrap5/index.global.min.js'></script>
+<script src="https://cdn.jsdelivr.net/npm/@fullcalendar/bootstrap5@6.1.19/index.global.min.js" integrity="sha384-zVVpilAa+PvjgIxHV+lPl3+HZp0vuo7BL3h5N2S71w/w16RwYmagD2ADZY6yH6Ba" crossorigin="anonymous"></script>
 
 
     <div class="container-fluid py-4" style="max-width: 1400px;">
