@@ -81,6 +81,10 @@ $paginas_disponiveis = [
 
     'perfil'                => ['arquivo' => 'user/perfil',         'auth' => true,  'admin' => false],
 
+    // Parâmetros do sistema (integração da balança). Conferido de novo em
+    // sistema.configurar dentro da view.
+    'configuracoes'         => ['arquivo' => 'sistema/configuracoes', 'auth' => true, 'admin' => true],
+
     // O calendário saiu do escopo entregue. evento e as telas existem, mas
     // criar e listar evento solto não resolve problema nenhum do negócio: o
     // valor está em integrar agenda com coleta, compra, venda e vencimento de

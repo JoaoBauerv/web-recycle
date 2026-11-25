@@ -54,6 +54,10 @@ const PERMISSOES_POR_ACAO = [
     'financeiro.pagamento'       => ['Admin'],
     'financeiro.categorias'      => ['Admin'],
     'financeiro.relatorios'      => ['Admin'],
+
+    // Configurações do sistema mudam o comportamento de todas as telas (ex.: de
+    // onde vem o peso da balança), então ficam só com o Admin.
+    'sistema.configurar'         => ['Admin'],
 ];
 
 /** O usuário logado pode executar a ação? */

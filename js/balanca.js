@@ -5,6 +5,10 @@
  * expõe duas rotas locais: GET /peso, que devolve a leitura atual, e
  * POST /captura, que apenas registra no log dele que o peso foi aproveitado.
  *
+ * Outro software de integração pode usar rotas e nomes de campo diferentes:
+ * cfg.rotaPeso, cfg.rotaCaptura e cfg.campos cobrem isso, e o Admin os ajusta
+ * em Configurações do sistema (components/balanca.php repassa os valores).
+ *
  * Tudo aqui é ADITIVO: se o agente não estiver no ar, o painel some e a tela
  * continua funcionando com o peso digitado à mão. Nenhuma tela deve depender
  * da balança para operar.
@@ -23,6 +27,110 @@
 
     var INTERVALO_PADRAO = 1000;
     var CASAS_PADRAO = 2;
+
+    // Formato do agente do próprio projeto (balanca-agent).
+    var CAMPOS_PADRAO = {
+        sucesso: 'sucesso',
+        peso:    'peso',
+        estavel: 'estavel',
+        unidade: 'unidade',
+        erro:    'erro'
+    };
+
+    /**
+     * Lê um campo da resposta. Aceita caminho com ponto para JSON aninhado
+     * ("dados.peso", "leituras.0.valor"). Caminho vazio devolve undefined.
+     */
+    function lerCampo(obj, caminho) {
+        if (!caminho) return undefined;
+        var partes = String(caminho).split('.');
+        var atual = obj;
+        for (var i = 0; i < partes.length; i++) {
+            if (atual === null || atual === undefined) return undefined;
+            atual = atual[partes[i]];
+        }
+        return atual;
+    }
+
+    /** "12,50", "12.50 kg" e 12.5 viram 12.5; o que não for número vira null. */
+    function paraNumero(valor) {
+        if (typeof valor === 'number') return isFinite(valor) ? valor : null;
+        if (typeof valor !== 'string') return null;
+        var limpo = valor.replace(/[^0-9,.\-]/g, '');
+        // Com vírgula e ponto, o último dos dois é o separador decimal.
+        if (limpo.indexOf(',') !== -1 && limpo.indexOf('.') !== -1) {
+            limpo = limpo.lastIndexOf(',') > limpo.lastIndexOf('.')
+                ? limpo.replace(/\./g, '').replace(',', '.')
+                : limpo.replace(/,/g, '');
+        } else {
+            limpo = limpo.replace(',', '.');
+        }
+        var n = parseFloat(limpo);
+        return isNaN(n) ? null : n;
+    }
+
+    /** true/false, 1/0, "S"/"N", "sim", "stable"... */
+    function paraBooleano(valor) {
+        if (typeof valor === 'boolean') return valor;
+        if (typeof valor === 'number') return valor !== 0;
+        if (typeof valor === 'string') {
+            return /^(true|1|s|sim|y|yes|st|stable|estavel|estável|ok)$/i.test(valor.trim());
+        }
+        return false;
+    }
+
+    /**
+     * Traduz a resposta de qualquer software para o formato interno
+     * { sucesso, peso, unidade, estavel, erro }.
+     *
+     * Campo de sucesso vazio: a leitura vale sempre que houver peso numérico.
+     * Campo de estabilidade vazio: todo peso é tratado como estável.
+     * Campo de unidade vazio: kg.
+     */
+    function interpretar(dados, campos) {
+        campos = Object.assign({}, CAMPOS_PADRAO, campos || {});
+
+        // Software que devolve só o número no corpo, sem JSON em volta.
+        if (typeof dados === 'number' || typeof dados === 'string') {
+            dados = { valor: dados };
+            campos = Object.assign({}, campos, { peso: 'valor', sucesso: '', estavel: '', unidade: '', erro: '' });
+        }
+
+        var peso = paraNumero(lerCampo(dados, campos.peso));
+        var sucesso = campos.sucesso
+            ? paraBooleano(lerCampo(dados, campos.sucesso)) && peso !== null
+            : peso !== null;
+
+        var erro = lerCampo(dados, campos.erro);
+        var unidade = lerCampo(dados, campos.unidade);
+
+        return {
+            sucesso: sucesso,
+            peso:    sucesso ? peso : null,
+            unidade: (typeof unidade === 'string' && unidade.trim()) ? unidade.trim() : 'kg',
+            estavel: campos.estavel ? paraBooleano(lerCampo(dados, campos.estavel)) : true,
+            erro:    sucesso ? null
+                             : (typeof erro === 'string' && erro ? erro
+                                : (peso === null ? 'Resposta sem peso no campo "' + campos.peso + '"' : null))
+        };
+    }
+
+    /** Junta a URL base com a rota, sem barra dobrada nem faltando. */
+    function montarUrl(api, rota) {
+        rota = String(rota || '');
+        if (!rota) return api;
+        return api.replace(/\/+$/, '') + '/' + rota.replace(/^\/+/, '');
+    }
+
+    /** Lê o corpo como JSON e, se não for JSON, como texto puro. */
+    async function lerCorpo(resposta) {
+        var texto = await resposta.text();
+        try {
+            return JSON.parse(texto);
+        } catch (e) {
+            return texto.trim();
+        }
+    }
 
     function elemento(ref) {
         if (!ref) return null;
@@ -54,6 +162,10 @@
      * cfg.casas    casas decimais                  (opcional, padrão 2)
      * cfg.intervalo  período do polling em ms      (opcional, padrão 1000)
      * cfg.aoCapturar  callback(peso, dados)        (opcional)
+ * cfg.rotaPeso     rota de leitura              (opcional, padrão '/peso')
+ * cfg.rotaCaptura  rota que registra a captura  (opcional, padrão '/captura';
+ *                  vazia = não avisa o agente)
+ * cfg.campos       nomes dos campos da resposta (opcional; ver CAMPOS_PADRAO)
      *
      * Devolve { parar, capturar, ultimaLeitura } ou null quando a configuração
      * mínima não está presente na página.
@@ -85,6 +197,9 @@
 
         var casas = cfg.casas === undefined ? CASAS_PADRAO : cfg.casas;
         var intervalo = cfg.intervalo || INTERVALO_PADRAO;
+        var rotaPeso = cfg.rotaPeso === undefined ? '/peso' : cfg.rotaPeso;
+        var rotaCaptura = cfg.rotaCaptura === undefined ? '/captura' : cfg.rotaCaptura;
+        var campos = cfg.campos;
 
         var ultima = null;
         var consultando = false;   // evita requisições sobrepostas quando o agente demora
@@ -115,8 +230,8 @@
 
             var dados;
             try {
-                var resposta = await fetch(api + '/peso', { cache: 'no-store' });
-                dados = await resposta.json();
+                var resposta = await fetch(montarUrl(api, rotaPeso), { cache: 'no-store' });
+                dados = interpretar(await lerCorpo(resposta), campos);
             } catch (e) {
                 offline();            // agente fora do ar: volta ao fluxo manual
                 consultando = false;
@@ -158,7 +273,9 @@
             }
 
             // Só para o agente registrar a captura no log dele; falha é irrelevante.
-            fetch(api + '/captura', {
+            // Outro software pode não ter essa rota: vazia na configuração, pula.
+            if (!rotaCaptura) return true;
+            fetch(montarUrl(api, rotaCaptura), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ peso: ultima.peso, origem: cfg.origem || '' })
@@ -185,6 +302,9 @@
 
     global.Balanca = {
         conectar: conectar,
-        formatarPeso: formatarPeso
+        formatarPeso: formatarPeso,
+        interpretar: interpretar,
+        montarUrl: montarUrl,
+        lerCorpo: lerCorpo
     };
 })(window);

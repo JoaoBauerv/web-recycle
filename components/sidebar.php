@@ -189,6 +189,11 @@ $eh_admin = ($dados_usuario['permissao'] ?? '') === 'Admin';
                                 <i class="bi bi-people me-2" aria-hidden="true"></i> Administração
                             </a>
                         </li>
+                        <li>
+                            <a class="dropdown-item<?= nav_active('configuracoes', $paginaAtual) ?>" href="<?= $url_base ?>/configuracoes">
+                                <i class="bi bi-gear me-2" aria-hidden="true"></i> Configurações do sistema
+                            </a>
+                        </li>
                     <?php endif; ?>
                     <li><hr class="dropdown-divider"></li>
                     <li>
