@@ -89,11 +89,20 @@ $badge_situacao = [
 
     <?php require_once __DIR__ . '/../../components/alert.php'; ?>
 
+    <!-- Cancelar e voltar às colunas alteram o estado da importação, então vão
+         por POST com token: o middleware recusa GET em importacao_acoes.php
+         ("Ação inválida"). Os botões abaixo apontam para cá pelo atributo form,
+         o que funciona mesmo de dentro de outro formulário. -->
+    <form method="POST" action="<?= $acoes ?>" id="form-acao-importacao" class="d-none">
+        <?= csrfCampo() ?>
+    </form>
+
     <?php if ($erro_leitura): ?>
         <div class="alert alert-danger">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             Não consegui reler a planilha: <?= htmlspecialchars($erro_leitura) ?>
-            <a href="<?= $acoes ?>?acao=cancelar" class="alert-link ms-2">Recomeçar</a>
+            <button type="submit" form="form-acao-importacao" name="acao" value="cancelar"
+                    class="btn btn-link alert-link p-0 ms-2 align-baseline">Recomeçar</button>
         </div>
     <?php endif; ?>
 
@@ -108,18 +117,16 @@ $badge_situacao = [
             // corrigir o mapeamento, e voltar ao arquivo descarta a importação.
             $destino = null;
             if ($n < $etapa_atual) {
-                $destino = $n === 1
-                    ? $acoes . '?acao=cancelar'
-                    : $acoes . '?acao=ajustar_colunas';
+                $destino = $n === 1 ? 'cancelar' : 'ajustar_colunas';
             }
 
             $classe = 'px-3 py-2 rounded-3 border text-decoration-none text-body '
-                    . ($n === $etapa_atual ? 'border-2' : ($destino ? '' : 'opacity-50'));
+                    . ($n === $etapa_atual ? 'border-2' : ($destino ? 'bg-transparent' : 'opacity-50'));
             $estilo = $n === $etapa_atual ? 'border-color: var(--color-accent) !important;' : '';
-            $tag = $destino ? 'a' : 'div';
+            $tag = $destino ? 'button' : 'div';
         ?>
             <<?= $tag ?> class="<?= $classe ?>"
-                <?= $destino ? 'href="' . $destino . '"' : '' ?>
+                <?= $destino ? 'type="submit" form="form-acao-importacao" name="acao" value="' . $destino . '"' : '' ?>
                 <?= $destino && $n === 1 ? 'onclick="return confirm(\'Trocar de arquivo descarta esta importação. Continuar?\');"' : '' ?>
                 style="<?= $estilo ?>"
                 <?= $n === $etapa_atual ? 'aria-current="step"' : '' ?>>
@@ -327,10 +334,11 @@ $badge_situacao = [
                         </div>
 
                         <div class="d-flex gap-2">
-                            <a href="<?= $acoes ?>?acao=cancelar" class="btn btn-outline-danger"
-                               onclick="return confirm('Cancelar a importação e descartar o arquivo?');">
+                            <button type="submit" form="form-acao-importacao" name="acao" value="cancelar"
+                                    class="btn btn-outline-danger"
+                                    onclick="return confirm('Cancelar a importação e descartar o arquivo?');">
                                 Cancelar
-                            </a>
+                            </button>
                             <button type="submit" class="btn btn-primary flex-grow-1">
                                 <i class="bi bi-arrow-right me-1"></i> Continuar
                             </button>
@@ -508,7 +516,8 @@ $badge_situacao = [
                             ? 'Modelo: <strong>' . htmlspecialchars($modelo_ativo) . '</strong>'
                             : 'Colunas detectadas automaticamente';
                         ?>
-                        · <a href="<?= $acoes ?>?acao=ajustar_colunas">ajustar ou trocar de modelo</a>
+                        · <button type="submit" form="form-acao-importacao" name="acao" value="ajustar_colunas"
+                                  class="btn btn-link btn-sm p-0 align-baseline">ajustar ou trocar de modelo</button>
                     </small>
                 </div>
                 <span class="text-muted small">
@@ -662,14 +671,16 @@ $badge_situacao = [
 
         <div class="card border-0 shadow-sm">
             <div class="card-body d-flex flex-wrap gap-2 align-items-center">
-                <a href="<?= $acoes ?>?acao=cancelar" class="btn btn-outline-danger"
-                   onclick="return confirm('Cancelar a importação e descartar o arquivo?');">
+                <button type="submit" form="form-acao-importacao" name="acao" value="cancelar"
+                        class="btn btn-outline-danger"
+                        onclick="return confirm('Cancelar a importação e descartar o arquivo?');">
                     <i class="bi bi-x-lg me-1"></i> Cancelar
-                </a>
+                </button>
 
-                <a href="<?= $acoes ?>?acao=ajustar_colunas" class="btn btn-outline-secondary">
+                <button type="submit" form="form-acao-importacao" name="acao" value="ajustar_colunas"
+                        class="btn btn-outline-secondary">
                     <i class="bi bi-table me-1"></i> Ajustar colunas
-                </a>
+                </button>
 
                 <button type="submit" name="acao" value="recalcular" class="btn btn-outline-secondary">
                     <i class="bi bi-arrow-clockwise me-1"></i> Recalcular
